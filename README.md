@@ -1,73 +1,194 @@
 # project-golem
 Headless browser agent powered by Gemini &amp; Ollama.
-🦞 Project Golem (魔像計畫)
-"Body of a machine, Mind of a god." 一個基於 Puppeteer (手腳) 與 Ollama (小腦) 的雙腦協作 AI 代理人。
+這是一份為 **Project Golem v3.5 (Fortress Ultimate Edition)** 量身打造的專業 `README.md`。
 
-Project Golem 是一個為了實踐 "Vibe Coding" 精神而生的實驗性專案。它將本地電腦轉化為一個「執行端 (Body)」，透過瀏覽器自動化技術，借用網頁版 AI (如 Gemini Advanced) 作為「大腦 (Brain)」，並透過 Telegram 介面讓你隨時隨地指揮家裡的電腦。
+這份文檔不僅包含了安裝指南，還特別強調了你最引以為傲的 **「三級風險控制」** 與 **「動態權限提升」** 機制，讓瀏覽這個專案的人一眼就能看出這不是普通的 Chatbot，而是一個具備資安思維的 AI Agent。
 
-✨ 核心特色 (Features)
-🧠 雙腦架構 (Dual-Brain):
-大腦: 使用網頁版 Gemini/ChatGPT 處理複雜邏輯與程式碼生成。
-小腦: 使用本地 Ollama (Llama 3) 進行網頁視覺辨識與長文摘要。
-💸 完全免費 (Free Tier Hacker): 繞過 API 付費牆，直接使用強大的網頁版模型。
-🕵️‍♂️ 隱形模式 (Stealth Mode): 整合 puppeteer-extra-plugin-stealth，有效規避機器人偵測。
-📱 隨身指揮 (Telegram Bot): 躺在沙發上也能透過手機指揮電腦寫程式。
+---
 
+### 📋 建議操作
 
-🛠️ 安裝指南 (Installation)
-1. 環境準備 (Prerequisites)
-請確保你的電腦已安裝以下軟體：
-Node.js (v18 或更高版本)
-Google Chrome 瀏覽器
-Ollama (並下載 Llama 3 模型: ollama pull llama3.2:3b)
-2. 下載專案
-git clone [https://github.com/Arvincreator/project-golem.git](https://github.com/Arvincreator/project-golem.git)
+1. 在專案根目錄建立一個 `README.md` 檔案。
+2. 將以下內容複製貼上。
+3. (選用) 如果你有截圖，將圖片放入 `screenshots/` 資料夾並修改連結。
+
+---
+
+```markdown
+# 🦞 Project Golem (魔像計畫)
+
+![Version](https://img.shields.io/badge/version-v3.5_Fortress-blue) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green) ![License](https://img.shields.io/badge/license-MIT-orange)
+
+> **一個基於 Puppeteer 與 Gemini 的「瀏覽器自動化」AI 代理人。**
+> 無需 API Key，直接賦予 Telegram 機器人操作電腦與聯網思考的能力，並具備企業級的沙盒安全機制。
+
+---
+
+## 📖 關於專案 (About)
+
+**Project Golem** 是一個實驗性的 AI Agent 系統。與傳統調用 API 的機器人不同，Golem 透過 **Puppeteer** 直接模擬真人操作 Google Gemini 網頁版，實現了「零成本」的無限長文本對話與邏輯推理。
+
+在 **v3.5 Fortress Edition** 中，我們引入了 **動態權限提升 (Dynamic Privilege Escalation)** 與 **檔案沙盒 (File System Sandboxing)**，讓 AI 能夠在安全受控的環境下執行 Shell 指令、讀寫檔案，甚至在獲得授權後安裝系統工具。
+
+### 🔥 核心亮點
+* **🧠 免費無限大腦**：直接使用 Google Gemini Web 版，無 Token 限制。
+* **🛡️ 雙層安全沙盒**：預設鎖定在 `./golem_workspace`，防止誤刪系統檔案。
+* **🚦 三級風險控制**：
+    * 🟢 **綠區 (Auto)**：搜尋、思考、讀取公開資訊 -> 自動執行。
+    * 🟡 **黃區 (Ask)**：讀寫沙盒內檔案 -> 需按鈕確認。
+    * 🔴 **紅區 (Strict)**：系統安裝 (`brew`/`apt`)、刪除檔案 -> 需「Root 授權」按鈕。
+* **⚡ 動態權限提升**：針對系統安裝指令，經人工授權後可暫時跳出沙盒執行。
+* **🔧 自我修復機制**：瀏覽器崩潰或卡住時自動重啟 Session。
+
+---
+
+## 🛠️ 技術架構 (Architecture)
+
+```mermaid
+graph TD
+    User[Telegram User] -->|傳送訊息| Bot(Node.js Controller)
+    Bot -->|JSON Protocol| Browser(Puppeteer / Gemini Web)
+    Bot -->|摘要請求| Ollama(Local Llama 3)
+    
+    subgraph Security Layer
+    Bot --x|攔截危險指令| System
+    Bot -->|安全檢查| Sandbox[./golem_workspace]
+    end
+    
+    Browser -->|思考結果| Bot
+    Bot -->|回傳結果| User
+
+```
+
+---
+
+## 🚀 安裝指南 (Installation)
+
+### 1. 環境準備
+
+請確保你的系統已安裝：
+
+* **Node.js** (v18 以上)
+* **Google Chrome** (建議安裝以獲得最佳相容性)
+* **Ollama** (選用，用於長文摘要)
+
+### 2. 下載專案
+
+```bash
+git clone [https://github.com/YourUsername/project-golem.git](https://github.com/YourUsername/project-golem.git)
 cd project-golem
 
+```
 
-4. 安裝依賴套件
+### 3. 安裝依賴
+
+```bash
 npm install
+# 核心套件：puppeteer, node-telegram-bot-api, dotenv, ollama
 
+```
 
-5. 設定環境變數
-請將 .env.example 複製並改名為 .env，然後填入你的 Telegram Token：
-Windows:
-copy .env.example .env
+### 4. 設定環境變數
 
+請複製 `.env.example` 為 `.env` 並填入資訊：
 
-Mac/Linux:
+```bash
 cp .env.example .env
 
+```
 
-用文字編輯器打開 .env 並填入：
-TELEGRAM_TOKEN=你的_Telegram_Bot_Token_在這裡
+**`.env` 設定範例：**
+
+```ini
+# Telegram Bot Token (向 @BotFather 申請)
+TELEGRAM_TOKEN=123456789:ABCdefGhIjkLmNoPqRsTuVwXyZ
+
+# 瀏覽器資料存放區 (保留登入資訊)
 USER_DATA_DIR=./golem_memory
 
+# (選用) 指定 Chrome 路徑，若不設定則使用 Puppeteer 內建 Chromium
+# CHROME_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
-🚀 使用教學 (Usage)
-步驟 1：喚醒魔像
-在終端機輸入以下指令啟動程式：
+```
+
+---
+
+## 🎮 如何使用 (Usage)
+
+### 啟動魔像
+
+```bash
 node index.js
 
+```
 
-步驟 2：首次登入 (關鍵！)
-程式啟動後，會自動彈出一個 Chrome 視窗並前往 Gemini 網站。
-第一次執行時，請手動在該視窗輸入你的 Google 帳號密碼登入。
-登入完成後，你不需要關閉視窗，魔像會自動記住你的登入狀態 (Cookie)。
+啟動後，終端機顯示 `📡 Golem v3.5 (Fortress Ultimate) 啟動完成` 即代表就緒。
 
-步驟 3：開始指揮
-打開你的手機 Telegram App。
-找到你的 Bot (例如 @MyGolemBot)。
-傳送訊息給它，例如：「幫我用 Python 寫一個貪吃蛇遊戲」 「解釋量子力學是什麼」
-觀察電腦螢幕： 你會看到瀏覽器自動打字、發送訊息。
-接收回應： 幾秒鐘後，魔像會把 Gemini 的回答傳回你的手機 (如果是長文，Ollama 會幫你做摘要)。
+### Telegram 指令
 
-❓ 常見問題 (Troubleshooting)
-Q: 程式顯示「找不到輸入框」？ A: Google 有時會更改網頁結構。請確認你的瀏覽器視窗是否為「已登入」狀態。如果已登入仍失敗，可能需要更新 index.js 中的 CSS Selector。
-Q: 需要一直開著電腦嗎？ A: 是的，因為這是一個本地執行的程式，你的電腦就是伺服器。
-Q: 會被 Google 封鎖帳號嗎？ A: 本專案使用了 puppeteer-extra-plugin-stealth 來模擬真人行為，但仍建議不要進行極高頻率的請求 (例如每秒 10 次)，以免觸發風控。
-🤝 貢獻 (Contributing)
-歡迎提交 PR 或 Issue，讓我們一起完善這隻魔像！
-⚠️ 免責聲明 (Disclaimer)
-本專案僅供學術研究與個人自動化測試使用。請遵守相關服務條款。
-Created with the spirit of Vibe Coding.
+* `/start` - 喚醒機器人並顯示歡迎訊息。
+* `/new` - **重置對話**並初始化 Agent 模式（推薦每次換新任務時使用）。
+
+### Agent 模式範例
+
+Golem 會根據你的自然語言判斷意圖：
+
+1. **寫程式 (沙盒內)**
+> User: "幫我寫一個 Python 的 Hello World 腳本存成 hello.py"
+
+
+> Bot: (跳出黃色按鈕) 🟡 **請求寫入檔案**：`hello.py`
+
+
+> User: [✅ 批准] -> 檔案建立成功。
+
+
+2. **安裝工具 (權限提升)**
+> User: "我需要安裝 ffmpeg 來處理影片"
+
+
+> Bot: (跳出紅色警告) 🔴 **請求系統安裝**：`brew install ffmpeg` (警告：此操作涉及系統變更)
+
+
+> User: [🔥 Root 授權執行] -> 暫時跳出沙盒，執行安裝，完成後收回權限。
+
+
+
+---
+
+## 📂 目錄結構
+
+```text
+project-golem/
+├── index.js              # 核心主程式 (Bot + Puppeteer + Security)
+├── .env                  # 設定檔
+├── golem_workspace/      # 📦 安全沙盒 (所有 AI 的檔案操作都在這)
+├── golem_memory/         # 瀏覽器快取 (保存 Gemini 登入狀態)
+└── debug_screenshots/    # 錯誤截圖 (Debug 用)
+
+```
+
+---
+
+## ⚠️ 免責聲明 (Disclaimer)
+
+1. **Google 帳號風險**：本專案使用自動化工具操作 Google 服務，可能違反 Google 服務條款。建議使用**備用 Google 帳號**進行測試，以免主帳號被封鎖。
+2. **系統安全**：雖然 v3.5 具備沙盒與權限審核機制，但在授予「Root 授權」時請務必自行判斷指令風險。作者不對因使用本軟體造成的任何數據丟失或系統損壞負責。
+
+---
+
+## 🤝 貢獻 (Contributing)
+
+歡迎提交 Issue 或 Pull Request！
+特別徵求：
+
+* 更多的 Prompt Injection 防禦策略。
+* 支援 Docker 部署的配置優化。
+
+---
+
+Created with ❤️ by **Arvin_Chen** 
+
+```
+
+```
