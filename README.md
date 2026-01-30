@@ -1,8 +1,7 @@
 # project-golem
 Headless browser agent powered by Gemini &amp; Ollama.
 
----
-```markdown
+--
 # 🦞 Project Golem (魔像計畫)
 
 ![Version](https://img.shields.io/badge/version-v3.5_Fortress-blue) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green) ![License](https://img.shields.io/badge/license-MIT-orange)
