@@ -91,6 +91,24 @@ Headless browser agent powered by Gemini &amp; Ollama.
 ```
 
 ---
+### ⚡ Windows 一鍵部署 (One-Click Deployment)
+
+懶得手動輸入指令？我們為 Windows 使用者準備了全自動部署協議。
+
+1.  **執行腳本**：雙擊根目錄下的 `setup.bat`。
+2.  **自動化程序**：腳本將依序執行以下任務：
+    * 🕵️ **環境掃描**：檢查 Node.js 與 Ollama 是否就緒。
+    * 📦 **依賴注入**：安裝 npm 套件與 Puppeteer 瀏覽器核心。
+    * 🧠 **模型載入**：自動拉取 Llama3 模型。
+    * 🔑 **憑證寫入**：互動式詢問您的 **Telegram Token** 與 **Admin ID**，並自動生成 `.env` 設定檔。
+3.  **啟動**：部署完成後，直接輸入 `node index.js` 即可喚醒 Golem。
+
+---
+
+### 🔧 手動部署 (Manual Setup)
+
+如果您是 Mac/Linux 使用者，或喜歡掌控一切，請參考以下步驟：
+(接原本的 git clone, npm install 等步驟...)
 
 ## 🚀 完整部署指南 (Deployment Guide)
 
