@@ -1,19 +1,26 @@
 {
   "name": "project-golem",
-  "version": "1.0.0",
-  "description": "A Vibe Coding experiment: Headless browser agent powered by Gemini & Ollama.",
+  "version": "6.0.0",
+  "description": "Project Golem v6.0 (Fortress Edition): A Dual-Brain AI Agent (Gemini Web + Ollama) with Split-Protocol and Risk-Based Security.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Arvincreator/project-golem.git"
+  },
   "keywords": [
     "ai-agent",
+    "dual-brain",
     "puppeteer",
     "ollama",
     "gemini",
-    "telegram-bot"
+    "telegram-bot",
+    "automation",
+    "stealth"
   ],
-  "author": "Vibe Coder",
+  "author": "Arvincreator",
   "license": "MIT",
   "dependencies": {
     "dotenv": "^16.3.1",
@@ -21,8 +28,10 @@
     "ollama": "^0.5.0",
     "puppeteer": "^21.5.2",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
-
-
