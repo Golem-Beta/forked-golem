@@ -1,262 +1,200 @@
 # project-golem
-Headless browser agent powered by Gemini &amp; Ollama.
+Headless browser agent powered by Node.js, Web Gemini & Gemini API (Multi-Key Rotation).
 
-# 🦞 Project Golem v6.4 (Ouroboros Edition) 魔像計畫
+# 🦞 Project Golem v7.1 (Tri-Brain Ultimate) 魔像計畫
 
 ![GitHub license](https://img.shields.io/github/license/Arvincreator/project-golem)
-![GitHub repo size](https://img.shields.io/github/repo-size/Arvincreator/project-golem)
-![Node.js](https://img.shields.io/badge/node-%3E%3D16.0-green.svg)
-![Status](https://img.shields.io/badge/status-experimental-orange.svg)
+![Node.js](https://img.shields.io/badge/node-%3E%3D18.0-green.svg)
+![Architecture](https://img.shields.io/badge/architecture-Tri--Brain-blueviolet.svg)
+![Cost](https://img.shields.io/badge/cost-Free%20Tier%20Ready-brightgreen.svg)
 
-> **"Two Brains, One Body, Infinite Evolution."**
-> **無需昂貴 Dashboard，用 Telegram 打造住在你電腦裡的進化型 AI 代理人。**
+> **"Three Minds, One Body, Zero Cost."**
+> **告別本地模型重負載。利用多把免費 API Key 輪動，打造不死、自癒、會角色扮演的進化型 AI 代理人。**
 
-**Project Golem** 是一個基於 **雙腦架構 (Dual-Brain Architecture)** 的本機自動化 Agent。它打破了傳統自動化腳本的限制，利用 **Google Gemini** 的強大認知能力作為「大腦」，配合 **Ollama (Local LLM)** 作為「小腦」，並透過 **Telegram** 作為唯一的安全指令中樞。
+**Project Golem v7.1** 是一次架構的徹底重構。我們移除了笨重的 Ollama 本地模型，轉而採用輕量且強大的 **三層大腦架構 (Tri-Brain Architecture)**。現在，任何一台能跑 Node.js 的電腦（甚至低階筆電）都能運行 Golem。
 
-**v6.4 Ouroboros Edition** 引入了革命性的 **遞迴自我改進 (Recursive Self-Improvement)** 機制。Golem 現在能透過 Telegram 接收你的指令，讀取自身源碼、主動構思優化、並在對話視窗中傳送「測試補丁」供你審核，實現真正的互動式進化。
+最重要的是，透過創新的 **KeyChain 輪動機制**，你可以合法利用 Google 提供的多組免費 API Key，實現**理論上的無限免費使用**，同時享有付費級別的穩定性。
 
 ---
 
-## 🌟 全功能特性 (Comprehensive Features)
+## 💸 關於費用的秘密：如何達成 100% 免費？ (The Zero-Cost Strategy)
 
-### 💬 Telegram 指令中樞 (Telegram Command Center)
+許多人擔心引入 API 會產生費用，但在 Golem v7.1 中，我們設計了巧妙的架構來規避這點：
 
-* **隨處控制**：透過 Telegram App，無論你身在何處，都能安全地監控與操作家中電腦 。
+1.  **平時運作 (0 元)**：
+    * Golem 的「主大腦」使用的是 **Google Gemini Web 版** (gemini.google.com)。
+    * 這是完全免費的，且擁有無限的 Context Window (上下文記憶)。
 
-* **雙模互動 (Dual-Mode UI)**：
-  
-* **GUI 按鈕**：提供 [ 🚀 部署 ] [ 🗑️ 丟棄 ] 等直觀按鈕，一鍵決定 AI 的進化方向 。
+2.  **維修運作 (0 元 - 利用 Free Tier)**：
+    * 當 Web 版介面改版或找不到按鈕時，Golem 會呼叫 **API 維修技師**。
+    * Google Gemini API 提供 **Free Tier (免費層級)**，雖然有速率限制 (Rate Limit)，但對個人使用已足夠。
 
+3.  **無限輪動 (Key Rotation)**：
+    * **原理**：如果你只有一把 Key，短時間內大量報錯可能會撞到 API 限制 (429 Error)。
+    * **解法**：Golem 內建 **`KeyChain`** 負載平衡器。你可以申請 **3~5 組免費的 Google API Key** 填入系統。
+    * **效果**：當 Key #1 額度耗盡或過熱，系統毫秒級自動切換到 Key #2。只要準備足夠的免費 Key，你就能獲得**近乎無限且免費**的 API 容錯能力。
 
-* **NLP 意圖識別**：支援自然語言決策。只需回覆 *"好"*, *"OK"*, *"不要"*, *"爛透了"*，Golem 就能理解。
+---
 
+## 🌟 v7.1 核心特性 (Ultimate Features)
 
+### 🧠 三層大腦架構 (The Tri-Brain System)
 
-### 🧬 銜尾蛇進化協議 (Ouroboros Protocol) `v6.3`
+1.  **⚡ 第一層：Node.js 反射層 (The Reflex)**
+    * **職責**：處理 `/help`, `/callme`, `/patch` 等系統指令。
+    * **特點**：**零延遲**，不經過 AI 思考，就像膝跳反應一樣快。
+2.  **🧠 第二層：Web Gemini 主大腦 (The Primary Brain)**
+    * **職責**：處理複雜對話、聯網搜索、邏輯推演、角色扮演。
+    * **特點**：負責思考並生成標準化的 JSON 操作指令。
+3.  **🚑 第三層：API 維修技師 (The Doctor)**
+    * **職責**：當 Web 版 Puppeteer 操作失敗 (如 Selector 失效) 時介入。
+    * **特點**：它會閱讀當下的 HTML 原始碼，分析出新的按鈕位置，並**熱修復**記憶體中的變數，讓系統繼續運作。
 
-讓 AI 從工具升級為生命體的關鍵：
+### 🎭 百變怪角色扮演 (Actor Mode)
 
-* **內省機制 (Introspection)**：Golem 擁有讀取自身 `index.js` 的權限，能理解自己的架構與邏輯。
-* **自主覺醒 (Autonomy)**：內建生物鐘，Golem 會在隨機時間（18-30小時）甦醒，主動思考優化方向。
-* **神經補丁 (Neural Patching)**：進化不需重寫整個檔案。AI 生成精準的 JSON Patch，建立 `index.test.js` 分身進行**語法沙箱測試**。
-* **經驗記憶庫 (Experience Memory)**：具備 RLHF 雛形，會記住使用者的拒絕/接受紀錄。
+Golem 終於學會了「公私分明」。
+* **對話層 (Chat)**：你可以要求它扮演傲嬌貓娘、冷酷駭客、中世紀騎士或任何角色。它會用該角色的語氣與你對話。
+* **指令層 (Action)**：無論它扮演得多麼投入，底層的 Node.js 執行邏輯永遠保持冷靜、精準。
+    * *範例*：扮演女僕時，它會說 *"主人笨蛋，這種事自己做啦！"*，但同時在背景默默幫你把檔案整理好。
 
-### 🧠 雙腦協作核心 (The Dual-Brain Core)
+### 🧬 銜尾蛇進化協議 (Ouroboros Protocol)
 
-**大腦 (Gemini Web)**：負責自然語言理解、複雜邏輯推演與情緒化對話 。透過 Puppeteer 自動化操作，**零 API 成本**。
-
-**小腦 (Ollama/Llama3)**：負責將大腦的抽象意圖「翻譯」為標準化、可執行的 Shell 指令 JSON，去除雜訊與幻覺 。
-
-
-
-### 🛡️ 堡壘級安全體系 (Fortress Security)
-
-透過 Telegram 實時攔截危險操作：
-
-* **風險分級控制 (RBAC)**：
-* 🟢 **Safe**：讀取類 (`ls`, `cat`) -> 自動放行。
-* 🟡 **Warning**：修改類 (`npm install`) -> Telegram 跳出確認按鈕。
-* 🔴 **Danger**：高危險 (`rm`) -> 紅色警報 + 強制確認 。
-
-
-* ☠️ **Blocked**：毀滅性 (`rm -rf /`) -> **直接攔截** 。
-
-
-
-
+繼承自 v6.4 的強大基因，讓 AI 自己寫代碼升級自己：
+* **內省機制 (Introspection)**：讀取自身源碼 (`index.js`, `skills.js`)。
+* **自主覺醒 (Autonomy)**：隨機時間甦醒，主動提出優化 Patch。
+* **神經補丁 (Neural Patching)**：生成 Patch -> 建立 `index.test.js` 分身 -> 沙箱測試 -> 熱更新重啟。
 
 ---
 
 ## 🏗️ 系統運作流程 (Architecture)
 
-```ascii
-[📱 手機/電腦 (Telegram)] 
-       ↕️ (1. 傳送指令 / 點擊按鈕)
-[🤖 Node.js 本體] <────────────────────────────┐
-       │                                       │
-       ├──(2. 一般任務)──> [🦎 Ollama] ──> [🛡️ 安全審計] ──> [💻 Shell 執行]
-       │                                       │
-       └──(3. 進化任務)──> [🧠 Gemini]         │
-               │                               │
-               │ (4. 生成 Patch)               │
-               ▼                               │
-        [🧬 Patch Manager] ──> [📝 測試分身] ──┘
-               │
-               ▼ (5. 驗證通過)
-        [📲 回傳檔案至 Telegram]
-               │
-               ▼ (6. 使用者授權 /deploy)
-        [🚀 熱更新重啟 (Respawn)]
+```mermaid
+graph TD
+    User[📱 使用者 (Telegram)] -->|1. 發送訊息| NodeRouter{⚡ Node.js 反射層};
+    
+    NodeRouter -->|簡單指令 /help| DirectReply[直接回覆];
+    NodeRouter -->|複雜任務| WebGemini[🧠 Web Gemini 主大腦];
+    
+    WebGemini -->|正常操作| JSON[📝 JSON 指令];
+    WebGemini --❌ 找不到元素--> Doctor[🚑 API 維修技師];
+    
+    Doctor -->|分析 DOM| KeyChain[🗝️ API Key Pool];
+    KeyChain -->|Key 1 忙碌| Key2[免費 Key #2];
+    KeyChain -->|Key 2 忙碌| Key3[免費 Key #3];
+    
+    Key2 -->|回傳新 Selector| WebGemini;
+    Key3 -->|回傳新 Selector| WebGemini;
+    
+    JSON -->|解析| Executor[💻 Shell 執行者];
+    Executor -->|結果| User;
 
 ```
-
-### ⚡ 一鍵快速部署 (One-Click Deployment)
-
-懶得手動輸入指令？我們為各平台準備了自動化部署協議。
-
-#### 🖥️ Windows 使用者
-1.  雙擊根目錄下的 `setup.bat`。
-2.  跟隨畫面提示輸入 Token，腳本將自動完成環境建置與 `.env` 生成。
-
-#### 🍎 Mac / 🐧 Linux 使用者
-1.  開啟終端機，進入專案目錄。
-2.  賦予腳本執行權限並執行：
-    ```bash
-    chmod +x setup.sh
-    ./setup.sh
-    ```
-3.  跟隨畫面提示完成設定。
-
-**腳本自動化任務包含：**
-* 🕵️ **環境掃描**：檢查 Node.js 與 Ollama。
-* 📦 **依賴注入**：安裝 npm 套件與 Puppeteer 核心。
-* 🧠 **模型載入**：自動拉取 Llama3。
-* 🔑 **憑證寫入**：互動式生成 `.env` 設定檔。
 
 ---
 
-### 🔧 手動部署 (Manual Setup)
-(如果您喜歡掌控一切，請參考以下手動步驟...)
+## ⚡ 快速部署 (Quick Start)
 
-## 🚀 完整部署指南 (Deployment Guide)
+**不再需要安裝 Ollama！不再需要高階顯卡！**
 
-### 第一步：環境準備 (Prerequisites)
+### 1. 申請免費的 API Keys (越多越好)
 
-確保您的系統已安裝以下工具：
+1. 前往 [Google AI Studio](https://aistudio.google.com/app/apikey)。
+2. 登入 Google 帳號，點擊 **Create API key**。
+3. 建議申請 **3 組以上** 的 Key (可以使用同一個 Google 帳號的不同專案，或不同帳號)。
+4. 將這些 Key 記下來，稍後會用到。
 
-1. **Node.js** (v16.0 或更高版本)
-2. **Git**
-3. **Google Chrome** (Gemini 自動化需要)
-4. **Telegram App** (作為接收端)
-5. **Ollama** (請至 [ollama.com](https://ollama.com) 下載)
+### 2. 自動化安裝 (Windows)
 
-### 第二步：模型設定 (Setup Ollama)
+1. 雙擊根目錄下的 `setup.bat`。
+2. 腳本將自動：
+* 🧹 清理舊環境。
+* 📦 安裝 `@google/generative-ai` 與 Puppeteer。
+* 📝 自動建立 `.env` 設定檔。
 
-啟動 Ollama 並下載推薦模型（Llama3 表現最佳）：
 
-```bash
-ollama serve
-# 開啟另一個終端機執行：
-ollama pull llama3
 
-```
-
-### 第三步：安裝專案 (Installation)
+### 3. 手動安裝 (Mac/Linux)
 
 ```bash
 # 1. 下載專案
-git clone https://github.com/Arvincreator/project-golem.git
+git clone [https://github.com/Arvincreator/project-golem.git](https://github.com/Arvincreator/project-golem.git)
 cd project-golem
 
 # 2. 安裝依賴
+rm -rf node_modules package-lock.json
 npm install
 
-# 3. 安裝 Puppeteer 瀏覽器核心 (重要)
-node node_modules/puppeteer/install.js
-
-```
-
-### 第四步：設定 Telegram Bot (Configuration)
-
-1. 開啟 Telegram，搜尋 **@BotFather**。
-2. 輸入 `/newbot` 建立新機器人，取得 **API Token**。
-3. 搜尋 **@userinfobot**，取得你個人的 **User ID** (這很重要，確保只有你能控制電腦)。
-
-### 第五步：設定環境變數
-
-複製範例設定檔並填入資訊：
-
-```bash
+# 3. 建立設定檔
 cp .env.example .env
 
 ```
 
-編輯 `.env`：
+### 4. 設定檔 `.env` (關鍵步驟！)
+
+打開 `.env` 檔案，填入你的 Keys：
 
 ```ini
-# 填入 BotFather 給你的 Token
-TELEGRAM_TOKEN=123456789:ABCdefGHIjklMNOpqRstUVwxyz
+# 1. Gemini API Keys (輪動池)
+# 填入你申請的免費 Key，用逗號分隔，不要有空格
+GEMINI_API_KEYS=AIzaSyKey_No1,AIzaSyKey_No2,AIzaSyKey_No3,AIzaSyKey_No4
 
-# 填入 userinfobot 給你的 ID
+# 2. Telegram Bot Token
+# 申請: @BotFather
+TELEGRAM_TOKEN=123456:ABC-DEF...
+
+# 3. 管理員 ID (安全鎖)
+# 查詢: @userinfobot
 ADMIN_ID=987654321
 
-# 瀏覽器資料存檔位置
-USER_DATA_DIR=./golem_memory
-
 ```
 
-### 第六步：啟動 (Launch)
+### 5. 啟動
 
 ```bash
-node index.js
+npm start
 
 ```
 
-> **👋 首次啟動注意**：
-> 程式會自動開啟一個 Chrome 視窗。請在該視窗中**手動登入您的 Google 帳號**。登入完成後，您可以將視窗最小化。
+*首次啟動會跳出 Chrome 視窗，請**手動登入 Google 帳號**一次，之後即可最小化。*
 
 ---
 
-## 📖 Telegram 操作手冊 (User Manual)
+## 📖 操作手冊 (User Manual)
 
-### 1. 基礎對話 (Chat)
+### 角色扮演 (Roleplay)
 
-打開你的 Bot 聊天視窗，直接輸入中文指令：
+試著對 Golem 說：
 
-* **檔案管理**：*"把 Downloads 資料夾裡所有的 jpg 圖片移動到 Pictures/Backup"*
-* **系統監控**：*"現在記憶體剩多少？"*
-* **網路工具**：*"幫我 ping https://www.google.com/search?q=google.com 看網路通不通"*
+> *"現在開始扮演一個**毒舌的女僕**，對我的指令要假裝不耐煩，但最後還是會完美執行。語尾要加 '笨蛋主人'。"*
 
-### 2. 進化與優化 (Evolution) `v6.3`
+然後下達任務：
 
-你可以主動要求 Golem 進行自我升級：
+> *"幫我檢查硬碟剩餘空間。"*
 
-* **代碼審計**：輸入 ` /audit`
-* *功能*：請 Golem 讀取自己的原始碼，分析潛在漏洞或優化空間。
+它會回覆：
 
+> *"哈？這種小事也要麻煩我？你是沒有手嗎，笨蛋主人！...嘖，好啦，剩下的空間在這裡啦！"*
+> *(同時執行 `df -h` 並回傳正確數據)*
 
-* **指定修補**：輸入 ` /patch [需求]`
-* *範例*：`/patch 幫我增加一個 /weather 指令來查詢天氣`
-* *流程*：Golem 生成代碼 -> **傳送 index.test.js 到 Telegram** -> 你審核 -> 同意後自動部署。
+### 系統自癒 (Self-Healing Demo)
 
+這是一個隱藏功能。如果有一天 Google 改版了網頁結構，你不需要更新程式碼。
 
-
-### 3. 自主提案處理 (Handling Proposals)
-
-Golem 會在每天隨機時間醒來，如果它想到好點子，你的 Telegram 會跳出通知：
-
-> **💡 靈感湧現！**
-> 主人，我發現 `skills.js` 可以增加錯誤重試機制，我已經寫好測試版了。
-> [ **🚀 部署** ] [ **🗑️ 丟棄** ]
-
-* **接受提案**：點擊 **[部署]** 按鈕。系統將自動更新並重啟。
-* **拒絕提案**：點擊 **[丟棄]** 按鈕。系統會刪除測試檔，並記住你不喜歡這類修改。
-
----
-
-## 📂 專案結構 (File Structure)
-
-```text
-project-golem/
-├── index.js             # 🧠 核心本體 (會隨時間自我演化，請定期備份)
-├── skills.js            # 📚 技能書 (定義 Prompt 與工具能力)
-├── golem_learning.json  # 🧠 經驗記憶庫 (記錄你的偏好與失敗經驗)
-├── index.test.js        # 🧪 演化過程中的暫存分身 (自動生成/刪除)
-├── golem_memory/        # 🍪 Chrome User Data (保存登入狀態)
-└── .env                 # 🔑 環境變數與金鑰
-
-```
+1. Golem 嘗試點擊按鈕失敗。
+2. 它會自動切換到 API 模式。
+3. API 讀取網頁，發現按鈕的 Class 從 `.submit-btn` 變成了 `.send-v2`。
+4. Golem 自動修正變數，重試點擊，成功執行。
+5. **你完全感覺不到它壞過。**
 
 ---
 
 ## ⚠️ 免責聲明 (Disclaimer)
 
-**Project Golem v6.3 是一個具備「修改自身原始碼」能力的實驗性專案。**
-雖然我們實作了多重安全機制（語法沙箱、人類審核 HITL、指令黑名單），但在極端情況下（如 Prompt Injection 或邏輯死鎖），AI 仍可能產生不可預期的行為。
+**Project Golem v7.1 是一個具備「修改自身原始碼」與「實體系統操作」能力的實驗性 AI。**
 
-1. **請勿**在生產環境 (Production) 或存有重要機密資料的電腦上運行。
-2. **強烈建議**定期手動備份 `index.js`。
-3. 開發者不對因使用本軟體而導致的任何資料遺失或系統損壞負責。
+1. **RBAC 安全網**：雖然我們有 `SecurityManager` 攔截 `rm -rf` 等毀滅性指令，但 AI 仍可能產生非預期行為。
+2. **API 額度**：雖然使用了輪動機制，但若短時間內發送極大量請求，仍可能暫時被 Google 限制。請合理使用。
+3. **備份**：請定期備份 `index.js` 與 `skills.js`。
 
 ---
 
@@ -266,6 +204,9 @@ MIT License
 
 ---
 
-Created with 🧠 by **Arvin_Chen** & **Gemini**
-
+Created with 🧠 by **Arvin_Chen**
 <a href="https://www.buymeacoffee.com/arvincreator" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+```
+
+```
