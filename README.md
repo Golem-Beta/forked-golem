@@ -1,7 +1,7 @@
 # project-golem
 Headless browser agent powered by Gemini &amp; Ollama.
 
-# 🦞 Project Golem v6.1 (Modular Fortress Edition) 魔像計畫
+# 🦞 Project Golem v6.2 (Modular Fortress Edition) 魔像計畫
 
 ![GitHub license](https://img.shields.io/github/license/Arvincreator/project-golem)
 ![GitHub repo size](https://img.shields.io/github/repo-size/Arvincreator/project-golem)
