@@ -70,7 +70,7 @@ Golem 終於學會了「公私分明」。
 
 ```mermaid
 graph TD
-    User["📱 使用者 (Telegram)"] -->|"1. 發送訊息"| NodeRouter{"⚡ Node.js 反射層"}
+    User["📱 使用者 (Telegram)"] -->|"1. 發送訊息"| NodeRouter["⚡ Node.js 反射層"]
     
     NodeRouter -->|"簡單指令 /help"| DirectReply["直接回覆"]
     NodeRouter -->|"複雜任務"| WebGemini["🧠 Web Gemini 主大腦"]
@@ -113,21 +113,27 @@ graph TD
 
 
 
-### 3. 手動安裝 (Mac/Linux)
+### 3. 自動化安裝 (Mac / Linux)
 
+我們也準備了 Shell Script 懶人包：
+
+1. 下載專案：
 ```bash
-# 1. 下載專案
 git clone [https://github.com/Arvincreator/project-golem.git](https://github.com/Arvincreator/project-golem.git)
 cd project-golem
 
-# 2. 安裝依賴
-rm -rf node_modules package-lock.json
-npm install
+```
 
-# 3. 建立設定檔
-cp .env.example .env
+
+2. 執行安裝腳本：
+```bash
+chmod +x setup.sh
+./setup.sh
 
 ```
+
+
+3. 腳本會自動完成依賴安裝與環境設定。
 
 ### 4. 設定檔 `.env` (關鍵步驟！)
 
