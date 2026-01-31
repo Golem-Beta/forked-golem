@@ -1,104 +1,105 @@
 @echo off
-chcp 65001 >nul
 setlocal
-title 🦞 Project Golem v6.3 - Deployment Protocol
-color 0A
+chcp 65001 >nul
+title Golem v7.1 Setup Wizard
 
-:: ============================================================
-:: 歡迎畫面
-:: ============================================================
+echo ========================================================
+echo      🦞 Golem v7.1 (Tri-Brain Ultimate) 安裝精靈
+echo ========================================================
 echo.
-echo  =============================================================
-echo   🦞 Project Golem v6.3 (Ouroboros Edition)
-echo   -----------------------------------------------------------
-echo   自動化部署與環境初始化腳本
-echo  =============================================================
-echo.
-echo  [1/4] 正在檢查系統環境...
 
-:: 1. 檢查 Node.js
-where node >nul 2>nul
+:: 1. 檢查 Node.js 環境
+echo 🔍 [1/5] 正在檢查 Node.js 環境...
+node -v >nul 2>&1
 if %errorlevel% neq 0 (
-    color 0C
-    echo  [X] 錯誤: 未偵測到 Node.js！
-    echo      請前往 https://nodejs.org/ 下載並安裝 (v16+)。
+    echo [錯誤] 未偵測到 Node.js！
+    echo 請前往 https://nodejs.org/ 下載並安裝 LTS 版本。
     pause
-    exit
-) else (
-    echo  [v] Node.js 已安裝。
+    exit /b
 )
+echo    ✅ Node.js 已安裝。
 
-:: 2. 檢查 Ollama
-where ollama >nul 2>nul
-if %errorlevel% neq 0 (
-    color 0E
-    echo  [!] 警告: 未偵測到 Ollama 指令。
-    echo      請確保您已安裝 Ollama (https://ollama.com) 並已啟動服務。
-    echo      (您可以繼續安裝，但後續需手動設定模型)
-    pause
-) else (
-    echo  [v] Ollama 已安裝。
-)
-
+:: 2. 清理舊環境 (確保移除 Ollama)
 echo.
-echo  [2/4] 正在安裝核心依賴 (這可能需要幾分鐘)...
-echo  -----------------------------------------------------------
+echo 🧹 [2/5] 清理舊依賴與緩存...
+if exist node_modules (
+    echo    - 正在刪除舊的 node_modules...
+    rmdir /s /q node_modules
+)
+if exist package-lock.json (
+    echo    - 正在刪除舊的 package-lock.json...
+    del package-lock.json
+)
+echo    ✅ 環境清理完成。
+
+:: 3. 安裝新依賴
+echo.
+echo 📦 [3/5] 正在下載 Golem v7.1 核心組件...
+echo    (這可能需要幾分鐘，請稍候...)
 call npm install
 if %errorlevel% neq 0 (
-    color 0C
-    echo  [X] npm install 失敗，請檢查網路連線。
+    echo.
+    echo [錯誤] npm install 失敗！請檢查網路連線。
     pause
-    exit
+    exit /b
+)
+echo    ✅ 依賴安裝完成。
+
+:: 4. 初始化記憶體與設定檔
+echo.
+echo 🧠 [4/5] 初始化神經網路記憶體...
+
+:: 建立記憶體目錄
+if not exist golem_memory (
+    mkdir golem_memory
+    echo    - 建立 golem_memory 資料夾
 )
 
-echo.
-echo  正在下載 Chrome 瀏覽器核心 (Puppeteer)...
-node node_modules/puppeteer/install.js
-
-echo.
-echo  [3/4] 正在初始化 AI 模型 (Llama3)...
-where ollama >nul 2>nul
-if %errorlevel% equ 0 (
-    echo  正在拉取 llama3 模型...
-    ollama pull llama3
+:: 建立/檢查 .env
+if not exist .env (
+    echo    - 未偵測到 .env，正在建立預設設定檔...
+    (
+        echo # ==========================================
+        echo # 🤖 Golem v7.1 環境配置檔
+        echo # ==========================================
+        echo.
+        echo # 1. Google Gemini API Keys ^(維修技師與自癒機制用^)
+        echo # 支援多組 Key 輪動，請用逗號分隔
+        echo GEMINI_API_KEYS=填入你的Key1,填入你的Key2
+        echo.
+        echo # 2. Telegram Bot Token
+        echo TELEGRAM_TOKEN=填入你的BotToken
+        echo.
+        echo # 3. 管理員 ID ^(安全性設定^)
+        echo ADMIN_ID=填入你的TelegramID
+        echo.
+        echo # 4. 記憶體儲存路徑
+        echo USER_DATA_DIR=./golem_memory
+        echo.
+        echo # 5. 測試模式
+        echo GOLEM_TEST_MODE=false
+    ) > .env
+    echo    ⚠️ 已建立 .env 檔案，請記得填入 API Key！
+) else (
+    echo    ✅ .env 設定檔已存在。
 )
 
-:: ============================================================
-:: 互動式設定 (.env 生成)
-:: ============================================================
-cls
-echo.
-echo  =============================================================
-echo   🔑 身份驗證設定 (Security Clearance)
-echo  =============================================================
-echo.
-echo  請輸入您的 Telegram Bot 資訊以建立安全連線。
-echo.
+:: 初始化 JSON 檔案 (避免初次讀取錯誤)
+if not exist golem_persona.json echo {} > golem_persona.json
+if not exist golem_learning.json echo {} > golem_learning.json
 
-:ASK_TOKEN
-set /p TG_TOKEN="👉 請輸入 Bot Token (來自 @BotFather): "
-if "%TG_TOKEN%"=="" goto ASK_TOKEN
-
+:: 5. 完成
 echo.
-:ASK_ID
-set /p ADMIN_ID="👉 請輸入您的 Admin ID (來自 @userinfobot): "
-if "%ADMIN_ID%"=="" goto ASK_ID
-
+echo ========================================================
+echo      🎉 Golem v7.1 部署就緒！
+echo ========================================================
 echo.
-echo  [4/4] 正在生成 .env 設定檔...
-
-(
-echo TELEGRAM_TOKEN=%TG_TOKEN%
-echo ADMIN_ID=%ADMIN_ID%
-echo USER_DATA_DIR=./golem_memory
-echo OLLAMA_MODEL=llama3
-) > .env
-
+echo [下一步指引]
+echo 1. 請打開專案目錄下的 .env 檔案。
+echo 2. 填入 GEMINI_API_KEYS (必要！)。
+echo 3. 填入 TELEGRAM_TOKEN (必要！)。
+echo 4. 填入 ADMIN_ID (建議)。
 echo.
-echo  =============================================================
-echo   ✅ 部署完成！(Mission Accomplished)
-echo  =============================================================
-echo.
-echo   輸入 "npm start" 或 "node index.js" 即可啟動 Golem。
+echo 設定完成後，請執行: npm start
 echo.
 pause
