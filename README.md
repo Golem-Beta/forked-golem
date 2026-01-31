@@ -90,25 +90,33 @@ Headless browser agent powered by Gemini &amp; Ollama.
 
 ```
 
----
-### ⚡ Windows 一鍵部署 (One-Click Deployment)
+### ⚡ 一鍵快速部署 (One-Click Deployment)
 
-懶得手動輸入指令？我們為 Windows 使用者準備了全自動部署協議。
+懶得手動輸入指令？我們為各平台準備了自動化部署協議。
 
-1.  **執行腳本**：雙擊根目錄下的 `setup.bat`。
-2.  **自動化程序**：腳本將依序執行以下任務：
-    * 🕵️ **環境掃描**：檢查 Node.js 與 Ollama 是否就緒。
-    * 📦 **依賴注入**：安裝 npm 套件與 Puppeteer 瀏覽器核心。
-    * 🧠 **模型載入**：自動拉取 Llama3 模型。
-    * 🔑 **憑證寫入**：互動式詢問您的 **Telegram Token** 與 **Admin ID**，並自動生成 `.env` 設定檔。
-3.  **啟動**：部署完成後，直接輸入 `node index.js` 即可喚醒 Golem。
+#### 🖥️ Windows 使用者
+1.  雙擊根目錄下的 `setup.bat`。
+2.  跟隨畫面提示輸入 Token，腳本將自動完成環境建置與 `.env` 生成。
+
+#### 🍎 Mac / 🐧 Linux 使用者
+1.  開啟終端機，進入專案目錄。
+2.  賦予腳本執行權限並執行：
+    ```bash
+    chmod +x setup.sh
+    ./setup.sh
+    ```
+3.  跟隨畫面提示完成設定。
+
+**腳本自動化任務包含：**
+* 🕵️ **環境掃描**：檢查 Node.js 與 Ollama。
+* 📦 **依賴注入**：安裝 npm 套件與 Puppeteer 核心。
+* 🧠 **模型載入**：自動拉取 Llama3。
+* 🔑 **憑證寫入**：互動式生成 `.env` 設定檔。
 
 ---
 
 ### 🔧 手動部署 (Manual Setup)
-
-如果您是 Mac/Linux 使用者，或喜歡掌控一切，請參考以下步驟：
-(接原本的 git clone, npm install 等步驟...)
+(如果您喜歡掌控一切，請參考以下手動步驟...)
 
 ## 🚀 完整部署指南 (Deployment Guide)
 
