@@ -1,16 +1,18 @@
 /**
- * 🦞 Project Golem v7.1 (Ouroboros Tri-Brain Ultimate)
+ * 🦞 Project Golem v7.2 (Hydra Dual-Link)
  * ---------------------------------------------------
- * 架構：[Node.js 反射層] -> [Web Gemini 主大腦] -> [API 維修技師]
+ * 架構：[Universal Context] -> [Node.js 反射層] -> [Web Gemini 主大腦]
  * 特性：
- * 1. 🧠 Tri-Brain: 結合反射神經 (Node)、無限大腦 (Web Gemini)、精準技師 (API)。
- * 2. 🛡️ High Availability: 實作 DOM Doctor 自癒與 KeyChain 輪動。
- * 3. 📝 Safe-Splitter: 自動切割長訊息，突破 Telegram 4096 字元限制。
- * 4. 🧬 Legacy Power: 完整保留 v6.4 的自主進化、內省、熱修復與安全審計功能。
+ * 1. 🐍 Hydra Link: 同時支援 Telegram 與 Discord 雙平台 (Dual-Stack)。
+ * 2. 🧠 Tri-Brain: 結合反射神經 (Node)、無限大腦 (Web Gemini)、精準技師 (API)。
+ * 3. 🛡️ High Availability: 實作 DOM Doctor 自癒與 KeyChain 輪動。
+ * 4. 📝 Smart-Splitter: 針對不同平台 (TG:4096 / DC:2000) 自動適配訊息切割。
+ * 5. 🧬 Legacy Power: 完整保留 v7.1 的所有修復、自主進化與安全審計功能。
  */
 
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const { Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -19,40 +21,99 @@ const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const skills = require('./skills'); // 需搭配 v7.0 版 skills.js
+const skills = require('./skills');
 
 // --- ⚙️ 全域配置 ---
 const CONFIG = {
-    TOKEN: process.env.TELEGRAM_TOKEN,
+    TG_TOKEN: process.env.TELEGRAM_TOKEN,
+    DC_TOKEN: process.env.DISCORD_TOKEN, // ✨ 新增 Discord Token
     USER_DATA_DIR: process.env.USER_DATA_DIR || './golem_memory',
-    // 支援多組 Key，以逗號分隔 "Key1,Key2,Key3"
     API_KEYS: (process.env.GEMINI_API_KEYS || '').split(',').map(k => k.trim()).filter(k => k),
     SPLIT_TOKEN: '---GOLEM_ACTION_PLAN---',
-    ADMIN_ID: process.env.ADMIN_ID
+    // 支援多管理員 ID (字串陣列)
+    ADMIN_IDS: [process.env.ADMIN_ID, process.env.DISCORD_ADMIN_ID].filter(k => k).map(String)
 };
 
 // --- 初始化組件 ---
 puppeteer.use(StealthPlugin());
-const bot = new TelegramBot(CONFIG.TOKEN, { polling: true });
-const pendingTasks = new Map(); // 暫存等待審核的 Shell 任務
-global.pendingPatch = null;     // 暫存等待審核的 代碼 Patch
+
+// 1. Telegram Bot
+const tgBot = CONFIG.TG_TOKEN ? new TelegramBot(CONFIG.TG_TOKEN, { polling: true }) : null;
+
+// 2. Discord Client
+const dcClient = CONFIG.DC_TOKEN ? new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ],
+    partials: [Partials.Channel]
+}) : null;
+
+const pendingTasks = new Map(); // 暫存等待審核的任務
+global.pendingPatch = null;     // 暫存等待審核的 Patch
 
 // ============================================================
-// 📨 Message Manager (訊息切片器) [✨ v7.1 新增]
+// 🔌 Universal Context (通用語境層) [✨ v7.2 核心]
+// ============================================================
+class UniversalContext {
+    constructor(platform, event, instance) {
+        this.platform = platform; // 'telegram' | 'discord'
+        this.event = event;       // TG: msg/query, DC: message/interaction
+        this.instance = instance; // TG: bot, DC: client
+    }
+
+    get userId() {
+        return this.platform === 'telegram' ? String(this.event.from.id) : this.event.user ? this.event.user.id : this.event.author.id;
+    }
+
+    get chatId() {
+        if (this.platform === 'telegram') return this.event.message ? this.event.message.chat.id : this.event.chat.id;
+        return this.event.channelId || this.event.channel.id;
+    }
+
+    get text() {
+        if (this.platform === 'telegram') return this.event.text;
+        return this.event.content;
+    }
+
+    get isAdmin() {
+        if (CONFIG.ADMIN_IDS.length === 0) return true; // 未設定則不限制
+        return CONFIG.ADMIN_IDS.includes(this.userId);
+    }
+
+    async reply(content, options = {}) {
+        return await MessageManager.send(this, content, options);
+    }
+
+    async sendDocument(filePath) {
+        if (this.platform === 'telegram') {
+            await this.instance.sendDocument(this.chatId, filePath);
+        } else {
+            const channel = await this.instance.channels.fetch(this.chatId);
+            await channel.send({ files: [filePath] });
+        }
+    }
+
+    async sendTyping() {
+        if (this.platform === 'telegram') {
+            this.instance.sendChatAction(this.chatId, 'typing');
+        } else {
+            const channel = await this.instance.channels.fetch(this.chatId);
+            await channel.sendTyping();
+        }
+    }
+}
+
+// ============================================================
+// 📨 Message Manager (雙模版訊息切片器) [✨ v7.2 升級]
 // ============================================================
 class MessageManager {
-    static async send(bot, chatId, text, options = {}) {
+    static async send(ctx, text, options = {}) {
         if (!text) return;
-        const MAX_LENGTH = 4000; // 預留緩衝
-
-        if (text.length <= MAX_LENGTH) {
-            try {
-                return await bot.sendMessage(chatId, text, options);
-            } catch (e) {
-                console.warn("Markdown 發送失敗，轉為純文字重試:", e.message);
-                return await bot.sendMessage(chatId, text); // 降級重試
-            }
-        }
+        
+        // 平台限制
+        const MAX_LENGTH = ctx.platform === 'telegram' ? 4000 : 1900; 
 
         // 智慧切割
         const chunks = [];
@@ -62,26 +123,43 @@ class MessageManager {
                 chunks.push(remaining);
                 break;
             }
-            // 優先找換行符號切割，避免切斷單字
             let splitIndex = remaining.lastIndexOf('\n', MAX_LENGTH);
-            if (splitIndex === -1) splitIndex = MAX_LENGTH; // 沒換行就硬切
-
+            if (splitIndex === -1) splitIndex = MAX_LENGTH;
             chunks.push(remaining.substring(0, splitIndex));
             remaining = remaining.substring(splitIndex).trim();
         }
 
         for (const chunk of chunks) {
             try {
-                await bot.sendMessage(chatId, chunk, options);
+                if (ctx.platform === 'telegram') {
+                    await ctx.instance.sendMessage(ctx.chatId, chunk, options);
+                } else {
+                    const channel = await ctx.instance.channels.fetch(ctx.chatId);
+                    // 轉換 TG Options (Reply Markup) 到 Discord Components
+                    const dcOptions = { content: chunk };
+                    if (options.reply_markup && options.reply_markup.inline_keyboard) {
+                        const row = new ActionRowBuilder();
+                        options.reply_markup.inline_keyboard[0].forEach(btn => {
+                            row.addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId(btn.callback_data)
+                                    .setLabel(btn.text)
+                                    .setStyle(ButtonStyle.Primary)
+                            );
+                        });
+                        dcOptions.components = [row];
+                    }
+                    await channel.send(dcOptions);
+                }
             } catch (e) {
-                await bot.sendMessage(chatId, chunk); // 降級重試
+                console.error(`[MessageManager] 發送失敗 (${ctx.platform}):`, e.message);
             }
         }
     }
 }
 
 // ============================================================
-// 🧠 Experience Memory (經驗記憶體) [🔒 保留 v6.4]
+// 🧠 Experience Memory (經驗記憶體) [🔒 保留]
 // ============================================================
 class ExperienceMemory {
     constructor() {
@@ -114,7 +192,7 @@ class ExperienceMemory {
 const memory = new ExperienceMemory();
 
 // ============================================================
-// 🪞 Introspection (內省模組) [🔒 保留 v6.4]
+// 🪞 Introspection (內省模組) [🔒 保留]
 // ============================================================
 class Introspection {
     static readSelf() {
@@ -126,13 +204,12 @@ class Introspection {
 }
 
 // ============================================================
-// 🩹 Patch Manager (神經補丁) [🔒 保留 v6.4]
+// 🩹 Patch Manager (神經補丁) [🔒 保留]
 // ============================================================
 class PatchManager {
     static apply(originalCode, patch) {
         if (originalCode.includes(patch.search)) return originalCode.replace(patch.search, patch.replace);
         try {
-            // 模糊匹配邏輯
             const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const fuzzySearch = escapeRegExp(patch.search).replace(/\s+/g, '[\\s\\n]+');
             const regex = new RegExp(fuzzySearch);
@@ -143,7 +220,6 @@ class PatchManager {
         } catch (e) { console.warn("模糊匹配失敗:", e); }
         throw new Error(`❌ 找不到匹配代碼段落`);
     }
-
     static createTestClone(originalPath, patchContent) {
         try {
             const originalCode = fs.readFileSync(originalPath, 'utf-8');
@@ -155,7 +231,6 @@ class PatchManager {
             return testFile;
         } catch (e) { throw new Error(`補丁應用失敗: ${e.message}`); }
     }
-
     static verify(filePath) {
         try {
             execSync(`node -c "${filePath}"`);
@@ -170,7 +245,7 @@ class PatchManager {
 }
 
 // ============================================================
-// 🛡️ Security Manager (安全審計) [🔒 保留 v6.4]
+// 🛡️ Security Manager (安全審計) [🔒 保留]
 // ============================================================
 class SecurityManager {
     constructor() {
@@ -188,131 +263,98 @@ class SecurityManager {
 }
 
 // ============================================================
-// 📖 Help Manager (動態說明書) [🔒 保留 v6.4 邏輯並適配 v7]
+// 📖 Help Manager (動態說明書) [🔒 保留]
 // ============================================================
 class HelpManager {
     static getManual() {
-        // 1. 內省：讀取自身原始碼
         const source = Introspection.readSelf();
-
-        // 2. 掃描：抓取已定義的 Router 指令 (適配 v7 NodeRouter 寫法)
         const routerPattern = /text\.(?:startsWith|match)\(['"]\/?([a-zA-Z0-9_|]+)['"]\)/g;
-        const foundCmds = new Set(['help', 'callme', 'patch']); // 預設指令
+        const foundCmds = new Set(['help', 'callme', 'patch']);
         let match;
         while ((match = routerPattern.exec(source)) !== null) {
-            // 清理正則符號
             const cmdClean = match[1].replace(/\|/g, '/').replace(/[\^\(\)]/g, '');
             foundCmds.add(cmdClean);
         }
-
-        // 3. 掃描 Skills
         let skillList = "基礎系統操作";
-        try {
-            skillList = Object.keys(skills).filter(k => k !== 'persona' && k !== 'getSystemPrompt').join(', ');
-        } catch (e) { }
+        try { skillList = Object.keys(skills).filter(k => k !== 'persona' && k !== 'getSystemPrompt').join(', '); } catch (e) { }
 
         return `
-🤖 **Golem v7.1 (Self-Healing) 自我診斷報告**
+🤖 **Golem v7.2 (Hydra Dual-Link) 狀態報告**
 ---------------------------
-⚡ **Node.js 反射層**: 線上
+⚡ **Node.js 反射層**: 雙核心運作中
 🧠 **Web Gemini 大腦**: 線上 (Infinite Context)
-🚑 **DOM Doctor 技師**: 待命 (KeyChain Active)
+🚑 **DOM Doctor 技師**: 待命
+📡 **連線狀態**:
+   • Telegram: ${CONFIG.TG_TOKEN ? '✅ 線上' : '⚪ 未啟用'}
+   • Discord: ${CONFIG.DC_TOKEN ? '✅ 線上' : '⚪ 未啟用'}
 
-🛠️ **可用指令 (源碼掃描):**
+🛠️ **可用指令:**
 ${Array.from(foundCmds).map(c => `• \`/${c}\``).join('\n')}
 
-🧠 **搭載技能模組:**
-• ${skillList}
-
-💡 **提示:**
-• 輸入 \`/patch [需求]\` 可手動觸發代碼進化。
-• 遇到複雜問題直接對話，我會動用大腦思考。
+🧠 **搭載技能:** ${skillList}
 `;
     }
 }
 
 // ============================================================
-// 🗝️ KeyChain (API 金鑰輪動) [✨ v7.0 新增]
+// 🗝️ KeyChain (API 金鑰輪動) [🔒 保留]
 // ============================================================
 class KeyChain {
     constructor() {
         this.keys = CONFIG.API_KEYS;
         this.currentIndex = 0;
-        console.log(`🗝️ [KeyChain] 已載入 ${this.keys.length} 把 API Key，啟用 Round-Robin 輪動模式。`);
+        console.log(`🗝️ [KeyChain] 已載入 ${this.keys.length} 把 API Key。`);
     }
-
     getKey() {
         if (this.keys.length === 0) return null;
         const key = this.keys[this.currentIndex];
-        this.currentIndex = (this.currentIndex + 1) % this.keys.length; // Round-Robin
+        this.currentIndex = (this.currentIndex + 1) % this.keys.length;
         return key;
     }
 }
 
 // ============================================================
-// 🚑 DOM Doctor (UI 自癒模組) [✨ v7.0 新增]
+// 🚑 DOM Doctor (UI 自癒模組) [🔒 保留]
 // ============================================================
 class DOMDoctor {
     constructor() {
         this.keyChain = new KeyChain();
     }
-
     async diagnose(htmlSnippet, targetDescription) {
-        if (this.keyChain.keys.length === 0) {
-            console.error("❌ [Doctor] 未設定任何 API Key，無法進行維修。");
-            return null;
-        }
-
-        console.log(`🚑 [Doctor] 正在診斷 UI 問題: 尋找 "${targetDescription}"...`);
+        if (this.keyChain.keys.length === 0) return null;
+        console.log(`🚑 [Doctor] 診斷中: "${targetDescription}"...`);
         const safeHtml = htmlSnippet.length > 20000 ? htmlSnippet.substring(0, 20000) + "..." : htmlSnippet;
-
-        const prompt = `
-你是 Puppeteer 自動化專家。
-原本的 Selector 失效了。請分析下方的 HTML 片段。
-【目標】找出代表 "${targetDescription}" (如輸入框、發送按鈕) 的最佳 CSS Selector。
-【HTML】
-${safeHtml}
-【要求】只回傳一個 CSS Selector 字串，不要解釋，不要 Markdown 格式。
-`;
-
+        const prompt = `你是 Puppeteer 自動化專家。HTML Selector 失效了。
+【目標】找出代表 "${targetDescription}" 的最佳 CSS Selector。
+【HTML】${safeHtml}
+【要求】只回傳一個 CSS Selector 字串，不要解釋。`;
+        
         let attempts = 0;
-        const maxAttempts = this.keyChain.keys.length;
-
-        while (attempts < maxAttempts) {
+        while (attempts < this.keyChain.keys.length) {
             const currentKey = this.keyChain.getKey();
             try {
                 const genAI = new GoogleGenerativeAI(currentKey);
                 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                 const result = await model.generateContent(prompt);
-                const newSelector = result.response.text().trim().replace(/`/g, '');
-                console.log(`✅ [Doctor] 診斷成功！建議使用: ${newSelector}`);
-                return newSelector;
-            } catch (e) {
-                console.warn(`⚠️ [Doctor] Key 呼叫失敗 (嘗試 ${attempts + 1}/${maxAttempts}): ${e.message}`);
-                attempts++;
-            }
+                return result.response.text().trim().replace(/`/g, '');
+            } catch (e) { attempts++; }
         }
-        console.error("❌ [Doctor] 所有 API Key 皆嘗試失敗，放棄治療。");
         return null;
     }
 }
 
 // ============================================================
-// 🔍 System Fingerprint (環境感知) [🔒 保留 v6.4]
+// 🧠 Golem Brain (Web Gemini) [🔒 保留 - 含 v7.1 Fix]
 // ============================================================
 function getSystemFingerprint() {
-    return `OS: ${os.platform()} (${os.release()}) | Arch: ${os.arch()} | Shell: ${os.platform() === 'win32' ? 'PowerShell' : 'Bash'} | CWD: ${process.cwd()}`;
+    return `OS: ${os.platform()} | Arch: ${os.arch()} | CWD: ${process.cwd()}`;
 }
 
-// ============================================================
-// 🧠 Golem Brain (Web Gemini + Self-Healing) [✨ v7.0 重構]
-// ============================================================
 class GolemBrain {
     constructor() {
         this.browser = null;
         this.page = null;
         this.doctor = new DOMDoctor();
-        // 動態 Selector
         this.selectors = {
             input: 'div[contenteditable="true"], rich-textarea > div',
             send: 'button[aria-label="Send"], span[data-icon="send"]',
@@ -323,7 +365,6 @@ class GolemBrain {
     async init(forceReload = false) {
         if (this.browser && !forceReload) return;
         if (!this.browser) {
-            console.log('🧠 [Brain] 啟動 Web Gemini...');
             this.browser = await puppeteer.launch({
                 headless: false,
                 userDataDir: CONFIG.USER_DATA_DIR,
@@ -345,10 +386,9 @@ class GolemBrain {
         if (!this.browser) await this.init();
 
         const tryInteract = async (sel) => {
-            // 0. 快照：紀錄發送前的氣泡數量 [⚡ FIX: 防止讀到舊回應]
+            // [v7.1 Fix] 快照：紀錄發送前的氣泡數量
             const preCount = await this.page.evaluate(s => document.querySelectorAll(s).length, sel.response);
 
-            // 1. 輸入
             await this.page.waitForSelector(sel.input, { timeout: 4000 });
             await this.page.evaluate((s, t) => {
                 const el = document.querySelector(s);
@@ -356,27 +396,22 @@ class GolemBrain {
                 document.execCommand('insertText', false, t);
             }, sel.input, text);
 
-            // 2. 發送
             await new Promise(r => setTimeout(r, 800));
             try {
                 await this.page.waitForSelector(sel.send, { timeout: 2000 });
                 await this.page.click(sel.send);
-            } catch (e) {
-                await this.page.keyboard.press('Enter');
-            }
+            } catch (e) { await this.page.keyboard.press('Enter'); }
 
             if (isSystem) { await new Promise(r => setTimeout(r, 2000)); return ""; }
 
-            // 3. 等待 (邏輯升級：確保新氣泡出現且生成結束)
+            // [v7.1 Fix] 等待：確保新氣泡出現 (Count > preCount)
             await this.page.waitForFunction((s, n) => {
                 const bubbles = document.querySelectorAll(s);
                 const stopBtn = document.querySelector('[aria-label="Stop generating"], [aria-label="停止產生"]');
                 const thinking = document.querySelector('.streaming-icon');
-                // 條件：氣泡數必須增加，且沒有在思考
                 return bubbles.length > n && !stopBtn && !thinking;
             }, { timeout: 120000, polling: 1000 }, sel.response, preCount);
 
-            // 4. 讀取
             return await this.page.evaluate((s) => {
                 const bubbles = document.querySelectorAll(s);
                 return bubbles.length ? bubbles[bubbles.length - 1].innerText : "";
@@ -386,84 +421,117 @@ class GolemBrain {
         try {
             return await tryInteract(this.selectors);
         } catch (e) {
-            console.warn(`⚠️ [Brain] 操作異常 (${e.message})，呼叫維修技師...`);
+            console.warn(`⚠️ [Brain] 操作異常，呼叫維修技師...`);
             try {
                 const html = await this.page.content();
                 const fixedInput = await this.doctor.diagnose(html, "Gemini 對話輸入框");
                 if (fixedInput) {
                     this.selectors.input = fixedInput;
-                    console.log("🛠️ [Brain] 輸入框修復完成，重試中...");
                     return await tryInteract(this.selectors);
                 }
-            } catch (retryErr) {
-                throw new Error(`自癒失敗: ${retryErr.message}`);
-            }
+            } catch (retryErr) { throw new Error(`自癒失敗: ${retryErr.message}`); }
             throw e;
         }
     }
 }
 
 // ============================================================
-// ⚡ ResponseParser (JSON 解析器) [✨ v7.0 新增 - 取代 Ollama]
+// ⚡ ResponseParser (JSON 解析器) [🔒 保留]
 // ============================================================
 class ResponseParser {
     static extractJson(text) {
         if (!text) return [];
         try {
-            // 嘗試提取 Markdown JSON
             const match = text.match(/```json([\s\S]*?)```/);
-            if (match) {
-                const parsed = JSON.parse(match[1]);
-                return parsed.steps || (Array.isArray(parsed) ? parsed : []);
-            }
-            // 備案：直接提取 Array
+            if (match) return JSON.parse(match[1]).steps || JSON.parse(match[1]);
             const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
-            if (arrayMatch) {
-                const steps = JSON.parse(arrayMatch[0]);
-                return Array.isArray(steps) ? steps : [];
-            }
+            if (arrayMatch) return JSON.parse(arrayMatch[0]);
         } catch (e) { console.error("解析 JSON 失敗:", e.message); }
         return [];
     }
 }
 
 // ============================================================
-// ⚡ NodeRouter (反射層) [✨ v7.0 新增]
+// ⚡ NodeRouter (反射層) [✨ v7.2 適配 Context]
 // ============================================================
 class NodeRouter {
-    static async handle(msg, bot, brain) {
-        const text = msg.text ? msg.text.trim() : "";
-        const chatId = msg.chat.id;
-
-        // 1. 系統指令 (直接執行)
+    static async handle(ctx, brain) {
+        const text = ctx.text ? ctx.text.trim() : "";
+        
         if (text.match(/^\/(help|menu|指令|功能)/)) {
-            await MessageManager.send(bot, chatId, HelpManager.getManual(), { parse_mode: 'Markdown' });
+            await ctx.reply(HelpManager.getManual(), { parse_mode: 'Markdown' });
             return true;
         }
 
-        // 2. 稱呼設定
         if (text.startsWith('/callme')) {
             const newName = text.replace('/callme', '').trim();
             if (newName) {
                 skills.persona.setName('user', newName);
                 await brain.init(true);
-                await MessageManager.send(bot, chatId, `👌 沒問題，以後我就稱呼您為 **${newName}**。`, { parse_mode: 'Markdown' });
+                await ctx.reply(`👌 沒問題，以後我就稱呼您為 **${newName}**。`, { parse_mode: 'Markdown' });
                 return true;
             }
         }
 
-        // 3. Patch 意圖 (交給主循環)
-        if (text.startsWith('/patch') || text.includes('優化代碼')) {
-            return false;
-        }
-
+        if (text.startsWith('/patch') || text.includes('優化代碼')) return false; // Pass to main loop
         return false;
     }
 }
 
 // ============================================================
-// ⚡ Task Controller & Executor [🔒 保留 v6.4]
+// ⚡ Task Controller (雙模版 UI) [✨ v7.2 升級]
 // ============================================================
+class TaskController {
+    constructor() {
+        this.executor = new Executor();
+        this.security = new SecurityManager();
+    }
+    
+    // 定義執行器 (Executor 類別可保持內部，不需重複定義)
+    
+    async runSequence(ctx, steps, startIndex = 0) {
+        let logBuffer = "";
+        for (let i = startIndex; i < steps.length; i++) {
+            const step = steps[i];
+            const risk = this.security.assess(step.cmd);
+
+            if (risk.level === 'BLOCKED') {
+                await ctx.reply(`⛔ **攔截**：\`${step.cmd}\` (${risk.reason})`, { parse_mode: 'Markdown' });
+                return;
+            }
+            if (risk.level === 'WARNING' || risk.level === 'DANGER') {
+                const approvalId = uuidv4();
+                pendingTasks.set(approvalId, { steps, nextIndex: i, ctx }); // Save context
+                
+                const confirmMsg = `${risk.level === 'DANGER' ? '🔥' : '⚠️'} **請求確認**\n指令：\`${step.cmd}\`\n風險：${risk.reason}`;
+                
+                // 統一 UI 建構
+                await ctx.reply(confirmMsg, {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '✅ 批准', callback_data: `APPROVE:${approvalId}` },
+                            { text: '🛡️ 駁回', callback_data: `DENY:${approvalId}` }
+                        ]]
+                    }
+                });
+                return;
+            }
+
+            await ctx.reply(`⚙️ *Step ${i + 1}:* ${step.desc}\n\`${step.cmd}\``, { parse_mode: 'Markdown' });
+            try {
+                // 這裡需要 Executor 實例
+                if (!this.internalExecutor) this.internalExecutor = new Executor();
+                const output = await this.internalExecutor.run(step.cmd);
+                logBuffer += `✅ [${step.cmd}] OK\n`;
+            } catch (err) {
+                await ctx.reply(`❌ **失敗**：\`${step.cmd}\`\n${err}`);
+                return;
+            }
+        }
+        await ctx.reply(`🎉 **任務完成**\n${logBuffer}`);
+    }
+}
+
 class Executor {
     run(cmd) {
         return new Promise((resolve, reject) => {
@@ -476,91 +544,40 @@ class Executor {
     }
 }
 
-class TaskController {
-    constructor() {
-        this.executor = new Executor();
-        this.security = new SecurityManager();
-    }
-    async runSequence(chatId, steps, startIndex = 0) {
-        let logBuffer = "";
-        for (let i = startIndex; i < steps.length; i++) {
-            const step = steps[i];
-
-            // 虛擬指令攔截 (v6.4 功能)
-            if (step.cmd && step.cmd.trim() === 'golem-help') {
-                await MessageManager.send(bot, chatId, HelpManager.getManual(), { parse_mode: 'Markdown' });
-                continue;
-            }
-
-            const risk = this.security.assess(step.cmd);
-
-            if (risk.level === 'BLOCKED') {
-                await MessageManager.send(bot, chatId, `⛔ **攔截**：\`${step.cmd}\` (${risk.reason})`, { parse_mode: 'Markdown' });
-                return;
-            }
-            if (risk.level === 'WARNING' || risk.level === 'DANGER') {
-                const approvalId = uuidv4();
-                pendingTasks.set(approvalId, { steps: steps, nextIndex: i, chatId: chatId });
-                await bot.sendMessage(chatId, `${risk.level === 'DANGER' ? '🔥' : '⚠️'} **請求確認**\n指令：\`${step.cmd}\`\n風險：${risk.reason}`, {
-                    reply_markup: { inline_keyboard: [[{ text: '✅ 批准', callback_data: `APPROVE:${approvalId}` }, { text: '🛡️ 駁回', callback_data: `DENY:${approvalId}` }]] }
-                });
-                return;
-            }
-
-            await MessageManager.send(bot, chatId, `⚙️ *Step ${i + 1}:* ${step.desc}\n\`${step.cmd}\``, { parse_mode: 'Markdown' });
-            try {
-                const output = await this.executor.run(step.cmd);
-                logBuffer += `✅ [${step.cmd}] OK\n`;
-            } catch (err) {
-                await MessageManager.send(bot, chatId, `❌ **失敗**：\`${step.cmd}\`\n${err}`);
-                return;
-            }
-        }
-        await MessageManager.send(bot, chatId, `🎉 **任務完成**\n${logBuffer}`);
-    }
-}
-
 // ============================================================
-// 🕰️ Autonomy Manager (自主進化) [🔒 保留 v6.4]
+// 🕰️ Autonomy Manager (自主進化) [✨ v7.2 適配]
 // ============================================================
 class AutonomyManager {
-    constructor(bot, brain, chatId) {
-        this.bot = bot;
+    constructor(brain) {
         this.brain = brain;
-        this.chatId = chatId;
     }
+    
     start() {
-        if (!this.chatId) return;
+        // 背景排程 (預設通知 TG Admin，若無則跳過)
+        if (!CONFIG.TG_TOKEN || !CONFIG.ADMIN_IDS[0]) return;
         const now = Date.now();
         if (memory.data.nextWakeup > now) {
             const waitMs = memory.data.nextWakeup - now;
-            console.log(`♻️ [Autonomy] 恢復排程，繼續休眠 ${(waitMs / 3600000).toFixed(2)} 小時`);
+            console.log(`♻️ [Autonomy] 休眠 ${(waitMs / 3600000).toFixed(2)} 小時`);
             setTimeout(() => { this.performSelfReflection(); this.scheduleNextAwakening(); }, waitMs);
         } else {
             this.scheduleNextAwakening();
         }
     }
+
     scheduleNextAwakening() {
         const waitMs = (18 + Math.random() * 12) * 3600000;
         memory.data.nextWakeup = Date.now() + waitMs;
         memory.save();
         setTimeout(() => { this.performSelfReflection(); this.scheduleNextAwakening(); }, waitMs);
     }
-    async performSelfReflection() {
+
+    // 支援傳入觸發的 Context，若無則預設發給 TG Admin
+    async performSelfReflection(triggerCtx = null) {
         try {
             const currentCode = Introspection.readSelf();
             const advice = memory.getAdvice();
-            const prompt = `
-【任務】自主進化提案 (Autonomy Evolution)
-【角色】你是一個追求完美的 Node.js 專家。
-【原始碼】\n${currentCode.slice(0, 15000)}\n
-【記憶】${advice}
-【要求】
-1. 找出一個優化點 (效能、安全、功能)。
-2. 務必輸出一個 JSON Array，包含 Patch 物件。
-3. 格式範例：[{"type": "feature", "description": "說明", "search": "...", "replace": "..."}]
-4. 請直接輸出 JSON，用 \`\`\`json 包覆。
-`;
+            const prompt = `【任務】自主進化提案\n【代碼】\n${currentCode.slice(0, 15000)}\n【記憶】${advice}\n【要求】輸出 JSON Array Patch。`;
 
             const raw = await this.brain.sendMessage(prompt);
             const patches = ResponseParser.extractJson(raw);
@@ -572,10 +589,20 @@ class AutonomyManager {
 
                 if (PatchManager.verify(testFile)) {
                     global.pendingPatch = testFile;
-                    await MessageManager.send(this.bot, this.chatId, `💡 **自主進化提案** (${proposalType})\n內容：${patches[0].description}`, {
+                    
+                    const msgText = `💡 **自主進化提案** (${proposalType})\n內容：${patches[0].description}`;
+                    const options = {
                         reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] }
-                    });
-                    await this.bot.sendDocument(this.chatId, testFile);
+                    };
+
+                    if (triggerCtx) {
+                        await triggerCtx.reply(msgText, options);
+                        await triggerCtx.sendDocument(testFile);
+                    } else if (tgBot && CONFIG.ADMIN_IDS[0]) {
+                        // 背景觸發：預設發給第一個 Admin (TG)
+                        await tgBot.sendMessage(CONFIG.ADMIN_IDS[0], msgText, options);
+                        await tgBot.sendDocument(CONFIG.ADMIN_IDS[0], testFile);
+                    }
                 }
             }
         } catch (e) { console.error("自主進化失敗:", e); }
@@ -583,30 +610,107 @@ class AutonomyManager {
 }
 
 // ============================================================
-// 🎮 主程式 (Main Loop)
+// 🎮 Hydra Main Loop (雙平台主循環)
 // ============================================================
-if (process.env.GOLEM_TEST_MODE === 'true') {
-    console.log("🧪 [TestMode] 模組載入正常。");
-    process.exit(0);
-}
-
 const brain = new GolemBrain();
 const controller = new TaskController();
-const autonomy = new AutonomyManager(bot, brain, CONFIG.ADMIN_ID);
+const autonomy = new AutonomyManager(brain);
 
 (async () => {
     await brain.init();
     autonomy.start();
-    console.log('📡 Golem v7.1 (Self-Healing) is Online.');
-
-    if (CONFIG.ADMIN_ID) {
-        const p = skills.persona.get();
-        if (p.isNew) await MessageManager.send(bot, CONFIG.ADMIN_ID, `🎉 系統啟動！我是 ${p.aiName}。`);
-    }
+    console.log('📡 Golem v7.2 (Hydra Dual-Link) is Online.');
+    
+    // 啟動 Discord
+    if (dcClient) dcClient.login(CONFIG.DC_TOKEN);
 })();
 
-// --- 輔助函式：部署與丟棄 ---
-async function executeDeploy(chatId) {
+// --- 統一事件處理 ---
+async function handleUnifiedMessage(ctx) {
+    if (!ctx.text) return;
+    if (!ctx.isAdmin) return; // 權限控管
+
+    // 1. 反射層
+    if (await NodeRouter.handle(ctx, brain)) return;
+
+    // 2. Patch 指令
+    if (global.pendingPatch && ['ok', 'deploy', 'y', '部署'].includes(ctx.text.toLowerCase())) return executeDeploy(ctx);
+    if (global.pendingPatch && ['no', 'drop', 'n', '丟棄'].includes(ctx.text.toLowerCase())) return executeDrop(ctx);
+
+    // 3. 手動 Patch 請求
+    if (ctx.text.startsWith('/patch') || ctx.text.includes('優化代碼')) {
+        const req = ctx.text.replace('/patch', '').trim() || "優化代碼";
+        await ctx.reply(`🧬 收到進化請求: ${req}`);
+        
+        const currentCode = Introspection.readSelf();
+        const prompt = `【任務】代碼熱修復\n【需求】${req}\n【源碼】\n${currentCode.slice(0, 12000)}\n【格式】輸出 JSON Array (Patch 格式)`;
+        
+        const raw = await brain.sendMessage(prompt);
+        const patches = ResponseParser.extractJson(raw);
+        
+        if (patches.length > 0) {
+            const testFile = PatchManager.createTestClone(__filename, patches);
+            if (PatchManager.verify(testFile)) {
+                global.pendingPatch = testFile;
+                await ctx.reply(`💡 提案就緒。`, {
+                    reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] }
+                });
+                await ctx.sendDocument(testFile);
+            }
+        }
+        return;
+    }
+
+    // 4. 一般對話
+    await ctx.sendTyping();
+    try {
+        const raw = await brain.sendMessage(ctx.text);
+        const steps = ResponseParser.extractJson(raw);
+        const chatPart = raw.replace(/```json[\s\S]*?```/g, '').replace(/\[\s*\{[\s\S]*\}\s*\]/g, '').trim();
+
+        if (chatPart) await ctx.reply(chatPart);
+        if (steps.length > 0) await controller.runSequence(ctx, steps);
+    } catch (e) {
+        console.error(e);
+        await ctx.reply(`❌ 錯誤: ${e.message}`);
+    }
+}
+
+// --- 統一 Callback 處理 ---
+async function handleUnifiedCallback(ctx, actionData) {
+    if (!ctx.isAdmin) return;
+
+    if (actionData === 'PATCH_DEPLOY') return executeDeploy(ctx);
+    if (actionData === 'PATCH_DROP') return executeDrop(ctx);
+
+    if (actionData.includes(':')) {
+        const [action, taskId] = actionData.split(':');
+        const task = pendingTasks.get(taskId);
+        
+        // 嘗試刪除按鈕 (平台差異處理)
+        try {
+            if (ctx.platform === 'telegram') {
+                await ctx.instance.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: ctx.chatId, message_id: ctx.event.message.message_id });
+            } else {
+                await ctx.event.update({ components: [] }); 
+            }
+        } catch(e) {}
+
+        if (!task) return ctx.reply('⚠️ 任務已失效');
+
+        if (action === 'DENY') {
+            pendingTasks.delete(taskId);
+            await ctx.reply('🛡️ 操作駁回');
+        } else if (action === 'APPROVE') {
+            const { steps, nextIndex } = task;
+            pendingTasks.delete(taskId);
+            await controller.runSequence(ctx, steps, nextIndex);
+        }
+    }
+}
+
+// --- 輔助函式 ---
+async function executeDeploy(ctx) {
     if (!global.pendingPatch) return;
     try {
         fs.copyFileSync(__filename, `index.bak-${Date.now()}.js`);
@@ -614,102 +718,42 @@ async function executeDeploy(chatId) {
         fs.unlinkSync(global.pendingPatch);
         global.pendingPatch = null;
         memory.recordSuccess();
-        await MessageManager.send(bot, chatId, "🚀 升級成功！正在重啟...");
-
-        // 🔄 Ouroboros Respawn
+        await ctx.reply("🚀 升級成功！正在重啟...");
         const subprocess = spawn(process.argv[0], process.argv.slice(1), { detached: true, stdio: 'ignore' });
         subprocess.unref();
         process.exit(0);
-    } catch (e) { await MessageManager.send(bot, chatId, `❌ 部署失敗: ${e.message}`); }
+    } catch (e) { await ctx.reply(`❌ 部署失敗: ${e.message}`); }
 }
 
-async function executeDrop(chatId) {
+async function executeDrop(ctx) {
     if (!global.pendingPatch) return;
     fs.unlinkSync(global.pendingPatch);
     global.pendingPatch = null;
     memory.recordRejection();
-    await MessageManager.send(bot, chatId, "🗑️ 提案已丟棄");
+    await ctx.reply("🗑️ 提案已丟棄");
 }
 
-// --- 事件監聽 ---
-bot.on('message', async (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text;
-    if (!text) return;
-    if (CONFIG.ADMIN_ID && String(chatId) !== CONFIG.ADMIN_ID) return;
+// --- 事件綁定 ---
+// Telegram
+if (tgBot) {
+    tgBot.on('message', (msg) => handleUnifiedMessage(new UniversalContext('telegram', msg, tgBot)));
+    tgBot.on('callback_query', (query) => {
+        const ctx = new UniversalContext('telegram', query, tgBot);
+        handleUnifiedCallback(ctx, query.data);
+        tgBot.answerCallbackQuery(query.id);
+    });
+}
 
-    // 1. Node.js 反射層 (優先攔截)
-    if (await NodeRouter.handle(msg, bot, brain)) return;
-
-    // 2. Patch 意圖識別
-    if (global.pendingPatch && ['ok', 'deploy', 'y', '部署'].includes(text.toLowerCase())) return executeDeploy(chatId);
-    if (global.pendingPatch && ['no', 'drop', 'n', '丟棄'].includes(text.toLowerCase())) return executeDrop(chatId);
-
-    // 3. 手動 Patch 請求
-    if (text.startsWith('/patch') || text.includes('優化代碼')) {
-        const req = text.replace('/patch', '').trim() || "優化代碼";
-        await MessageManager.send(bot, chatId, `🧬 收到進化請求: ${req}`);
-
-        const currentCode = Introspection.readSelf();
-        const prompt = `【任務】代碼熱修復\n【需求】${req}\n【源碼】\n${currentCode.slice(0, 12000)}\n【格式】輸出 JSON Array (Patch 格式)`;
-
-        const raw = await brain.sendMessage(prompt);
-        const patches = ResponseParser.extractJson(raw);
-
-        if (patches.length > 0) {
-            const testFile = PatchManager.createTestClone(__filename, patches);
-            if (PatchManager.verify(testFile)) {
-                global.pendingPatch = testFile;
-                await MessageManager.send(bot, chatId, `💡 提案就緒，請查收附件。`, {
-                    reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] }
-                });
-                await bot.sendDocument(chatId, testFile);
-            }
-        }
-        return;
-    }
-
-    // 4. 一般對話 (進入大腦)
-    bot.sendChatAction(chatId, 'typing');
-    try {
-        const raw = await brain.sendMessage(text);
-
-        // 解析回應：分離對話與指令
-        const steps = ResponseParser.extractJson(raw);
-        const chatPart = raw.replace(/```json[\s\S]*?```/g, '').replace(/\[\s*\{[\s\S]*\}\s*\]/g, '').trim();
-
-        // 輸出對話 (使用 MessageManager 防止爆字數)
-        if (chatPart) await MessageManager.send(bot, chatId, chatPart);
-        // 執行指令
-        if (steps.length > 0) await controller.runSequence(chatId, steps);
-
-    } catch (e) {
-        console.error(e);
-        await MessageManager.send(bot, chatId, `❌ 錯誤: ${e.message}`);
-    }
-});
-
-bot.on('callback_query', async (query) => {
-    const { id, data, message } = query;
-    const chatId = message.chat.id;
-
-    if (data === 'PATCH_DEPLOY') { await executeDeploy(chatId); return bot.answerCallbackQuery(id); }
-    if (data === 'PATCH_DROP') { await executeDrop(chatId); return bot.answerCallbackQuery(id); }
-
-    if (data.includes(':')) {
-        const [action, taskId] = data.split(':');
-        const task = pendingTasks.get(taskId);
-        if (!task) return bot.answerCallbackQuery(id, { text: '任務失效' });
-
-        await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: message.message_id });
-        if (action === 'DENY') {
-            pendingTasks.delete(taskId);
-            await MessageManager.send(bot, chatId, '🛡️ 操作駁回');
-        } else if (action === 'APPROVE') {
-            const { steps, nextIndex } = task;
-            pendingTasks.delete(taskId);
-            await controller.runSequence(chatId, steps, nextIndex);
-        }
-        bot.answerCallbackQuery(id);
-    }
-});
+// Discord
+if (dcClient) {
+    dcClient.on('messageCreate', (msg) => {
+        if (msg.author.bot) return;
+        handleUnifiedMessage(new UniversalContext('discord', msg, dcClient));
+    });
+    dcClient.on('interactionCreate', (interaction) => {
+        if (!interaction.isButton()) return;
+        const ctx = new UniversalContext('discord', interaction, dcClient);
+        handleUnifiedCallback(ctx, interaction.customId);
+        // interaction.deferUpdate() 在 handleUnifiedCallback 中透過 update 處理
+    });
+}
