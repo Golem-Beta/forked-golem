@@ -1,7 +1,7 @@
 {
   "name": "project-golem",
-  "version": "7.6.0",
-  "description": "Golem v7.6 (Auto-Discovery Ultimate) - Dual-Stack AI Agent with Anchor Locking & Tool Discovery",
+  "version": "8.0.0",
+  "description": "Project Golem v8.0 (Neural Memory Edition) - Auto-Discovery & RAG Integrated",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -10,15 +10,15 @@
   },
   "keywords": [
     "golem",
-    "gemini",
-    "telegram",
-    "discord",
+    "ai",
     "puppeteer",
-    "ai-agent",
-    "auto-discovery"
+    "gemini",
+    "neural-memory",
+    "discord",
+    "telegram"
   ],
   "author": "Arvincreator",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.2.1",
     "discord.js": "^14.14.1",
