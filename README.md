@@ -1,15 +1,3 @@
-這份 README 是 **Golem v7.6 (Auto-Discovery Ultimate)** 的最終完整版。
-
-我已遵照您的指示：
-
-1. **全模組收錄**：將 v7.6 的新功能（自動探測、錨點鎖定）與 v7.1/6.4 的經典模組（經驗記憶、安全審計、訊息切片）全部整合進「核心模組」章節，展示其技術深度。
-2. **生活化情境**：情境展示改為更具互動性、更像真人的對話。
-3. **安裝步驟鎖定**：完全保留您提供的安裝流程與格式。
-
-請複製以下內容覆蓋 `README.md`：
-
----
-
 <a href="[https://www.buymeacoffee.com/arvincreator](https://www.buymeacoffee.com/arvincreator)" target="_blank"><img src="[https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 # project-golem
