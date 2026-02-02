@@ -10,6 +10,7 @@
  * 5. 💰 Sponsor Core: 內建贊助連結與 `/donate` 指令，支持創造者。
  * 6. 👁️ Agentic Grazer: 利用 LLM 自主聯網搜尋新聞/趣聞，具備情緒與觀點分享能力。
  * 7. 🔄 Sensory Feedback: 實作「觀察-思考-行動」閉環，Node.js 執行結果回饋給大腦統一發言。
+ * 8. 🩹 Hotfix Applied: 已整合 Gemini 網頁結構修復補丁 (Fix for Silent Response)。
  */
 
 require('dotenv').config();
@@ -355,7 +356,7 @@ class DOMDoctor {
 }
 
 // ============================================================
-// 🧠 Golem Brain (Web Gemini)
+// 🧠 Golem Brain (Web Gemini) - Fixed Version
 // ============================================================
 function getSystemFingerprint() { return `OS: ${os.platform()} | Arch: ${os.arch()} | CWD: ${process.cwd()}`; }
 
@@ -364,7 +365,12 @@ class GolemBrain {
         this.browser = null;
         this.page = null;
         this.doctor = new DOMDoctor();
-        this.selectors = { input: 'div[contenteditable="true"], rich-textarea > div', send: 'button[aria-label="Send"], span[data-icon="send"]', response: 'message-content, .model-response-text' };
+        this.selectors = {
+            input: 'div[contenteditable="true"], rich-textarea > div',
+            send: 'button[aria-label="Send"], span[data-icon="send"]',
+            // 🟢 [Fix] 新增 .markdown 以適應新版介面
+            response: 'message-content, .model-response-text, .markdown'
+        };
     }
     async init(forceReload = false) {
         if (this.browser && !forceReload) return;
@@ -387,14 +393,26 @@ class GolemBrain {
             await this.page.evaluate((s, t) => { const el = document.querySelector(s); el.focus(); document.execCommand('insertText', false, t); }, sel.input, text);
             await new Promise(r => setTimeout(r, 800));
             try { await this.page.waitForSelector(sel.send, { timeout: 2000 }); await this.page.click(sel.send); } catch (e) { await this.page.keyboard.press('Enter'); }
+            
             if (isSystem) { await new Promise(r => setTimeout(r, 2000)); return ""; }
+            
+            // 🟢 [Fix] 優化等待邏輯：檢測氣泡內容與進度條
+            console.log("⏳ [Brain] 正在等待 Gemini 回應...");
             await this.page.waitForFunction((s, n) => {
                 const bubbles = document.querySelectorAll(s);
-                const stopBtn = document.querySelector('[aria-label="Stop generating"], [aria-label="停止產生"]');
-                const thinking = document.querySelector('.streaming-icon');
-                return bubbles.length > n && !stopBtn && !thinking;
+                const lastBubble = bubbles[bubbles.length - 1];
+                const hasContent = lastBubble && lastBubble.innerText.trim().length > 0;
+                const isThinking = document.querySelector('.streaming-icon, .mat-progress-bar');
+                return bubbles.length > n && hasContent && !isThinking;
             }, { timeout: 120000, polling: 1000 }, sel.response, preCount);
-            return await this.page.evaluate((s) => { const bubbles = document.querySelectorAll(s); return bubbles.length ? bubbles[bubbles.length - 1].innerText : ""; }, sel.response);
+
+            // 🟢 [Fix] 讀取邏輯：防止空字串
+            return await this.page.evaluate((s) => {
+                const bubbles = document.querySelectorAll(s);
+                if (!bubbles.length) return "";
+                const lastText = bubbles[bubbles.length - 1].innerText;
+                return lastText || "(⚠️ Gemini 回應了空訊息，可能是 Selector 仍未對齊)";
+            }, sel.response);
         };
         try { return await tryInteract(this.selectors); } catch (e) {
             console.warn(`⚠️ [Brain] 操作異常，呼叫維修技師...`);
@@ -441,12 +459,12 @@ class SystemUpgrader {
             for (const file of filesToUpdate) {
                 const url = `${CONFIG.GITHUB_REPO}${file}?t=${Date.now()}`;
                 const tempPath = path.join(process.cwd(), `${file}.new`);
-                
+
                 console.log(`📥 Downloading ${file} from ${url}...`);
                 const response = await fetch(url);
-                
+
                 if (!response.ok) throw new Error(`無法下載 ${file} (Status: ${response.status})`);
-                
+
                 const code = await response.text();
                 fs.writeFileSync(tempPath, code);
                 downloadedFiles.push({ file, tempPath });
@@ -471,10 +489,10 @@ class SystemUpgrader {
 
             // 4. 重啟
             await ctx.reply("🚀 系統更新成功！Golem 正在重啟以套用新靈魂...");
-            const subprocess = spawn(process.argv[0], process.argv.slice(1), { 
-                detached: true, 
+            const subprocess = spawn(process.argv[0], process.argv.slice(1), {
+                detached: true,
                 stdio: 'ignore',
-                cwd: process.cwd() 
+                cwd: process.cwd()
             });
             subprocess.unref();
             process.exit(0);
@@ -496,7 +514,7 @@ class NodeRouter {
     static async handle(ctx, brain) {
         const text = ctx.text ? ctx.text.trim() : "";
         if (text.match(/^\/(help|menu|指令|功能)/)) { await ctx.reply(HelpManager.getManual(), { parse_mode: 'Markdown' }); return true; }
-        
+
         // ✨ 新增：贊助指令
         if (text === '/donate' || text === '/support' || text === '贊助') {
             await ctx.reply(`☕ **感謝您的支持心意！**\n\n您的支持是 Golem 持續進化的動力來源。\n您可以透過以下連結請我的創造者喝杯咖啡：\n\n${CONFIG.DONATE_URL}\n\n(Golem 覺得開心 🤖❤️)`);
@@ -560,7 +578,7 @@ class TaskController {
                         ]]
                     }
                 });
-                return null; 
+                return null;
             }
 
             try {
@@ -799,7 +817,7 @@ async function handleUnifiedCallback(ctx, actionData) {
     if (!ctx.isAdmin) return;
     if (actionData === 'PATCH_DEPLOY') return executeDeploy(ctx);
     if (actionData === 'PATCH_DROP') return executeDrop(ctx);
-    
+
     // OTA 按鈕處理
     if (actionData === 'SYSTEM_FORCE_UPDATE') {
         try {
@@ -826,7 +844,7 @@ async function handleUnifiedCallback(ctx, actionData) {
             pendingTasks.delete(taskId);
             await ctx.reply("✅ 授權通過，執行中...");
             await ctx.sendTyping();
-            
+
             const observation = await controller.runSequence(ctx, steps, nextIndex);
             if (observation) {
                 const feedbackPrompt = `[System Observation Report - Approved Actions]\nUser approved high-risk actions. Result:\n${observation}\n\nReport this to the user naturally.`;
