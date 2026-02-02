@@ -11,6 +11,7 @@
  * 6. 👁️ Agentic Grazer: 利用 LLM 自主聯網搜尋新聞/趣聞，具備情緒與觀點分享能力。
  * 7. ⚓ Anchor Locking: 採用「定界符工程」技術，強制 Gemini 輸出定位點，徹底解決抓取失敗問題。
  * 8. 🔍 Auto-Discovery: (New) 實作工具自動探測協定，Gemini 可主動確認環境工具是否存在。
+ * 9. 🔮 OpticNerve: (New) 整合 Gemini 2.5 Flash 視神經，支援圖片與文件解讀。
  */
 
 require('dotenv').config();
@@ -24,6 +25,7 @@ const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const https = require('https'); // ✨ 新增: 用於下載附件
 const skills = require('./skills');
 
 // --- ⚙️ 全域配置 ---
@@ -60,6 +62,51 @@ const pendingTasks = new Map(); // 暫存等待審核的任務
 global.pendingPatch = null;     // 暫存等待審核的 Patch
 
 // ============================================================
+// 👁️ OpticNerve (視神經 - Gemini 2.5 Flash Bridge) [✨ New Module]
+// ============================================================
+class OpticNerve {
+    static async analyze(fileUrl, mimeType, apiKey) {
+        console.log(`👁️ [OpticNerve] 正在透過 Gemini 2.5 Flash 分析檔案 (${mimeType})...`);
+        try {
+            // 1. 下載檔案為 Buffer
+            const buffer = await new Promise((resolve, reject) => {
+                https.get(fileUrl, (res) => {
+                    const data = [];
+                    res.on('data', (chunk) => data.push(chunk));
+                    res.on('end', () => resolve(Buffer.concat(data)));
+                    res.on('error', reject);
+                });
+            });
+
+            // 2. 呼叫 Gemini API (使用 2.5-flash)
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+            const prompt = mimeType.startsWith('image/')
+                ? "請詳細描述這張圖片的視覺內容。如果包含文字或程式碼，請完整轉錄。如果是介面截圖，請描述UI元件。請忽略無關的背景雜訊。"
+                : "請閱讀這份文件，並提供詳細的摘要、關鍵數據與核心內容。";
+
+            const result = await model.generateContent([
+                prompt,
+                {
+                    inlineData: {
+                        data: buffer.toString('base64'),
+                        mimeType: mimeType
+                    }
+                }
+            ]);
+
+            const text = result.response.text();
+            console.log("✅ [OpticNerve] 分析完成 (長度: " + text.length + ")");
+            return text;
+        } catch (e) {
+            console.error("❌ [OpticNerve] 解析失敗:", e.message);
+            return `(系統錯誤：視神經無法解析此檔案。原因：${e.message})`;
+        }
+    }
+}
+
+// ============================================================
 // 🔌 Universal Context (通用語境層)
 // ============================================================
 class UniversalContext {
@@ -79,8 +126,45 @@ class UniversalContext {
     }
 
     get text() {
-        if (this.platform === 'telegram') return this.event.text;
-        return this.event.content;
+        // ✨ 優化：支援讀取圖片的 Caption
+        if (this.platform === 'telegram') return this.event.text || this.event.caption || "";
+        return this.event.content || "";
+    }
+
+    // ✨ [New] 取得附件資訊 (回傳 { url, type } 或 null)
+    async getAttachment() {
+        if (this.platform === 'telegram') {
+            const msg = this.event;
+            let fileId = null;
+            let mimeType = 'image/jpeg'; // 預設
+
+            if (msg.photo) fileId = msg.photo[msg.photo.length - 1].file_id;
+            else if (msg.document) {
+                fileId = msg.document.file_id;
+                mimeType = msg.document.mime_type;
+            }
+
+            if (fileId) {
+                try {
+                    const file = await this.instance.getFile(fileId);
+                    // TG Bot API 下載路徑需包含 Token
+                    return {
+                        url: `https://api.telegram.org/file/bot${CONFIG.TG_TOKEN}/${file.file_path}`,
+                        mimeType: mimeType
+                    };
+                } catch (e) { console.error("TG File Error:", e); }
+            }
+        } else {
+            // Discord
+            const attachment = this.event.attachments && this.event.attachments.first();
+            if (attachment) {
+                return {
+                    url: attachment.url,
+                    mimeType: attachment.contentType || 'application/octet-stream'
+                };
+            }
+        }
+        return null;
     }
 
     get isAdmin() {
@@ -325,6 +409,7 @@ class HelpManager {
 ⚓ **同步模式**: Anchor Locking (定界符錨點)
 🔍 **工具探測**: Auto-Discovery Active
 🚑 **DOM Doctor**: v2.0 (Cached & Self-Healing)
+👁️ **OpticNerve**: Gemini 2.5 Flash Bridge (Vision)
 📡 **連線狀態**:
 • Telegram: ${CONFIG.TG_TOKEN ? '✅ 線上' : '⚪ 未啟用'}
 • Discord: ${CONFIG.DC_TOKEN ? '✅ 線上' : '⚪ 未啟用'}
@@ -394,10 +479,10 @@ class DOMDoctor {
     async diagnose(htmlSnippet, targetDescription) {
         if (this.keyChain.keys.length === 0) return null;
         console.log(`🚑 [Doctor] 啟動深層診斷: "${targetDescription}" (此操作將消耗 API Quota)...`);
-        
+
         const safeHtml = htmlSnippet.length > 30000 ? htmlSnippet.substring(0, 30000) + "..." : htmlSnippet;
         const prompt = `你是 Puppeteer 專家。HTML Selector 失效。目標: "${targetDescription}"。HTML: ${safeHtml}。請只回傳一個最佳 CSS Selector。`;
-        
+
         let attempts = 0;
         while (attempts < this.keyChain.keys.length) {
             try {
@@ -405,7 +490,7 @@ class DOMDoctor {
                 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                 const result = await model.generateContent(prompt);
                 const newSelector = result.response.text().trim().replace(/`/g, '').replace(/^css\s*/, '');
-                
+
                 if (newSelector.length > 0) {
                     console.log(`✅ [Doctor] 診斷成功！新 Selector: "${newSelector}"`);
                     return newSelector;
@@ -469,22 +554,22 @@ class GolemBrain {
                 if (!inputExists) throw new Error(`找不到輸入框: ${sel.input}`);
 
                 const preCount = await this.page.evaluate(s => document.querySelectorAll(s).length, sel.response);
-                
+
                 // 輸入文字
-                await this.page.evaluate((s, t) => { 
-                    const el = document.querySelector(s); 
-                    el.focus(); 
-                    document.execCommand('insertText', false, t); 
+                await this.page.evaluate((s, t) => {
+                    const el = document.querySelector(s);
+                    el.focus();
+                    document.execCommand('insertText', false, t);
                 }, sel.input, text);
-                
+
                 await new Promise(r => setTimeout(r, 800));
 
                 // 點擊發送
-                try { 
-                    await this.page.waitForSelector(sel.send, { timeout: 2000 }); 
-                    await this.page.click(sel.send); 
-                } catch (e) { 
-                    await this.page.keyboard.press('Enter'); 
+                try {
+                    await this.page.waitForSelector(sel.send, { timeout: 2000 });
+                    await this.page.click(sel.send);
+                } catch (e) {
+                    await this.page.keyboard.press('Enter');
                 }
 
                 if (isSystem) { await new Promise(r => setTimeout(r, 2000)); return ""; }
@@ -509,26 +594,26 @@ class GolemBrain {
             } catch (e) {
                 // 🚑 自癒邏輯 (Self-Healing Trigger)
                 console.warn(`⚠️ [Brain] 操作失敗: ${e.message}`);
-                
+
                 if (retryCount === 0) { // 只允許重試一次，避免無限迴圈
                     console.log("🚑 [Brain] 呼叫 DOM Doctor 進行緊急手術...");
                     const htmlDump = await this.page.content();
-                    
+
                     // 簡單判斷：如果是輸入框壞了就修輸入框，否則修回覆框
                     const isInputBroken = e.message.includes('找不到輸入框');
-                    
+
                     const newSelector = await this.doctor.diagnose(
-                        htmlDump, 
+                        htmlDump,
                         isInputBroken ? 'Chat Input Box (contenteditable div)' : 'Chat Message Bubble (text content)'
                     );
-                    
+
                     if (newSelector) {
                         if (isInputBroken) this.selectors.input = newSelector;
                         else this.selectors.response = newSelector;
-                        
+
                         // 存入長期記憶
                         this.doctor.saveSelectors(this.selectors);
-                        
+
                         console.log("🔄 [Brain] 手術完成，正在重試...");
                         return await tryInteract(this.selectors, retryCount + 1);
                     }
@@ -873,7 +958,7 @@ const autonomy = new AutonomyManager(brain);
 
 // --- 統一事件處理 ---
 async function handleUnifiedMessage(ctx) {
-    if (!ctx.text) return;
+    if (!ctx.text && !ctx.getAttachment()) return; // 沒文字也沒附件就退出
     if (!ctx.isAdmin) return;
     if (await NodeRouter.handle(ctx, brain)) return;
 
@@ -911,7 +996,43 @@ async function handleUnifiedMessage(ctx) {
     // [Round 1: 接收指令]
     await ctx.sendTyping();
     try {
-        const raw = await brain.sendMessage(ctx.text);
+        let finalInput = ctx.text;
+
+        // 👁️ 視覺/檔案處理檢查 [✨ New Vision Logic]
+        const attachment = await ctx.getAttachment();
+        if (attachment) {
+            await ctx.reply("👁️ 正在透過 OpticNerve (Gemini 2.5 Flash) 分析檔案，請稍候...");
+            const apiKey = brain.doctor.keyChain.getKey(); // 借用 Doctor 的 KeyChain
+
+            if (!apiKey) {
+                 await ctx.reply("⚠️ 系統錯誤：找不到可用的 API Key，無法啟動視覺模組。");
+                 return;
+            }
+
+            const analysis = await OpticNerve.analyze(attachment.url, attachment.mimeType, apiKey);
+
+            finalInput = `
+【系統通知：視覺訊號輸入】
+使用者上傳了一個檔案。
+檔案類型：${attachment.mimeType}
+
+【Gemini 2.5 Flash 分析報告】
+${analysis}
+
+----------------
+使用者隨附訊息：${ctx.text || "(無文字)"}
+----------------
+【指令】
+1. 請根據「分析報告」的內容來回應使用者，就像你親眼看到了檔案一樣。
+2. 如果報告中包含程式碼錯誤，請直接提供修復建議。
+3. 請明確告知使用者你收到的是「分析報告」而非實體檔案，若使用者要求修圖，請誠實婉拒。`;
+
+            console.log("👁️ [Vision] 分析報告已注入 Prompt");
+        }
+
+        if (!finalInput && !attachment) return; // 無內容則忽略
+
+        const raw = await brain.sendMessage(finalInput);
         const steps = ResponseParser.extractJson(raw);
         const chatPart = raw.replace(/```json[\s\S]*?```/g, '').replace(/\[\s*\{[\s\S]*\}\s*\]/g, '').trim();
 
