@@ -1,19 +1,52 @@
-```gitignore
-# 依賴套件
-node_modules/
-
-# 環境變數 (絕對不能上傳)
+# ========================
+# 1. 核心安全 (Security)
+# ========================
+# 環境變數與金鑰，絕對禁止上傳 [cite: 165]
 .env
 
-# Google 登入 Session 資料 (絕對不能上傳)
-golem_memory/
-golem_memory_*/
-
-# 系統檔案
-.DS_Store
-Thumbs.db
-
-# Log 檔案
+# ========================
+# 2. Node.js 標準依賴
+# ========================
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+
+# ========================
+# 3. Golem 核心記憶體 (Runtime Data)
+# ========================
+# Puppeteer 瀏覽器暫存與 Login Session 
+# 包含 IndexedDB (向量記憶) 與 Chrome Profile
+golem_memory/
+
+# 經驗學習記憶庫 (Experience Memory) 
+golem_learning.json
+
+# DOM Doctor 元素選擇器快取 
+golem_selectors.json
+
+# 人格狀態存檔 (Persona State) [cite: 15]
+# 若希望保留預設人格，建議提交 golem_persona.default.json，而忽略此運行時檔案
+golem_persona.json
+
+# ========================
+# 4. 自癒與更新機制 (System & Patching)
+# ========================
+# PatchManager 生成的測試檔案 
+*.test.js
+
+# SystemUpgrader 下載的暫存檔 
+*.new
+
+# 自主進化或熱修復產生的備份檔 
+*.bak
+*.bak-*
+
+# ========================
+# 5. 作業系統與編輯器雜項
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
