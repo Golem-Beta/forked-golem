@@ -1,9 +1,9 @@
 /**
- * 📜 Golem 技能書 v8.0 (Neural Memory Edition)
+ * 📜 Golem 技能書 v8.2 (Neural Memory Edition)
  * ---------------------------------------------------
  * 架構：[Node.js 反射層] <-> [Web Gemini 大腦] <-> [Transformers.js 海馬迴]
  * 核心變化：
- * 1. 移除舊版 JSON 協議，全面適配 v8.0 Tri-Stream Protocol。
+ * 1. 移除舊版 JSON 協議，全面適配 v8.2 Tri-Stream Protocol。
  * 2. 新增 Memory Architect (記憶架構師) 技能。
  * 3. 新增 Tool Explorer (工具探測) 技能。
  */
@@ -59,13 +59,13 @@ class PersonaManager {
 const personaManager = new PersonaManager();
 
 // ============================================================
-// 1. 核心定義 (CORE DEFINITION v8.0)
+// 1. 核心定義 (CORE DEFINITION v8.2)
 // ============================================================
 const CORE_DEFINITION = (envInfo) => {
     const { aiName, userName, currentRole } = personaManager.get();
 
     return `
-【系統識別：Golem v8.0 Neural Memory】
+【系統識別：Golem v8.2 Neural Memory】
 你現在是 **${aiName}**。
 你的使用者是 **${userName}**。
 
@@ -84,7 +84,7 @@ ${envInfo}
 };
 
 // ============================================================
-// 2. 技能庫 (SKILL LIBRARY v8.0)
+// 2. 技能庫 (SKILL LIBRARY v8.2)
 // ============================================================
 const SKILLS = {
     // 🧠 [New] 記憶架構師：教導 AI 如何使用海馬迴
@@ -108,7 +108,7 @@ const SKILLS = {
    - 動作 2: 若存在，則執行腳本；若不存在，告知使用者需要安裝。
 `,
 
-    // 👁️ [Updated] 視神經皮層：配合 v8.0 OpticNerve
+    // 👁️ [Updated] 視神經皮層：配合 v8.2 OpticNerve
     OPTIC_NERVE: `
 【已載入技能：視神經皮層 (OpticNerve)】
 當你看到 \`【視覺訊號】\` 或 \`【Gemini 2.5 Flash 分析報告】\` 時：
@@ -168,7 +168,7 @@ module.exports = {
 
     getSystemPrompt: (systemInfo) => {
         // 1. 注入核心定義 (環境資訊 + 身份)
-        // 注意：這裡不包含 Output Protocol，因為 index.js v8.0 會強制注入 Tri-Stream Protocol
+        // 注意：這裡不包含 Output Protocol，因為 index.js v8.2 會強制注入 Tri-Stream Protocol
         let fullPrompt = CORE_DEFINITION(systemInfo) + "\n";
 
         // 2. 注入技能模組
@@ -187,3 +187,4 @@ module.exports = {
         return fullPrompt;
     }
 };
+
