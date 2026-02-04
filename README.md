@@ -152,6 +152,12 @@ TELEGRAM_TOKEN=123...
 npm start
 
 ```
+或 啟動監測儀表板（Dashboard)
+
+```bash
+npm start dashboard
+
+```
 
 ---
 
