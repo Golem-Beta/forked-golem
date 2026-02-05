@@ -132,7 +132,7 @@ v8.5 內建駭客風格的終端機儀表板，即時視覺化 **Web Neuro-Link*
 ### 1. 獲取 Token
 
 * **Gemini API Key** (必備): [Google AI Studio](https://aistudio.google.com/app/apikey)
-* **Telegram / Discord Token** (選填)
+* **Telegram token (必填）  / Discord Token** (選填)
 
 ### 2. 下載專案
 
