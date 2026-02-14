@@ -804,7 +804,7 @@ class GolemBrain {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         this.model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.5-flash-lite",
             generationConfig: {
                 maxOutputTokens: 8192,
                 temperature: 0.7,
@@ -848,7 +848,7 @@ class GolemBrain {
         this._initialized = true;
 
         console.log("🧠 [Brain] Gemini API 直連已就緒 (無瀏覽器模式)");
-        console.log(`🗝️ [Brain] 使用模型: gemini-2.5-flash`);
+        console.log(`🗝️ [Brain] 使用模型: gemini-2.5-flash-lite`);
     }
 
     async recall(queryText) {
@@ -895,7 +895,7 @@ class GolemBrain {
 
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const model = genAI.getGenerativeModel({
-                    model: "gemini-2.5-flash",
+                    model: "gemini-2.5-flash-lite",
                     systemInstruction: this.systemInstruction,
                     generationConfig: {
                         maxOutputTokens: 8192,
