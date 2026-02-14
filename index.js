@@ -1,5 +1,5 @@
 /**
- * 🦞 Forked-Golem v9.1.1 (Direct-Link Edition)
+ * 🦞 Forked-Golem v9.2.0 (Direct-Link Edition)
  * ---------------------------------------------------
  * 基於 Arvincreator/project-golem 分支，重構為 API 直連 + 輕量 headless 架構
  * 目標硬體：ThinkPad X200, 4-8GB RAM, Arch Linux headless (TTY + SSH)
@@ -429,6 +429,7 @@ class SecurityManager {
             'uname', 'uptime', 'hostname', 'which', 'file', 'stat',
             'Get-ChildItem', 'Select-String',
             'golem-check',  // 虛擬指令，不走 exec
+            'golem-skill',  // 虛擬指令，技能管理
             'git',          // git 操作 (status/log/diff/add/commit/push)
             'node', 'python', 'python3',  // 執行腳本
             'npm',          // npm 操作
@@ -910,7 +911,7 @@ class MessageBuffer {
         } finally {
             buf.isProcessing = false;
 
-            // 🔧 [v9.1.1] 修正競爭條件：
+            // 🔧 [v9.2.0] 修正競爭條件：
             // 如果 texts buffer 還有待合併的碎片（timer 正在跑），
             // 不要立刻處理 queue 下一個，等 _flush timer 到期後自然排入。
             if (buf.texts.length > 0 && buf.timer) {
@@ -1156,7 +1157,7 @@ class TriStreamParser {
             const header = m[0];
             const body = m[1].trim();
 
-            // 判斷類型 (v9.1.1: REPLY 優先判斷，避免 [🤖 REPLY] 被誤歸為 ACTION)
+            // 判斷類型 (v9.2.0: REPLY 優先判斷，避免 [🤖 REPLY] 被誤歸為 ACTION)
             let type;
             if (/MEMORY/i.test(header)) type = 'M';
             else if (/REPLY/i.test(header)) type = 'R';
@@ -1411,6 +1412,31 @@ class TaskController {
             }
 
             // ✨ [v7.6] Tool Discovery Interceptor
+            // 🔧 [v9.2] golem-skill 虛擬指令：技能管理
+            if (step.cmd.startsWith('golem-skill')) {
+                const parts = step.cmd.split(/\s+/);
+                const subCmd = parts[1]; // list / load / reload
+                if (subCmd === 'list') {
+                    const listing = skills.skillLoader.listSkills();
+                    reportBuffer.push(`📦 [技能目錄]\n${listing}`);
+                } else if (subCmd === 'load' && parts[2]) {
+                    const skillName = parts[2];
+                    const content = skills.skillLoader.loadSkill(skillName);
+                    if (content) {
+                        // 注入到當前對話的 system context
+                        await brain.sendMessage(`[系統注入] 已載入技能 ${skillName}:\n${content}`, true);
+                        reportBuffer.push(`✅ 技能 ${skillName} 已載入並注入當前對話`);
+                    } else {
+                        reportBuffer.push(`❌ 找不到技能: ${skillName}。使用 golem-skill list 查看可用技能。`);
+                    }
+                } else if (subCmd === 'reload') {
+                    skills.skillLoader.reload();
+                    reportBuffer.push('✅ 技能索引已重新掃描');
+                } else {
+                    reportBuffer.push('❓ 用法: golem-skill list | load <名稱> | reload');
+                }
+                continue;
+            }
             if (step.cmd.startsWith('golem-check')) {
                 const toolName = step.cmd.split(' ')[1];
                 if (!toolName) {
@@ -1761,6 +1787,18 @@ ${finalInput}`;
             }
         } catch (e) { console.warn("記憶檢索失敗 (跳過):", e.message); }
 
+        // 🔧 [v9.2] 關鍵字路由：自動注入匹配的低頻技能
+        const matchedSkills = skills.skillLoader.matchByKeywords(finalInput);
+        if (matchedSkills.length > 0) {
+            for (const skillName of matchedSkills) {
+                const content = skills.skillLoader.loadSkill(skillName);
+                if (content) {
+                    await brain.sendMessage(`[系統注入] 偵測到相關技能 ${skillName}，已自動載入:\n${content}`, true);
+                    dbg('SkillRouter', `自動注入: ${skillName}`);
+                }
+            }
+        }
+
         const raw = await brain.sendMessage(finalInput);
         dbg('Raw', raw);
 
@@ -1932,7 +1970,24 @@ async function handleUnifiedCallback(ctx, actionData) {
             const approvedStep = steps[nextIndex];
             let approvedResult = '';
             try {
-                if (approvedStep.cmd.startsWith('golem-check')) {
+                if (approvedStep.cmd.startsWith('golem-skill')) {
+                    const parts = approvedStep.cmd.split(/\s+/);
+                    const subCmd = parts[1];
+                    if (subCmd === 'list') {
+                        approvedResult = `📦 [技能目錄]\n${skills.skillLoader.listSkills()}`;
+                    } else if (subCmd === 'load' && parts[2]) {
+                        const content = skills.skillLoader.loadSkill(parts[2]);
+                        if (content) {
+                            await brain.sendMessage(`[系統注入] 已載入技能 ${parts[2]}:\n${content}`, true);
+                            approvedResult = `✅ 技能 ${parts[2]} 已載入`;
+                        } else {
+                            approvedResult = `❌ 找不到技能: ${parts[2]}`;
+                        }
+                    } else if (subCmd === 'reload') {
+                        skills.skillLoader.reload();
+                        approvedResult = '✅ 技能索引已重新掃描';
+                    }
+                } else if (approvedStep.cmd.startsWith('golem-check')) {
                     const toolName = approvedStep.cmd.split(' ')[1];
                     approvedResult = toolName ? `🔍 [ToolCheck] ${ToolScanner.check(toolName)}` : '⚠️ [ToolCheck] 缺少參數';
                 } else {
