@@ -34,6 +34,7 @@ if (process.argv.includes('dashboard')) {
     console.log("ℹ️  以標準模式啟動 (無 Dashboard)。若需介面請輸入 'npm start dashboard'");
 }
 // ==========================================
+const GOLEM_VERSION = require('./package.json').version;
 require('dotenv').config();
 const { Bot, InputFile } = require('grammy');
 const { autoRetry } = require('@grammyjs/auto-retry');
@@ -1646,7 +1647,7 @@ const autonomy = new AutonomyManager(brain);
 
     await brain.init();
     autonomy.start();
-    console.log('📡 Golem v8.5 (Neuro-Link Edition) is Online.');
+    console.log(`📡 Golem v${GOLEM_VERSION} is Online.`);
     if (dcClient) dcClient.login(CONFIG.DC_TOKEN);
 })();
 // --- 統一事件處理 ---

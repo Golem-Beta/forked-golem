@@ -11,6 +11,7 @@
  *    - detach 後在 console 按 F12 可重新叫出面板
  *    - 使用 stdin raw mode 監聽按鍵，不依賴 blessed
  */
+const GOLEM_VERSION = require('./package.json').version;
 const blessed = require('blessed');
 const contrib = require('blessed-contrib');
 const os = require('os');
@@ -59,7 +60,7 @@ class DashboardPlugin {
         // 建立螢幕
         this.screen = blessed.screen({
             smartCSR: true,
-            title: '🦞 Golem v8.5 戰術控制台 (Neuro-Link)',
+            title: `🦞 Golem v${GOLEM_VERSION} 戰術控制台`,
             fullUnicode: true
         });
 
@@ -101,7 +102,7 @@ class DashboardPlugin {
             left: 0,
             width: '100%',
             height: 1,
-            content: ' {bold}F12{/bold}: Detach 畫面 | {bold}Ctrl+C{/bold}: 完全停止 | {bold}v8.5.3{/bold} ',
+            content: ` {bold}F12{/bold}: Detach 畫面 | {bold}Ctrl+C{/bold}: 完全停止 | {bold}v${GOLEM_VERSION}{/bold} `,
             style: { fg: 'black', bg: 'cyan' },
             tags: true
         });
