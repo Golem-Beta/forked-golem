@@ -23,14 +23,12 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@grammyjs/auto-retry": "^2.0.2",
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.11.0",
     "discord.js": "^14.14.1",
     "dotenv": "^16.6.1",
-    "node-telegram-bot-api": "^0.65.1",
-    "puppeteer": "^22.6.0",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "grammy": "^1.40.0",
     "uuid": "^9.0.1"
   },
   "engines": {

@@ -33,7 +33,8 @@ if (process.argv.includes('dashboard')) {
 }
 // ==========================================
 require('dotenv').config();
-const TelegramBot = require('node-telegram-bot-api');
+const { Bot, InputFile } = require('grammy');
+const { autoRetry } = require('@grammyjs/auto-retry');
 const { Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 // [已移除] puppeteer / puppeteer-extra / stealth — API 直連模式不需要瀏覽器
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -93,7 +94,8 @@ const BOOT_TIME = Date.now();
 const API_MIN_INTERVAL_MS = 2500; // API 呼叫最小間隔 (毫秒)
 
 // 1. Telegram Bot
-const tgBot = CONFIG.TG_TOKEN ? new TelegramBot(CONFIG.TG_TOKEN, { polling: true }) : null;
+const tgBot = CONFIG.TG_TOKEN ? new Bot(CONFIG.TG_TOKEN) : null;
+if (tgBot) { tgBot.api.config.use(autoRetry({ maxRetryAttempts: 5, maxDelaySeconds: 60 })); }
 
 // 2. Discord Client
 const dcClient = CONFIG.DC_TOKEN ? new Client({
@@ -162,24 +164,33 @@ class UniversalContext {
     }
 
     get userId() {
-        return this.platform === 'telegram' ? String(this.event.from.id) : this.event.user ? this.event.user.id : this.event.author.id;
+        if (this.platform === 'telegram') {
+            const from = this.event.from || this.event.callbackQuery?.from;
+            return String(from.id);
+        }
+        return this.event.user ? this.event.user.id : this.event.author.id;
     }
 
     get chatId() {
-        if (this.platform === 'telegram') return this.event.message ? this.event.message.chat.id : this.event.chat.id;
+        if (this.platform === 'telegram') {
+            return this.event.chat?.id || this.event.callbackQuery?.message?.chat?.id;
+        }
         return this.event.channelId || this.event.channel.id;
     }
 
     get text() {
-        // ✨ 優化：支援讀取圖片的 Caption
-        if (this.platform === 'telegram') return this.event.text || this.event.caption || "";
+        // ✨ 優化：支援讀取圖片的 Caption (grammy: ctx.message)
+        if (this.platform === 'telegram') {
+            const msg = this.event.message || this.event.msg;
+            return msg?.text || msg?.caption || "";
+        }
         return this.event.content || "";
     }
 
     // 🛡️ [Flood Guard] 取得訊息時間戳 (毫秒)
     get messageTime() {
-        if (this.platform === 'telegram' && this.event.date) {
-            return this.event.date * 1000; // TG 是秒，轉毫秒
+        if (this.platform === 'telegram' && this.event.message?.date) {
+            return this.event.message.date * 1000; // TG 是秒，轉毫秒
         }
         if (this.platform === 'discord' && this.event.createdTimestamp) {
             return this.event.createdTimestamp;
@@ -190,7 +201,8 @@ class UniversalContext {
     // ✨ [New] 取得附件資訊 (回傳 { url, type } 或 null)
     async getAttachment() {
         if (this.platform === 'telegram') {
-            const msg = this.event;
+            const msg = this.event.message || this.event.msg;
+            if (!msg) return null;
             let fileId = null;
             let mimeType = 'image/jpeg'; // 預設
 
@@ -202,8 +214,7 @@ class UniversalContext {
 
             if (fileId) {
                 try {
-                    const file = await this.instance.getFile(fileId);
-                    // TG Bot API 下載路徑需包含 Token
+                    const file = await this.instance.api.getFile(fileId);
                     return {
                         url: `https://api.telegram.org/file/bot${CONFIG.TG_TOKEN}/${file.file_path}`,
                         mimeType: mimeType
@@ -235,13 +246,12 @@ class UniversalContext {
     async sendDocument(filePath) {
         try {
             if (this.platform === 'telegram') {
-                await this.instance.sendDocument(this.chatId, filePath);
+                await this.instance.api.sendDocument(this.chatId, new InputFile(filePath));
             } else {
                 const channel = await this.instance.channels.fetch(this.chatId);
                 await channel.send({ files: [filePath] });
             }
         } catch (e) {
-            // Discord 檔案大小限制保護
             if (e.message.includes('Request entity too large')) {
                 await this.reply(`⚠️ 檔案過大，無法上傳 (Discord 限制 25MB)。\n路徑：\`${filePath}\``);
             } else {
@@ -253,7 +263,7 @@ class UniversalContext {
 
     async sendTyping() {
         if (this.platform === 'telegram') {
-            this.instance.sendChatAction(this.chatId, 'typing');
+            this.instance.api.sendChatAction(this.chatId, 'typing');
         } else {
             const channel = await this.instance.channels.fetch(this.chatId);
             await channel.sendTyping();
@@ -284,7 +294,7 @@ class MessageManager {
         for (const chunk of chunks) {
             try {
                 if (ctx.platform === 'telegram') {
-                    await ctx.instance.sendMessage(ctx.chatId, chunk, options);
+                    await ctx.instance.api.sendMessage(ctx.chatId, chunk, options);
                 } else {
                     const channel = await ctx.instance.channels.fetch(ctx.chatId);
                     const dcOptions = { content: chunk };
@@ -1406,7 +1416,7 @@ class AutonomyManager {
                     const msgText = `💡 **自主進化提案** (${proposalType})\n目標：${targetName}\n內容：${patch.description}`;
                     const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
                     if (triggerCtx) { await triggerCtx.reply(msgText, options); await triggerCtx.sendDocument(testFile); }
-                    else if (tgBot && CONFIG.ADMIN_IDS[0]) { await tgBot.sendMessage(CONFIG.ADMIN_IDS[0], msgText, options); await tgBot.sendDocument(CONFIG.ADMIN_IDS[0], testFile); }
+                    else if (tgBot && CONFIG.ADMIN_IDS[0]) { await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], msgText, options); await tgBot.api.sendDocument(CONFIG.ADMIN_IDS[0], new InputFile(testFile)); }
                 }
             }
         } catch (e) { console.error("自主進化失敗:", e); }
@@ -1421,14 +1431,14 @@ class AutonomyManager {
             }
             const replyText = parsed.reply;
             if (!replyText) return;
-            if (tgBot && CONFIG.ADMIN_IDS[0]) await tgBot.sendMessage(CONFIG.ADMIN_IDS[0], replyText);
+            if (tgBot && CONFIG.ADMIN_IDS[0]) await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], replyText);
             else if (dcClient && CONFIG.DISCORD_ADMIN_ID) {
                 const user = await dcClient.users.fetch(CONFIG.DISCORD_ADMIN_ID);
                 await user.send(replyText);
             }
         } catch (e) {
             console.warn("[Autonomy] 分流失敗，使用原始文字:", e.message);
-            if (tgBot && CONFIG.ADMIN_IDS[0]) await tgBot.sendMessage(CONFIG.ADMIN_IDS[0], msgText);
+            if (tgBot && CONFIG.ADMIN_IDS[0]) await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], msgText);
         }
     }
 }
@@ -1787,8 +1797,13 @@ async function executeDrop(ctx) {
 }
 
 if (tgBot) {
-    tgBot.on('message', (msg) => handleUnifiedMessage(new UniversalContext('telegram', msg, tgBot)));
-    tgBot.on('callback_query', (query) => { handleUnifiedCallback(new UniversalContext('telegram', query, tgBot), query.data); tgBot.answerCallbackQuery(query.id); });
+    tgBot.on('message', (ctx) => handleUnifiedMessage(new UniversalContext('telegram', ctx, tgBot)));
+    tgBot.on('callback_query:data', (ctx) => {
+        handleUnifiedCallback(new UniversalContext('telegram', ctx, tgBot), ctx.callbackQuery.data);
+        ctx.answerCallbackQuery();
+    });
+    tgBot.catch((err) => console.error(`⚠️ [TG] ${err.message}`));
+    tgBot.start();
 }
 if (dcClient) {
     dcClient.on('messageCreate', (msg) => { if (!msg.author.bot) handleUnifiedMessage(new UniversalContext('discord', msg, dcClient)); });
