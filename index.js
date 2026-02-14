@@ -612,14 +612,47 @@ class KeyChain {
         this._lastCallTime = 0;
         this._minInterval = API_MIN_INTERVAL_MS || 2500;
         this._throttleQueue = Promise.resolve();
+        // 🧊 [Smart Cooldown] 每把 key 的冷卻時間戳
+        this._cooldownUntil = new Map(); // key -> timestamp
         console.log(`🗝️ [KeyChain] 已載入 ${this.keys.length} 把 API Key (節流: ${this._minInterval}ms)。`);
     }
-    // 同步版：不帶節流，供不需要排隊的場景使用
+    // 標記某把 key 進入冷卻 (預設 15 分鐘)
+    markCooldown(key, durationMs = 15 * 60 * 1000) {
+        const until = Date.now() + durationMs;
+        this._cooldownUntil.set(key, until);
+        const idx = this.keys.indexOf(key);
+        console.log(`🧊 [KeyChain] Key #${idx} 進入冷卻，${Math.round(durationMs / 1000)}s 後解除`);
+    }
+    // 檢查 key 是否在冷卻中
+    _isCooling(key) {
+        const until = this._cooldownUntil.get(key);
+        if (!until) return false;
+        if (Date.now() >= until) {
+            this._cooldownUntil.delete(key);
+            return false;
+        }
+        return true;
+    }
+    // 同步版：跳過冷卻中的 key
     getKeySync() {
         if (this.keys.length === 0) return null;
-        const key = this.keys[this.currentIndex];
-        this.currentIndex = (this.currentIndex + 1) % this.keys.length;
-        return key;
+        const startIdx = this.currentIndex;
+        for (let i = 0; i < this.keys.length; i++) {
+            const idx = (startIdx + i) % this.keys.length;
+            const key = this.keys[idx];
+            if (!this._isCooling(key)) {
+                this.currentIndex = (idx + 1) % this.keys.length;
+                return key;
+            }
+        }
+        // 全部冷卻中：回傳最快解除的那把，並清除其冷卻
+        console.warn('⚠️ [KeyChain] 所有 Key 都在冷卻中，強制使用最早解除的');
+        let earliest = null, earliestTime = Infinity;
+        for (const [k, t] of this._cooldownUntil) {
+            if (t < earliestTime) { earliest = k; earliestTime = t; }
+        }
+        if (earliest) this._cooldownUntil.delete(earliest);
+        return earliest || this.keys[0];
     }
     // 非同步版：帶節流，確保 API 呼叫之間有最小間隔
     async getKey() {
@@ -636,6 +669,16 @@ class KeyChain {
                 resolve(this.getKeySync());
             });
         });
+    }
+    // 取得狀態摘要
+    getStatus() {
+        const cooling = [];
+        for (const [k, t] of this._cooldownUntil) {
+            const idx = this.keys.indexOf(k);
+            const remain = Math.max(0, Math.round((t - Date.now()) / 1000));
+            if (remain > 0) cooling.push(`#${idx}(${remain}s)`);
+        }
+        return cooling.length > 0 ? `冷卻中: ${cooling.join(', ')}` : '全部可用';
     }
 }
 
@@ -899,8 +942,9 @@ class GolemBrain {
         const maxAttempts = Math.max(this.keyChain.keys.length, 1) + BACKOFF_SCHEDULE.length;
 
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            let apiKey = null;
             try {
-                const apiKey = await this.keyChain.getKey();
+                apiKey = await this.keyChain.getKey();
                 if (!apiKey) throw new Error("沒有可用的 API Key");
 
                 const genAI = new GoogleGenerativeAI(apiKey);
@@ -942,6 +986,11 @@ class GolemBrain {
 
                 // 429 / RESOURCE_EXHAUSTED — 智慧退避
                 if (e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED')) {
+                    // 🧊 標記這把 key 冷卻 (RPD 用完就凍 15 分鐘，RPM 用完凍 90 秒)
+                    if (apiKey) {
+                        const isDaily = e.message.includes('per day') || e.message.includes('RPD');
+                        this.keyChain.markCooldown(apiKey, isDaily ? 15 * 60 * 1000 : 90 * 1000);
+                    }
                     let waitMs;
                     const retryMatch = e.message.match(/retryDelay['":\s]*(\d+)/i);
                     if (retryMatch) {
