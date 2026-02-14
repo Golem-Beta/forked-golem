@@ -1,5 +1,5 @@
 /**
- * 🦞 Forked-Golem v9.1.0 (Direct-Link Edition)
+ * 🦞 Forked-Golem v9.1.1 (Direct-Link Edition)
  * ---------------------------------------------------
  * 基於 Arvincreator/project-golem 分支，重構為 API 直連 + 輕量 headless 架構
  * 目標硬體：ThinkPad X200, 4-8GB RAM, Arch Linux headless (TTY + SSH)
@@ -909,9 +909,17 @@ class MessageBuffer {
             console.error(`❌ [TitanQ] 處理失敗 (chat: ${chatId}): ${e.message}`);
         } finally {
             buf.isProcessing = false;
+
+            // 🔧 [v9.1.1] 修正競爭條件：
+            // 如果 texts buffer 還有待合併的碎片（timer 正在跑），
+            // 不要立刻處理 queue 下一個，等 _flush timer 到期後自然排入。
+            if (buf.texts.length > 0 && buf.timer) {
+                return;
+            }
+
             if (buf.queue.length > 0) {
                 this._processNext(chatId);
-            } else {
+            } else if (buf.texts.length === 0) {
                 this.buffers.delete(chatId);
             }
         }
@@ -975,23 +983,25 @@ class GolemBrain {
         // 3. 注入系統提示詞
         const systemPrompt = skills.getSystemPrompt(getSystemFingerprint());
         const protocol = `
-【⚠️ 系統通訊協定 v9.0 - API Direct Mode】
-1. **Tri-Stream Anchors (三流協定)**:
-你的每一個回應都必須包含以下三個區塊（若該區塊無內容可留空，但標籤務必保留）：
+【⚠️ 系統通訊協定 v9.1 - API Direct Mode】
+1. **Tri-Stream Protocol (三流協定)**:
+你的每一個回應都必須嚴格包含以下三個純文字標籤區塊。
+標籤使用全大寫 ASCII，不要加 emoji。若該區塊無內容可留空，但標籤務必保留。
 
-[🧠 MEMORY_IMPRINT]
+[GOLEM_MEMORY]
 (長期記憶寫入。若無則留空。)
 
-[🤖 ACTION_PLAN]
+[GOLEM_ACTION]
 (JSON Array，每個步驟只有 "cmd" 欄位。嚴禁使用 "command"、"shell"、"action" 等其他欄位名。)
 (範例：[{"cmd": "ls -la ~"}, {"cmd": "golem-check python"}])
 (若無操作：[])
 
-[💬 REPLY]
+[GOLEM_REPLY]
 (回覆給使用者的內容。)
 
 2. **Auto-Discovery Protocol**: 使用 golem-check <工具名> 來確認環境。
 3. 不需要任何開頭或結尾錨點標記，直接輸出三流內容即可。
+4. 標籤格式嚴格為 [GOLEM_MEMORY]、[GOLEM_ACTION]、[GOLEM_REPLY]，禁止使用 emoji 版本。
 `;
 
         // 設定 system instruction 作為對話起點
@@ -1135,7 +1145,7 @@ class TriStreamParser {
         const result = { memory: null, actions: [], reply: '', hasStructuredTags: false };
 
         // Lookahead regex：捕獲標籤類型 + 內容直到下一個標籤或 EOF
-        const TAG_RE = /\[(?:🧠\s*MEMORY_IMPRINT|🤖\s*ACTION_PLAN|💬\s*REPLY|GOLEM_MEMORY|GOLEM_ACTION|GOLEM_REPLY)\]([\s\S]*?)(?=\[(?:🧠\s*MEMORY_IMPRINT|🤖\s*ACTION_PLAN|💬\s*REPLY|GOLEM_MEMORY|GOLEM_ACTION|GOLEM_REPLY)\]|$)/gi;
+        const TAG_RE = /\[(?:🧠\s*MEMORY_IMPRINT|🤖\s*ACTION_PLAN|(?:💬|🤖)\s*REPLY|GOLEM_MEMORY|GOLEM_ACTION|GOLEM_REPLY)\]([\s\S]*?)(?=\[(?:🧠\s*MEMORY_IMPRINT|🤖\s*ACTION_PLAN|(?:💬|🤖)\s*REPLY|GOLEM_MEMORY|GOLEM_ACTION|GOLEM_REPLY)\]|$)/gi;
 
         let m;
         let hasAnyTag = false;
@@ -1146,9 +1156,10 @@ class TriStreamParser {
             const header = m[0];
             const body = m[1].trim();
 
-            // 判斷類型
+            // 判斷類型 (v9.1.1: REPLY 優先判斷，避免 [🤖 REPLY] 被誤歸為 ACTION)
             let type;
             if (/MEMORY/i.test(header)) type = 'M';
+            else if (/REPLY/i.test(header)) type = 'R';
             else if (/ACTION/i.test(header)) type = 'A';
             else type = 'R';
 
