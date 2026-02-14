@@ -1,219 +1,122 @@
-<a href="https://www.buymeacoffee.com/arvincreator" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
-
-# 🦞 Project Golem v8.5 (Titan Edition)
----------------------------------------------------
- * 架構：[Universal Context] -> [Node.js 反射層 + 雙模記憶引擎] <==> [Web Gemini 主大腦]
- * 核心升級：
- * 1. 🛡️ Titan Protocol: 採用純英文大寫標籤 ([GOLEM_ACTION])，移除 Emoji 降低解析干擾。
- * 2. 🥪 Envelope Lock: 實作「三明治信封」鎖定機制 ([[BEGIN]]...[[END]])，徹底解決非同步競態與截斷問題。
- * 3. ⚡ Robust Parser: 寬鬆格式解析器，支援斷尾 JSON 修復與模糊匹配。
----------------------------------------------------
- * 原有特性保留：
- * 🐍 Hydra Link | 🧠 Tri-Brain | 🛡️ High Availability | ☁️ OTA Upgrader
- * 💰 Sponsor Core | 👁️ Agentic Grazer | 🔍 Auto-Discovery | 🔮 OpticNerve
- * 🌗 Dual-Engine Memory | ⚡ Neuro-Link (CDP Integration)
- */
+# 🤖 Forked-Golem v9.0
 
 > **"I perceive, therefore I act."**
-> **搭載「網頁神經連結 (Web Neuro-Link)」技術的自律型 AI 代理人。**
-> **結合 CDP 網路直連、雙模記憶引擎與全自動 Git 版控，實現 99% 穩定性的 Web 自動化操作。**
+> **API 直連自律型 AI Agent，基於 [Project-Golem](https://github.com/Arvincreator/project-golem) 重新設計。**
 
-Project Golem 是一個基於 Puppeteer 控制 Web Gemini 的本機 AI Agent。
-**v8.5 版本** 引入了 **Web Neuro-Link 架構**，透過直接監聽瀏覽器底層網路訊號，徹底解決了傳統網頁自動化「卡住」或「反應遲鈍」的痛點，並整合了戰術控制台 (Dashboard) 實現視覺化監控。
+Forked-Golem 是運行在低功耗硬體上的本機 AI Agent。透過 Gemini API 直連取代原作的 Puppeteer 瀏覽器自動化架構，將 RAM 佔用從 600MB+ 降至 ~80MB，適合在 ThinkPad X200 等老舊硬體上 24/7 運行。
+
+支援 Telegram 與 Discord 雙平台，具備系統指令執行、視覺分析、長期記憶、自主排程與安全防護等能力。
 
 ---
 
-## 🏗️ 系統架構深度解析 (System Architecture)
+## 系統架構
 
-Golem v8.5 的核心在於 **Web Neuro-Link (網頁神經連結層)**。它不再依賴單一的視覺辨識，而是同時運用「視覺 (DOM)」與「聽覺 (Network)」來感知世界，確保在大腦思考與行動之間的零延遲傳輸。
-
-```mermaid
-graph TD
-    User((👤 使用者)) -->|"TG / DC 訊息"| Reflex["⚡ Node.js 反射層 (Reflex)"]
-    
-    subgraph "🧠 The Brain (Web Gemini)"
-        GeminiUI["Web Interface"]
-    end
-
-    subgraph "🔌 Web Neuro-Link (網頁神經連結層)"
-        direction TB
-        CDP["📡 CDP Interceptor (聽覺)"]
-        DOM["👁️ DOM Observer (視覺)"]
-        Race{"⚡ 訊號競速 (Race)"}
-        
-        CDP -->|"Network Idle (毫秒級觸發)"| Race
-        DOM -->|"End Token (備援機制)"| Race
-    end
-
-    subgraph "💾 Dual-Engine Memory (雙模記憶)"
-        direction TB
-        Strategy{模式選擇}
-        BrowserMem[("🌐 Browser (IndexedDB)")]
-        SystemMem[("🚀 System (qmd/Rust)")]
-        
-        Strategy --> BrowserMem
-        Strategy --> SystemMem
-    end
-
-    subgraph "⚓ Tri-Stream Protocol (三流協定)"
-        Stream1["📝 記憶流 (Memory)"]
-        Stream2["🤖 行動流 (Action)"]
-        Stream3["💬 回覆流 (Reply)"]
-    end
-
-    Reflex --> GeminiUI
-    
-    %% 修正點：直接連線到內部節點，避免 Subgraph ID 空白報錯
-    GeminiUI ==> CDP
-    GeminiUI ==> DOM
-    
-    Race -->|"解析回應"| Reflex
-    
-    Reflex --> Stream1 & Stream2 & Stream3
-    
-    Stream1 --> Strategy
-    Stream2 -->|"Shell / Git"| OS[("💻 Host System")]
-    Stream3 --> User
-
+```
+使用者 (TG/DC)
+    │
+    ▼
+⚡ Node.js 反射層 (grammy / discord.js)
+    │
+    ├─→ 🗝️ KeyChain (API Key 輪替 + 智慧冷卻)
+    │       │
+    │       ▼
+    │   🧠 GolemBrain (Gemini 2.5 Flash-Lite 直連)
+    │       │
+    │       ▼
+    │   ⚓ Tri-Stream Parser (三流解析)
+    │       ├─ 📝 記憶流 → Native FS 記憶引擎
+    │       ├─ 🤖 行動流 → Shell Executor (child_process)
+    │       └─ 💬 回覆流 → 使用者
+    │
+    ├─→ 👁️ OpticNerve (Gemini 2.5 Flash 視覺分析)
+    ├─→ 🛡️ SecurityManager v2 (白名單/黑名單/Taint 偵測)
+    └─→ ♻️ Autonomy (自主排程/生命週期)
 ```
 
 ---
 
-## 📊 戰術控制台 (Tactical Dashboard) `NEW`
+## 與原作的差異
 
-v8.5 內建駭客風格的終端機儀表板，即時視覺化 **Web Neuro-Link** 的運作狀態。
-
-```text
-┌─ ⚡ System Load (CPU/RAM) ──────────┐┌─ 🧠 Engine Status ──────────┐
-│ CPU: [||||||       ] 12%           ││ Mode: Browser (Vector)      │
-│ RAM: [||||||||||   ] 145 MB        ││ Link: 🟢 Web Neuro-Link     │
-└────────────────────────────────────┘└─────────────────────────────┘
-┌─ 📠 Web Neuro-Link Logs (Real-time Network/DOM Signals) ──────────┐
-│ [10:23:41] ⚡ [Brain] 啟動雙軌監聽 (Dual-Track)...                │
-│ [10:23:42] 📡 [CDP] 鎖定神經訊號: req_batchexecute_8392           │
-│ [10:23:43] 👁️ [DOM] 偵測到文字輸出 (視覺確認)...                  │
-│ [10:23:44] ✅ [CDP] 網路傳輸完畢 (Winner: Network)                │
-│ [10:23:45] 💬 [回覆] 專案 git-demo 初始化完成，已推送到 GitHub。  │
-└───────────────────────────────────────────────────────────────────┘
-┌─ 💬 Tri-Stream Protocol ──────────────────────────────────────────┐
-│ [記憶] 已寫入: "使用者偏好使用 TypeScript 開發"                   │
-│ [行動] 執行指令: git push -u origin master                        │
-└───────────────────────────────────────────────────────────────────┘
-
-```
+| | Project-Golem (原作) | Forked-Golem |
+|---|---|---|
+| LLM 介面 | Puppeteer 操控 Web Gemini | Gemini API 直連 |
+| RAM 佔用 | ~600MB+ | ~80MB |
+| Telegram 庫 | node-telegram-bot-api | grammy + auto-retry |
+| 瀏覽器依賴 | Chromium headless | 無 |
+| API Key 管理 | 單 key | KeyChain 多 key 輪替 + 429 智慧冷卻 |
+| 安全防護 | 基礎 | SecurityManager v2 (Taint/Flood Guard) |
 
 ---
 
-## 🚀 v8.5 核心功能 (Core Features)
+## 核心功能
 
-### ⚡ Web Neuro-Link (網頁神經連結) `核心`
+**🧠 GolemBrain** — Gemini API 直連推理引擎。主對話使用 `gemini-2.5-flash-lite`（每日 1000 次免費額度），保留完整對話歷史（最近 20 輪）。
 
-* **雙軌並行監聽**：Golem 不再只是傻傻地「看」網頁，而是直接「聽」瀏覽器的網路脈衝。它同時監聽 CDP Network 封包與 DOM 變化。
-* **極速反應**：Gemini 伺服器傳輸結束的毫秒級瞬間，Golem 立即觸發行動，不再依賴死板的 `sleep` 輪詢。
-* **高強韌性**：即使網頁渲染卡頓、CSS Class 改變，只要底層網路訊號確認完成，系統依然能正常運作。
+**🗝️ KeyChain** — 多 API Key 輪替，帶節流控制（最小 2.5s 間隔）。碰到 429 自動標記冷卻：RPD 限制凍 15 分鐘，RPM 限制凍 90 秒，避免反覆撞牆。
 
-### 🐙 Git Master (版本控制大師) `v8.5 NEW`
+**⚓ Tri-Stream Protocol** — 每次回應拆解為記憶寫入、行動執行、對話回覆三條串流，實現思考與行動並行。
 
-* **全自動版控**：Golem 能自主執行 `git init`, `add`, `commit`, `push` 等操作。
+**👁️ OpticNerve** — 透過 Gemini 2.5 Flash 分析圖片與文件。支援截圖解讀、程式碼轉錄、UI 結構分析。
 
-* **環境感知**：操作前自動檢查 `.gitignore` 與 Remote 狀態，避免發生災難性覆蓋。
+**🛡️ SecurityManager v2** — 白名單/黑名單指令控制、Taint 標記防止 Prompt Injection、Flood Guard 防洪、過期訊息過濾。
 
-### 🌗 Dual-Engine Memory (雙模記憶引擎)
+**♻️ Autonomy** — 自主生命週期排程，定時醒來執行探索或回報。
 
-* **策略模式**：支援「瀏覽器內建向量庫 (Transformers.js)」與「系統級 Rust 檢索 (qmd)」兩種模式。
-* **RAG 技術**：結合 Hybrid Search (關鍵字+向量) 與 Rerank 重排序技術，讓 AI 擁有過目不忘的長期記憶。
-
-### 👁️ OpticNerve (視神經)
-
-* **多模態視覺**：整合 **Gemini 2.5 Flash** API。直接將圖片、PDF 文件傳給 Golem，它能進行深度解析、代碼除錯、UI 結構分析，甚至讀懂梗圖。
-
-### ⚓ Tri-Stream Protocol (三流協定)
-
-* **多工處理**：將單次思考拆解為「記憶寫入」、「外部行動」、「對話回覆」三條平行串流。Golem 能在聊天的同時，默默將重要資訊寫入筆記，並在背景執行 Shell 指令。
-
-### 🔍 Auto-Discovery (自動探測)
-
-* **環境適應**：在執行 Python、Node.js 或 FFmpeg 指令前，主動探測宿主機環境。如果工具未安裝，它會提出警告而非盲目報錯。
+**📊 Dashboard** — blessed TUI 戰術控制台，即時監控系統狀態與 API 呼叫。
 
 ---
 
-## ⚡ 快速部署 (Quick Deployment)
+## 快速部署
 
-我們提供了一鍵安裝腳本，自動完成環境檢測、依賴安裝與記憶模式設定。
+### 1. 取得 Token
 
-### 1. 獲取 Token
+- **Gemini API Key** (必備，建議 3 把不同帳號): [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **Telegram Token** (必填): [@BotFather](https://t.me/BotFather)
+- **Discord Token** (選填): [Discord Developer Portal](https://discord.com/developers/applications)
 
-* **Gemini API Key** (必備): [Google AI Studio](https://aistudio.google.com/app/apikey)
-* **Telegram token (必填）  / Discord Token** (選填)
-
-### 2. 下載專案
+### 2. 下載與安裝
 
 ```bash
-git clone https://github.com/Arvincreator/project-golem.git
-cd project-golem
-
+git clone https://github.com/Golem-Beta/forked-golem.git
+cd forked-golem
+cp dotenv-sample .env
+# 編輯 .env 填入你的 Token 和 API Key
+npm install
 ```
 
-### 3. 一鍵安裝 (自動化)
+### 3. 啟動
 
-此腳本會自動安裝 Node.js (若無)、`blessed` 儀表板套件，並建立 `.env` 設定檔。
-
-* **Mac / Linux**:
 ```bash
-chmod +x setup.sh
-./setup.sh
-
-```
-
-
-* **Windows**:
-直接雙擊執行 `setup.bat` 即可。
-
-### 4. 啟動 Golem
-
-* **標準模式** (背景執行):
-```bash
-npm start
-
-```
-
-
-* **戰術控制台模式** (推薦，含視覺化儀表板):
-```bash
+# 戰術控制台模式 (推薦)
 npm start dashboard
 
+# 標準模式 (背景執行)
+npm start
 ```
 
+---
 
-*(按 `F12` 可將介面分離 Detach，讓程式繼續在背景運作)*
+## 硬體需求
+
+本專案為低功耗環境設計：
+
+- CPU: Intel Core2 Duo 等級即可
+- RAM: 4GB 以上
+- OS: Linux (Arch/Debian/Ubuntu)，支援 headless 無 GUI 環境
+- 網路: 需連接外網（Gemini API + Telegram/Discord）
 
 ---
 
-## 📖 生活化情境展示
+## 致謝
 
-### 1. 軟體開發 (Git Ops)
+本專案基於 [Arvincreator](https://github.com/Arvincreator) 的 [Project-Golem](https://github.com/Arvincreator/project-golem) 發展而來。原作奠定了 Tri-Stream Protocol、雙模記憶引擎與戰術控制台等核心概念。
 
-> **User**: "幫我開一個新專案 `my-app`，然後推送到 GitHub。"
-> **Golem**: *(自動執行 `mkdir`, `git init`, `git remote add`)*
-> "專案 `my-app` 初始化完成！已為您設定好 Remote Origin，並完成了第一次 Commit。需要我順便產生 `.gitignore` 嗎？"
-
-### 2. 視覺除錯 (OpticNerve)
-
-*(使用者上傳一張 Server 報錯的截圖)*
-
-> **Golem**: *(透過 Gemini 2.5 Flash 分析截圖中的 Error Log)*
-> "偵測到 `EADDRINUSE: port 3000` 錯誤。這表示 Port 3000 被佔用了。
-> 我可以執行 `lsof -i :3000` 幫你找出是哪個 Process 佔用，或者直接幫你殺掉它嗎？"
+<a href="https://www.buymeacoffee.com/arvincreator" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee (Original Author)" style="height: 60px !important;width: 217px !important;" ></a>
 
 ---
 
-## ⚠️ 免責聲明 (Disclaimer)
+## 免責聲明
 
-1. **自行承擔風險**：本軟體擁有執行 Shell 指令的高級權限，請謹慎授權高風險操作（如 `rm`, `Format`）。
-2. **帳號安全**：建議使用 **分身 Google 帳號 (Burner Account)** 來運行 Golem，以避免因自動化操作導致主帳號風險。
-3. **隱私聲明**：所有的長期記憶與向量資料皆儲存於您的 **本機設備**，開發者無法存取。
-
----
-
-Created with Gemini by **Arvin_Chen**
-<a href="https://www.buymeacoffee.com/arvincreator" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+1. **自行承擔風險**：本軟體具有執行 Shell 指令的權限，請謹慎授權高風險操作。
+2. **帳號安全**：建議使用獨立 Google 帳號的 API Key 運行。
+3. **隱私聲明**：所有記憶與資料皆儲存於本機設備。
