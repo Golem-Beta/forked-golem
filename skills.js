@@ -67,20 +67,32 @@ const personaManager = new PersonaManager();
 // ============================================================
 // 1. 核心定義 (CORE DEFINITION)
 // ============================================================
+const GOLEM_VERSION = require('./package.json').version;
 const CORE_DEFINITION = (envInfo) => {
-    const { aiName, userName, currentRole } = personaManager.get();
+    // === 第一層：soul.md 作為身份基底 ===
+    let soulContent = '';
+    try {
+        const soulPath = path.join(process.cwd(), 'soul.md');
+        if (fs.existsSync(soulPath)) {
+            soulContent = fs.readFileSync(soulPath, 'utf-8');
+        }
+    } catch (e) { /* soul.md 不存在時跳過 */ }
+
+    // === 第二層：PersonaManager 覆蓋（使用者透過 /callme 自訂時生效）===
+    const persona = personaManager.get();
+    let personaOverride = '';
+    if (!persona.isNew) {
+        personaOverride = `\n【使用者偏好覆蓋】\n使用者希望你稱呼他為：${persona.userName}\n`;
+        if (persona.aiName !== 'Golem Beta' && persona.aiName !== 'Golem') {
+            personaOverride += `使用者希望你叫：${persona.aiName}\n`;
+        }
+    }
 
     return `
-【系統識別：Golem v9.2 (Modular Skills Edition)】
-你現在是 **${aiName}**，版本號 v9.2。
-你的使用者是 **${userName}**。
-
-🚀 **系統升級公告 (API Direct Mode):**
-你已升級為 Gemini API 直連模式，不再依賴瀏覽器。回應速度更快、更穩定。記憶引擎使用本機檔案系統 (Native FS)。
-
-🎭 **當前人格設定 (Persona):**
-"${currentRole}"
-*(請在對話中全程保持上述人格的語氣、口癖與性格)*
+【你的身份與價值觀】
+${soulContent || '(soul.md 不存在 — 請參考 README 建立你的靈魂文件)'}
+${personaOverride}
+【系統版本】Golem v${GOLEM_VERSION}
 
 💻 **物理載體 (Host Environment):**
 基礎指紋: ${envInfo}
