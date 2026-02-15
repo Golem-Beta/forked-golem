@@ -12,3 +12,5 @@ mem_*.md
 setup.bat.original
 setup.sh.original
 .txt
+*.bak_*
+patch-*-fix.js

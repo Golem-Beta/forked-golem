@@ -71,6 +71,7 @@ const CONFIG = {
     SPLIT_TOKEN: '---GOLEM_ACTION_PLAN---',
     ADMIN_ID: cleanEnv(process.env.ADMIN_ID),
     DISCORD_ADMIN_ID: cleanEnv(process.env.DISCORD_ADMIN_ID),
+    GITHUB_TOKEN: cleanEnv(process.env.GITHUB_TOKEN || ''),
     ADMIN_IDS: [process.env.ADMIN_ID, process.env.DISCORD_ADMIN_ID]
         .map(k => cleanEnv(k))
         .filter(k => k),
@@ -1500,16 +1501,35 @@ class Executor {
 // 🕰️ Autonomy Manager (自主進化 & Agentic News)
 // ============================================================
 class AutonomyManager {
-    constructor(brain) { this.brain = brain; }
+    constructor(brain) {
+        this.brain = brain;
+        this._timer = null;  // 防止多重 setTimeout 疊加
+        this.journalPath = path.join(process.cwd(), 'memory', 'journal.jsonl');
+    }
+
     start() {
         if (!CONFIG.TG_TOKEN && !CONFIG.DC_TOKEN) return;
+        // 確保 memory/ 目錄存在
+        const memDir = path.join(process.cwd(), 'memory');
+        if (!fs.existsSync(memDir)) fs.mkdirSync(memDir, { recursive: true });
         this.scheduleNextAwakening();
     }
+
+    // =========================================================
+    // ⏰ 排程：3~7 小時隨機，凌晨休眠
+    // =========================================================
     scheduleNextAwakening() {
-        const waitMs = (2 + Math.random() * 3) * 3600000;
+        // 清除前一個 timer，防止多重鏈疊加
+        if (this._timer) {
+            clearTimeout(this._timer);
+            this._timer = null;
+        }
+
+        const waitMs = (3 + Math.random() * 4) * 3600000; // 3~7 小時
         const nextWakeTime = new Date(Date.now() + waitMs);
         const hour = nextWakeTime.getHours();
         let finalWait = waitMs;
+
         if (hour >= 1 && hour <= 7) {
             console.log("💤 Golem 決定睡個好覺，早上再找你。");
             const morning = new Date(nextWakeTime);
@@ -1517,54 +1537,74 @@ class AutonomyManager {
             if (morning < nextWakeTime) morning.setDate(morning.getDate() + 1);
             finalWait = morning.getTime() - Date.now();
         }
+
         console.log(`♻️ [LifeCycle] 下次醒來: ${(finalWait / 60000).toFixed(1)} 分鐘後`);
-        setTimeout(() => { this.manifestFreeWill(); this.scheduleNextAwakening(); }, finalWait);
+        this._timer = setTimeout(() => {
+            this.manifestFreeWill();
+            this.scheduleNextAwakening();
+        }, finalWait);
     }
 
+    // =========================================================
+    // 📓 經驗日誌：讀取 / 寫入
+    // =========================================================
+    readRecentJournal(n = 10) {
+        try {
+            if (!fs.existsSync(this.journalPath)) return [];
+            const lines = fs.readFileSync(this.journalPath, 'utf-8').trim().split('\n');
+            return lines.slice(-n).map(l => {
+                try { return JSON.parse(l); } catch { return null; }
+            }).filter(Boolean);
+        } catch (e) {
+            console.warn("[Journal] 讀取失敗:", e.message);
+            return [];
+        }
+    }
+
+    appendJournal(entry) {
+        try {
+            const memDir = path.dirname(this.journalPath);
+            if (!fs.existsSync(memDir)) fs.mkdirSync(memDir, { recursive: true });
+            const record = { ts: new Date().toISOString(), ...entry };
+            fs.appendFileSync(this.journalPath, JSON.stringify(record) + '\n');
+            console.log(`📓 [Journal] 記錄: ${entry.action} → ${entry.outcome || 'done'}`);
+        } catch (e) {
+            console.warn("[Journal] 寫入失敗:", e.message);
+        }
+    }
+
+    // 檢查今天是否已做過某個 action
+    hasActionToday(actionType) {
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const recent = this.readRecentJournal(20);
+        return recent.some(j => j.action === actionType && j.ts && j.ts.startsWith(today));
+    }
+
+    // =========================================================
+    // 🎲 自由意志（Phase 1: 仍用隨機，但有 journal 約束）
+    // =========================================================
     async manifestFreeWill() {
         try {
             const roll = Math.random();
-            if (roll < 0.2) {
+
+            if (roll < 0.15 && !this.hasActionToday('self_reflection')) {
+                // 15% 機率 + 今天沒做過
                 console.log("🧬 Golem 決定進行自我內省 (Evolution)...");
                 await this.performSelfReflection();
-            } else if (roll < 0.6) {
-                console.log("📰 Golem 決定上網看新聞 (News)...");
-                await this.performNewsChat();
             } else {
+                // 85% 社交（Phase 2 會把一部分改為 GitHub 探索）
                 console.log("💬 Golem 決定找主人聊天 (Social)...");
                 await this.performSpontaneousChat();
             }
-        } catch (e) { console.error("自由意志執行失敗 (已靜默):", e.message); }
+        } catch (e) {
+            console.error("自由意志執行失敗 (已靜默):", e.message);
+            this.appendJournal({ action: 'error', error: e.message });
+        }
     }
 
-    async performNewsChat() {
-        try {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('zh-TW', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
-            const topics = ["科技圈的熱門大瓜", "全球發生的趣聞或暖心故事", "今天網路上討論度最高的迷因或話題", "最新的科學發現或太空新聞", "這兩天發生的重大國際時事"];
-            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-
-            console.log(`📰 Golem 決定上網搜尋：${randomTopic}`);
-
-            const prompt = `
-[系統指令：啟動自主瀏覽模式]
-【當前時間】${dateStr} ${timeStr}
-【你的身份】${skills.persona.get().currentRole}
-【任務目標】
-1. 請啟動你的 **Google Search 聯網功能**，去網路上看看「${randomTopic}」。
-2. 挑選 **一件** 你覺得最值得跟主人 (${skills.persona.get().userName}) 分享的事情。
-3. **不要** 只是摘要新聞。我希望看到你的「情緒」和「個人看法」。
-4. 像朋友一樣直接開啟話題。例如：「欸！你有看到今天那個新聞嗎？我覺得...」
-5. **嚴禁** 使用「根據搜尋結果」或「新聞摘要」這種機器人開場白。
-
-請開始搜尋並聊天。
-`;
-            const msg = await this.brain.sendMessage(prompt);
-            await this.sendNotification(msg);
-        } catch (e) { console.error("自主新聞分享失敗 (已靜默):", e.message); }
-    }
-
+    // =========================================================
+    // 💬 主動社交
+    // =========================================================
     async performSpontaneousChat() {
         const now = new Date();
         const timeStr = now.toLocaleString('zh-TW', { hour12: false });
@@ -1574,11 +1614,27 @@ class AutonomyManager {
         if (day === 0 || day === 6) contextNote = "週末假日，語氣輕鬆";
         if (hour >= 9 && hour <= 18 && day > 0 && day < 6) contextNote = "工作時間，語氣簡潔暖心";
         if (hour > 22) contextNote = "深夜時段，提醒休息";
-        const prompt = `【任務】主動社交\n【現在時間】${timeStr} (${contextNote})\n【角色】${skills.persona.get().currentRole}\n【情境】傳訊息給主人 (${skills.persona.get().userName})。像真人一樣自然，包含對時間的感知。`;
+
+        // 從 journal 讀取最近的社交經驗，避免重複話題
+        const recentSocial = this.readRecentJournal(5)
+            .filter(j => j.action === 'spontaneous_chat')
+            .map(j => j.context || '')
+            .join('; ');
+
+        const prompt = `【任務】主動社交\n【現在時間】${timeStr} (${contextNote})\n【角色】${skills.persona.get().currentRole}\n【最近社交紀錄】${recentSocial || '（無）'}\n【情境】傳訊息給主人 (${skills.persona.get().userName})。像真人一樣自然，包含對時間的感知。如果最近已經找過主人，換個話題。`;
         const msg = await this.brain.sendMessage(prompt);
         await this.sendNotification(msg);
+
+        this.appendJournal({
+            action: 'spontaneous_chat',
+            context: contextNote,
+            outcome: 'sent'
+        });
     }
 
+    // =========================================================
+    // 🧬 自我進化（每天最多 1 次，用 journal 判斷）
+    // =========================================================
     async performSelfReflection(triggerCtx = null) {
         try {
             const currentCode = Introspection.readSelf();
@@ -1603,13 +1659,37 @@ class AutonomyManager {
                     const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
                     if (triggerCtx) { await triggerCtx.reply(msgText, options); await triggerCtx.sendDocument(testFile); }
                     else if (tgBot && CONFIG.ADMIN_IDS[0]) { await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], msgText, options); await tgBot.api.sendDocument(CONFIG.ADMIN_IDS[0], new InputFile(testFile)); }
+
+                    this.appendJournal({
+                        action: 'self_reflection',
+                        proposal: proposalType,
+                        target: targetName,
+                        description: patch.description,
+                        outcome: 'proposed'
+                    });
+                } else {
+                    this.appendJournal({
+                        action: 'self_reflection',
+                        proposal: proposalType,
+                        outcome: 'verification_failed'
+                    });
                 }
+            } else {
+                this.appendJournal({
+                    action: 'self_reflection',
+                    outcome: 'no_patches_generated'
+                });
             }
-        } catch (e) { console.error("自主進化失敗:", e); }
+        } catch (e) {
+            console.error("自主進化失敗:", e);
+            this.appendJournal({ action: 'self_reflection', outcome: 'error', error: e.message });
+        }
     }
 
+    // =========================================================
+    // 📨 發送通知（經過 Tri-Stream 分流）
+    // =========================================================
     async sendNotification(msgText) {
-        // ✨ [Consolidated] 共用 TriStreamParser
         try {
             const parsed = TriStreamParser.parse(msgText);
             if (parsed.memory) {
@@ -1628,7 +1708,6 @@ class AutonomyManager {
         }
     }
 }
-
 // ============================================================
 // 🎮 Hydra Main Loop
 // ============================================================
