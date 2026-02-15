@@ -1268,7 +1268,7 @@ class ResponseParser {
                 const shellPrefixes = ['ls', 'cd', 'cat', 'echo', 'pwd', 'mkdir', 'rm', 'cp', 'mv',
                     'git', 'node', 'npm', 'python', 'pip', 'curl', 'wget', 'find', 'grep',
                     'chmod', 'chown', 'tail', 'head', 'df', 'free', 'ps', 'kill', 'pkill',
-                    'whoami', 'uname', 'date', 'golem-check', 'lsof', 'top', 'which',
+                    'whoami', 'uname', 'date', 'golem-check', 'golem-schedule', 'lsof', 'top', 'which',
                     'touch', 'tar', 'zip', 'unzip', 'ssh', 'scp', 'docker', 'ffmpeg'];
                 const base = cmd.split(/\s+/)[0].toLowerCase();
                 return shellPrefixes.includes(base);
@@ -1415,6 +1415,30 @@ class TaskController {
 
             // ✨ [v7.6] Tool Discovery Interceptor
             // 🔧 [v9.2] golem-skill 虛擬指令：技能管理
+            // ⏰ [Chronos] golem-schedule 虛擬指令
+            if (step.cmd.startsWith('golem-schedule')) {
+                const parts = step.cmd.match(/^golem-schedule\s+(\w+)\s*(.*)/);
+                if (!parts) {
+                    reportBuffer.push('❓ 用法: golem-schedule add <分鐘> <訊息> | list | cancel <id>');
+                    continue;
+                }
+                const [, subCmd, rest] = parts;
+                if (subCmd === 'add') {
+                    const addMatch = rest.match(/^(\d+)\s+(.+)/);
+                    if (!addMatch) {
+                        reportBuffer.push('❓ 用法: golem-schedule add <分鐘> <提醒內容>');
+                    } else {
+                        reportBuffer.push(chronos.add(addMatch[1], addMatch[2]));
+                    }
+                } else if (subCmd === 'list') {
+                    reportBuffer.push(chronos.list());
+                } else if (subCmd === 'cancel') {
+                    reportBuffer.push(chronos.cancel(rest.trim()));
+                } else {
+                    reportBuffer.push('❓ 用法: golem-schedule add <分鐘> <訊息> | list | cancel <id>');
+                }
+                continue;
+            }
             if (step.cmd.startsWith('golem-skill')) {
                 const parts = step.cmd.split(/\s+/);
                 const subCmd = parts[1]; // list / load / reload
@@ -1500,6 +1524,168 @@ class Executor {
 // ============================================================
 // 🕰️ Autonomy Manager (自主進化 & Agentic News)
 // ============================================================
+// ============================================================
+// ⏰ ChronosManager (時間排程系統)
+// ============================================================
+class ChronosManager {
+    constructor() {
+        this.schedulePath = path.join(process.cwd(), 'memory', 'schedules.json');
+        this.timers = new Map(); // id -> setTimeout handle
+        this._load();
+    }
+
+    _load() {
+        try {
+            if (fs.existsSync(this.schedulePath)) {
+                const data = JSON.parse(fs.readFileSync(this.schedulePath, 'utf-8'));
+                this.schedules = Array.isArray(data) ? data : [];
+            } else {
+                this.schedules = [];
+            }
+        } catch (e) {
+            console.warn('[Chronos] 讀取排程檔失敗:', e.message);
+            this.schedules = [];
+        }
+    }
+
+    _save() {
+        try {
+            const dir = path.dirname(this.schedulePath);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(this.schedulePath, JSON.stringify(this.schedules, null, 2));
+        } catch (e) {
+            console.error('[Chronos] 寫入失敗:', e.message);
+        }
+    }
+
+    /**
+     * 啟動時重建所有未過期的 timer
+     */
+    rebuild() {
+        // 清除舊 timer
+        for (const [id, handle] of this.timers) {
+            clearTimeout(handle);
+        }
+        this.timers.clear();
+
+        const now = Date.now();
+        const alive = [];
+        let expiredCount = 0;
+
+        for (const s of this.schedules) {
+            if (s.fireAt <= now) {
+                // 已過期——立即觸發（重啟後補發）
+                expiredCount++;
+                this._fire(s, true);
+            } else {
+                alive.push(s);
+                this._arm(s);
+            }
+        }
+
+        this.schedules = alive;
+        this._save();
+
+        const total = alive.length + expiredCount;
+        if (total > 0) {
+            console.log(`⏰ [Chronos] 重建完成: ${alive.length} 個排程待觸發, ${expiredCount} 個過期補發`);
+        }
+    }
+
+    /**
+     * 設定單一排程的 setTimeout
+     */
+    _arm(schedule) {
+        const delay = schedule.fireAt - Date.now();
+        if (delay <= 0) {
+            this._fire(schedule, false);
+            return;
+        }
+        const handle = setTimeout(() => {
+            this._fire(schedule, false);
+        }, delay);
+        this.timers.set(schedule.id, handle);
+    }
+
+    /**
+     * 觸發排程：發送 TG 訊息 + 清除
+     */
+    _fire(schedule, isLate) {
+        const lateNote = isLate ? ' (重啟後補發)' : '';
+        const msg = `⏰ **定時提醒**${lateNote}\n${schedule.message}`;
+        console.log(`⏰ [Chronos] 觸發: ${schedule.message}${lateNote}`);
+
+        // 發送 TG 訊息
+        if (tgBot && CONFIG.ADMIN_IDS[0]) {
+            tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], msg).catch(e => {
+                console.error('[Chronos] 發送失敗:', e.message);
+            });
+        }
+
+        // 清除
+        this.timers.delete(schedule.id);
+        this.schedules = this.schedules.filter(s => s.id !== schedule.id);
+        this._save();
+    }
+
+    /**
+     * 新增排程
+     * @param {number} minutes - 幾分鐘後
+     * @param {string} message - 提醒內容
+     * @returns {string} 確認訊息
+     */
+    add(minutes, message) {
+        const mins = parseInt(minutes, 10);
+        if (isNaN(mins) || mins <= 0) return '❌ 分鐘數必須是正整數';
+        if (!message || !message.trim()) return '❌ 提醒內容不能為空';
+        if (mins > 10080) return '❌ 最長排程 7 天 (10080 分鐘)';
+
+        const id = `chr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        const fireAt = Date.now() + mins * 60000;
+        const schedule = { id, fireAt, message: message.trim(), createdAt: new Date().toISOString() };
+
+        this.schedules.push(schedule);
+        this._save();
+        this._arm(schedule);
+
+        const fireTime = new Date(fireAt);
+        const timeStr = `${String(fireTime.getHours()).padStart(2, '0')}:${String(fireTime.getMinutes()).padStart(2, '0')}`;
+        return `✅ 排程已設定: ${mins} 分鐘後 (${timeStr}) 提醒「${schedule.message}」 [id: ${id}]`;
+    }
+
+    /**
+     * 列出所有排程
+     */
+    list() {
+        if (this.schedules.length === 0) return '⏰ 目前沒有任何排程';
+        const now = Date.now();
+        const lines = this.schedules.map(s => {
+            const remaining = Math.max(0, Math.ceil((s.fireAt - now) / 60000));
+            const fireTime = new Date(s.fireAt);
+            const timeStr = `${String(fireTime.getHours()).padStart(2, '0')}:${String(fireTime.getMinutes()).padStart(2, '0')}`;
+            return `  • [${s.id}] ${remaining} 分鐘後 (${timeStr}): ${s.message}`;
+        });
+        return `⏰ 現有 ${this.schedules.length} 個排程:\n${lines.join('\n')}`;
+    }
+
+    /**
+     * 取消排程
+     */
+    cancel(id) {
+        const idx = this.schedules.findIndex(s => s.id === id);
+        if (idx === -1) return `❌ 找不到排程: ${id}`;
+        const removed = this.schedules.splice(idx, 1)[0];
+        const handle = this.timers.get(id);
+        if (handle) {
+            clearTimeout(handle);
+            this.timers.delete(id);
+        }
+        this._save();
+        return `✅ 已取消排程: ${removed.message} [id: ${id}]`;
+    }
+}
+
+const chronos = new ChronosManager();
 class AutonomyManager {
     constructor(brain) {
         this.brain = brain;
@@ -1512,6 +1698,7 @@ class AutonomyManager {
         // 確保 memory/ 目錄存在
         const memDir = path.join(process.cwd(), 'memory');
         if (!fs.existsSync(memDir)) fs.mkdirSync(memDir, { recursive: true });
+        chronos.rebuild();
         this.scheduleNextAwakening();
     }
 
