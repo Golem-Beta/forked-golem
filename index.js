@@ -2201,7 +2201,7 @@ ${soul}
                 });
             }
         } catch (e) {
-            console.error("自主進化失敗:", e);
+            console.error("[錯誤] 自主進化失敗:", e.message || e);
             this.appendJournal({ action: 'self_reflection', outcome: 'error', error: e.message });
         }
     }
