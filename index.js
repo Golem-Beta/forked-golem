@@ -1375,7 +1375,7 @@ class NodeRouter {
             if (newName) {
                 skills.persona.setName('user', newName);
                 await brain.init(true);
-                await ctx.reply(`👌 沒問題，以後我就稱呼您為 **${newName}**。`, { parse_mode: 'Markdown' });
+                await ctx.reply(`👌 了解，以後叫你 **${newName}**。`, { parse_mode: "Markdown" });
                 return true;
             }
         }

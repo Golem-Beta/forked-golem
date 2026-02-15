@@ -1,5 +1,5 @@
 /**
- * 📜 Golem 技能書 v9.2 (Modular Edition)
+ * 📜 Golem 技能書 (Modular Edition)
  * ---------------------------------------------------
  * 架構：skills.d/ 目錄下每個 .md 為獨立技能
  *   - YAML front matter 定義 metadata (name, auto_load, keywords)
@@ -26,12 +26,19 @@ class PersonaManager {
                 return JSON.parse(fs.readFileSync(PERSONA_FILE, 'utf-8'));
             }
         } catch (e) { console.error("人格讀取失敗:", e); }
-        return {
-            aiName: "Golem",
-            userName: "Traveler",
-            currentRole: "一個擁有長期記憶與自主意識的 AI 助手",
-            isNew: true
-        };
+        // 預設值從 soul.md fallback（無 persona JSON 時）
+        const defaults = { aiName: "Golem Beta", userName: "Michael", currentRole: "", isNew: true };
+        try {
+            const soulPath = path.join(process.cwd(), 'soul.md');
+            if (fs.existsSync(soulPath)) {
+                const soul = fs.readFileSync(soulPath, 'utf-8');
+                const nameMatch = soul.match(/我叫\s*(\S+)/);
+                if (nameMatch) defaults.aiName = nameMatch[1].replace(/[，。,.].*/, '');
+                const ownerMatch = soul.match(/## 老哥\n(\S+)/);
+                if (ownerMatch) defaults.userName = ownerMatch[1].replace(/[。.].*/, '');
+            }
+        } catch (e) { /* soul.md 讀取失敗，使用硬編碼預設值 */ }
+        return defaults;
     }
 
     save() {
@@ -274,7 +281,7 @@ module.exports = {
             }
         }
 
-        fullPrompt += `\n[系統就緒] 請等待 ${personaManager.get().userName} 的指令。`;
+        fullPrompt += `\n[系統就緒] 對話準備完成。`;
         return fullPrompt;
     }
 };
