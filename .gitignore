@@ -13,7 +13,5 @@ setup.bat.original
 setup.sh.original
 .txt
 *.bak_*
-patch-*-fix.js
 patch-*.js
-patch-*.js
-patch-*.js
+memory/
