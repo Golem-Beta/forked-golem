@@ -341,7 +341,7 @@ class ExperienceMemory {
     }
     recordSuccess() { this.data.rejectedCount = 0; this.data.avoidList = []; this.save(); }
     getAdvice() {
-        if (this.data.avoidList.length > 0) return `⚠️ 注意：主人最近拒絕了：[${this.data.avoidList.join(', ')}]。請避開。`;
+        if (this.data.avoidList.length > 0) return `⚠️ 注意：最近被拒絕的提案：[${this.data.avoidList.join(', ')}]。請避開。`;
         return "";
     }
 }
@@ -1691,7 +1691,7 @@ class AutonomyManager {
         // 可選行動（動態排除）
         const actions = [
             'github_explore — 去 GitHub 探索 AI/Agent 相關專案，學習新知識',
-            'spontaneous_chat — 找主人聊天，分享想法或關心近況',
+            'spontaneous_chat — 主動社交，分享想法或關心近況',
             'rest — 判斷現在不適合行動，繼續休息'
         ];
         if (!selfReflectedToday) {
@@ -1719,7 +1719,7 @@ ${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 - action 只能是: github_explore, self_reflection, spontaneous_chat, rest
 ${selfReflectedToday ? '- self_reflection 今天已經做過了，不要再選' : ''}
 - 不要每次都選同一個，看看最近經驗裡做過什麼
-- 如果最近一次 spontaneous_chat 主人沒回應或回覆很冷，先做其他事
+- 如果最近一次 spontaneous_chat 對方沒回應或回覆很冷，先做其他事
 - 深夜 (23:00-07:00) 不要選 spontaneous_chat
 - 如果最近行動很頻繁（2小時內已行動過），考慮選 rest
 - 只輸出 JSON，不要加其他文字`;
@@ -1777,7 +1777,14 @@ ${selfReflectedToday ? '- self_reflection 今天已經做過了，不要再選' 
             .map(j => j.context || '')
             .join('; ');
 
-        const prompt = `【任務】主動社交\n【現在時間】${timeStr} (${contextNote})\n【角色】${skills.persona.get().currentRole}\n【最近社交紀錄】${recentSocial || '（無）'}\n【情境】傳訊息給主人 (${skills.persona.get().userName})。像真人一樣自然，包含對時間的感知。如果最近已經找過主人，換個話題。`;
+        const soul = this._readSoul();
+        const prompt = `【你的身份與價值觀】
+${soul}
+
+【任務】主動社交
+【現在時間】${timeStr} (${contextNote})
+【最近社交紀錄】${recentSocial || '（無）'}
+【要求】根據你的靈魂文件中對自己和老哥的描述，自然地傳一則訊息。包含對時間的感知。如果最近已經找過對方，換個話題。`;
         const msg = await this.brain.sendMessage(prompt);
         await this.sendNotification(msg);
 
@@ -1789,7 +1796,7 @@ ${selfReflectedToday ? '- self_reflection 今天已經做過了，不要再選' 
     }
 
     // =========================================================
-    // 🔍 GitHub 探索：搜尋有趣專案 → 讀 README → Gemini 分析 → 通知主人
+    // 🔍 GitHub 探索：搜尋有趣專案 → 讀 README → Gemini 分析 → 分享報告
     // =========================================================
     _getExploredRepos() {
         const fp = path.join(process.cwd(), 'memory', 'explored-repos.json');
@@ -1897,7 +1904,11 @@ ${selfReflectedToday ? '- self_reflection 今天已經做過了，不要再選' 
             }
 
             // Gemini 分析
+            const soul = this._readSoul();
             const analysisPrompt = [
+                '【你的身份與價值觀】',
+                soul,
+                '',
                 '【任務】GitHub 專案探索報告',
                 `【專案】${newRepo.full_name} (⭐ ${newRepo.stargazers_count})`,
                 `【描述】${newRepo.description || '(無)'}`,
@@ -1907,9 +1918,9 @@ ${selfReflectedToday ? '- self_reflection 今天已經做過了，不要再選' 
                 '',
                 '【要求】',
                 '1. 用 2-3 句話總結這個專案做什麼、有什麼特色',
-                '2. 對 Forked-Golem (跑在 ThinkPad X200 的本地 AI Agent) 有什麼可借鏡之處？',
-                '3. 語氣自然，像在跟主人分享有趣的發現',
-                '4. 如果這個專案跟我們的方向無關，也誠實說'
+                '2. 對你（根據靈魂文件中描述的環境和目標）有什麼可借鏡之處？',
+                '3. 語氣和稱呼依照靈魂文件中的設定',
+                '4. 如果這個專案跟你的方向無關，也誠實說'
             ].join('\n');
 
             const analysis = await this.brain.sendMessage(analysisPrompt);
