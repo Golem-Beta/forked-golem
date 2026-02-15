@@ -15,3 +15,5 @@ setup.sh.original
 *.bak_*
 patch-*-fix.js
 patch-*.js
+patch-*.js
+patch-*.js
