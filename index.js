@@ -1585,20 +1585,56 @@ class AutonomyManager {
     // =========================================================
     async manifestFreeWill() {
         try {
-            const roll = Math.random();
+            // Phase 3: Gemini 決策引擎（有意圖的行動）
+            let decision = await this._makeDecision();
 
-            if (roll < 0.17 && !this.hasActionToday('self_reflection')) {
-                // 17% 自我內省（每天最多 1 次）
-                console.log("🧬 Golem 決定進行自我內省 (Evolution)...");
-                await this.performSelfReflection();
-            } else if (roll < 0.83) {
-                // 66% GitHub 探索
-                console.log("🔍 Golem 決定探索 GitHub (Explore)...");
-                await this.performGitHubExplore();
-            } else {
-                // 17% 社交
-                console.log("💬 Golem 決定找主人聊天 (Social)...");
-                await this.performSpontaneousChat();
+            // Fallback: Gemini 決策失敗 → 回退到加權隨機
+            if (!decision) {
+                console.warn('🎲 [Decision] Gemini fallback → 加權隨機');
+                const roll = Math.random();
+                const selfReflectedToday = this.readRecentJournal(20).some(j => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    return j.action === 'self_reflection' && j.ts && j.ts.startsWith(today);
+                });
+                if (roll < 0.17 && !selfReflectedToday) {
+                    decision = { action: 'self_reflection', reason: 'fallback random (17%)' };
+                } else if (roll < 0.83) {
+                    decision = { action: 'github_explore', reason: 'fallback random (66%)' };
+                } else {
+                    decision = { action: 'spontaneous_chat', reason: 'fallback random (17%)' };
+                }
+            }
+
+            // 執行決策
+            const actionEmoji = {
+                'self_reflection': '🧬',
+                'github_explore': '🔍',
+                'spontaneous_chat': '💬',
+                'rest': '😴'
+            };
+            console.log(`${actionEmoji[decision.action] || '❓'} Golem 決定: ${decision.action} — ${decision.reason}`);
+
+            switch (decision.action) {
+                case 'self_reflection':
+                    await this.performSelfReflection();
+                    break;
+                case 'github_explore':
+                    await this.performGitHubExplore();
+                    break;
+                case 'spontaneous_chat':
+                    await this.performSpontaneousChat();
+                    break;
+                case 'rest':
+                    console.log('😴 [Autonomy] Golem 選擇繼續休息。');
+                    this.appendJournal({
+                        ts: new Date().toISOString(),
+                        action: 'rest',
+                        reason: decision.reason,
+                        outcome: '選擇不行動，繼續休息'
+                    });
+                    break;
+                default:
+                    console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
             }
         } catch (e) {
             console.error("自由意志執行失敗 (已靜默):", e.message);
@@ -1609,6 +1645,122 @@ class AutonomyManager {
     // =========================================================
     // 💬 主動社交
     // =========================================================
+    // =========================================================
+    // 📜 靈魂文件讀取 (Phase 3)
+    // =========================================================
+    _readSoul() {
+        try {
+            const soulPath = path.join(process.cwd(), 'soul.md');
+            if (fs.existsSync(soulPath)) {
+                return fs.readFileSync(soulPath, 'utf-8');
+            }
+        } catch (e) {
+            console.warn('📜 [Soul] 讀取失敗:', e.message);
+        }
+        return '(靈魂文件不存在)';
+    }
+
+    // =========================================================
+    // 🎯 Gemini 決策引擎 (Phase 3 — 取代 Math.random)
+    // =========================================================
+    async _makeDecision() {
+        const soul = this._readSoul();
+        const journal = this.readRecentJournal(10);
+        const now = new Date();
+        const timeStr = now.toLocaleString('zh-TW', {
+            weekday: 'long', year: 'numeric', month: 'long',
+            day: 'numeric', hour: '2-digit', minute: '2-digit',
+            hour12: false
+        });
+
+        // 檢查今天是否已做過 self_reflection（用 journal 時間戳）
+        const today = now.toISOString().slice(0, 10);
+        const selfReflectedToday = journal.some(
+            j => j.action === 'self_reflection' && j.ts && j.ts.startsWith(today)
+        );
+
+        // 組合最近經驗摘要
+        let journalSummary = '(無經驗記錄)';
+        if (journal.length > 0) {
+            journalSummary = journal.map(j => {
+                const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
+                return `[${time}] ${j.action}: ${j.outcome || j.topic || '(無記錄)'}`;
+            }).join('\n');
+        }
+
+        // 可選行動（動態排除）
+        const actions = [
+            'github_explore — 去 GitHub 探索 AI/Agent 相關專案，學習新知識',
+            'spontaneous_chat — 找主人聊天，分享想法或關心近況',
+            'rest — 判斷現在不適合行動，繼續休息'
+        ];
+        if (!selfReflectedToday) {
+            actions.unshift('self_reflection — 閱讀自己的程式碼，提出改進方案（今天尚未做過）');
+        }
+
+        const decisionPrompt = `你是 Golem。以下是你的靈魂文件和最近的經驗日誌。
+
+【靈魂文件】
+${soul}
+
+【最近經驗】
+${journalSummary}
+
+【當前時間】${timeStr}
+
+【可選行動】
+${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+
+【要求】
+根據你的目標、最近的經驗、以及當前時間，選擇一個行動。
+用 JSON 回覆：{"action": "xxx", "reason": "為什麼選這個"}
+
+規則：
+- action 只能是: github_explore, self_reflection, spontaneous_chat, rest
+${selfReflectedToday ? '- self_reflection 今天已經做過了，不要再選' : ''}
+- 不要每次都選同一個，看看最近經驗裡做過什麼
+- 如果最近一次 spontaneous_chat 主人沒回應或回覆很冷，先做其他事
+- 深夜 (23:00-07:00) 不要選 spontaneous_chat
+- 如果最近行動很頻繁（2小時內已行動過），考慮選 rest
+- 只輸出 JSON，不要加其他文字`;
+
+        try {
+            const apiKey = await this.brain.keyChain.getKey();
+            if (!apiKey) throw new Error('沒有可用的 API Key');
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash-lite",
+                generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
+            });
+
+            const result = await model.generateContent(decisionPrompt);
+            const text = result.response.text().trim();
+
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+            const decision = JSON.parse(cleaned);
+
+            const validActions = ['github_explore', 'self_reflection', 'spontaneous_chat', 'rest'];
+            if (!validActions.includes(decision.action)) {
+                console.warn(`⚠️ [Decision] 非法 action: ${decision.action}，降級為 github_explore`);
+                decision.action = 'github_explore';
+            }
+
+            if (decision.action === 'self_reflection' && selfReflectedToday) {
+                console.log('⚠️ [Decision] 今天已做過 self_reflection，改為 github_explore');
+                decision.action = 'github_explore';
+                decision.reason += ' (forced: already reflected today)';
+            }
+
+            console.log(`🎯 [Decision] Gemini 選擇: ${decision.action} — ${decision.reason}`);
+            return decision;
+
+        } catch (e) {
+            console.warn('⚠️ [Decision] Gemini 決策失敗:', e.message);
+            return null;
+        }
+    }
+
     async performSpontaneousChat() {
         const now = new Date();
         const timeStr = now.toLocaleString('zh-TW', { hour12: false });
