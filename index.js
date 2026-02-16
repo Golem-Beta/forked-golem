@@ -1833,6 +1833,24 @@ class AutonomyManager {
     // 💬 主動社交
     // =========================================================
     // =========================================================
+    // 💾 保存 Gemini 分析完整回覆
+    // =========================================================
+    _saveReflection(action, content) {
+        try {
+            const dir = path.join(process.cwd(), 'memory', 'reflections');
+            fs.mkdirSync(dir, { recursive: true });
+            const ts = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `${action}-${ts}.txt`;
+            const filepath = path.join(dir, filename);
+            fs.writeFileSync(filepath, content);
+            return `reflections/${filename}`;
+        } catch (e) {
+            console.warn('💾 [Reflection] 保存失敗:', e.message);
+            return null;
+        }
+    }
+
+    // =========================================================
     // 📜 靈魂文件讀取 (Phase 3)
     // =========================================================
     _readSoul() {
@@ -2111,6 +2129,7 @@ ${soul}
             ].join('\n');
 
             const analysis = await this.brain.sendMessage(analysisPrompt);
+            const reflectionFile = this._saveReflection('github_explore', analysis);
             const parsed = TriStreamParser.parse(analysis);
 
             // 記錄已探索
@@ -2142,7 +2161,8 @@ ${soul}
                 repo: newRepo.full_name,
                 stars: newRepo.stargazers_count,
                 language: newRepo.language,
-                outcome: 'shared'
+                outcome: 'shared',
+                reflection_file: reflectionFile
             });
 
             console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
@@ -2161,6 +2181,7 @@ ${soul}
             const advice = memory.getAdvice();
             const prompt = `【任務】自主進化提案\n【代碼】\n${currentCode.slice(0, 20000)}\n【記憶】${advice}\n【要求】輸出 JSON Array。修改 skills.js 需標註 "file": "skills.js"。`;
             const raw = await this.brain.sendMessage(prompt);
+            const reflectionFile = this._saveReflection('self_reflection', raw);
             const patches = ResponseParser.extractJson(raw);
             if (patches.length > 0) {
                 const patch = patches[0];
@@ -2185,19 +2206,22 @@ ${soul}
                         proposal: proposalType,
                         target: targetName,
                         description: patch.description,
-                        outcome: 'proposed'
+                        outcome: 'proposed',
+                        reflection_file: reflectionFile
                     });
                 } else {
                     this.appendJournal({
                         action: 'self_reflection',
                         proposal: proposalType,
-                        outcome: 'verification_failed'
+                        outcome: 'verification_failed',
+                        reflection_file: reflectionFile
                     });
                 }
             } else {
                 this.appendJournal({
                     action: 'self_reflection',
-                    outcome: 'no_patches_generated'
+                    outcome: 'no_patches_generated',
+                    reflection_file: reflectionFile
                 });
             }
         } catch (e) {
