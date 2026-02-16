@@ -1,0 +1,49 @@
+{
+    "awakening": {
+        "minHours": 3,
+        "maxHours": 7,
+        "sleepHours": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "morningWakeHour": 8
+    },
+    "actions": {
+        "self_reflection": {
+            "dailyLimit": 1,
+            "desc": "閱讀自己的程式碼，提出改進方案"
+        },
+        "github_explore": {
+            "dailyLimit": null,
+            "desc": "去 GitHub 探索 AI/Agent 相關專案，學習新知識"
+        },
+        "spontaneous_chat": {
+            "dailyLimit": null,
+            "blockedHours": [
+                23,
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "desc": "主動社交，分享想法或關心近況"
+        },
+        "rest": {
+            "desc": "繼續休息"
+        }
+    },
+    "cooldown": {
+        "minActionGapMinutes": 120
+    },
+    "journal": {
+        "decisionReadCount": 10
+    }
+}
