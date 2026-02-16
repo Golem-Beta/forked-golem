@@ -1988,6 +1988,29 @@ class AutonomyManager {
             }).join('\n');
         }
 
+        // 統計最近行動分佈（讓 Gemini 看到偏食事實）
+        const actionCounts = {};
+        let consecutiveCount = 0;
+        let lastAction = null;
+        journal.forEach(j => {
+            actionCounts[j.action] = (actionCounts[j.action] || 0) + 1;
+        });
+        // 計算最近連續相同行動次數
+        for (let i = journal.length - 1; i >= 0; i--) {
+            if (lastAction === null) lastAction = journal[i].action;
+            if (journal[i].action === lastAction) consecutiveCount++;
+            else break;
+        }
+        let diversitySummary = '';
+        if (journal.length > 0) {
+            const parts = Object.entries(actionCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, v]) => k + ' x' + v);
+            diversitySummary = parts.join(', ');
+            if (consecutiveCount >= 2) {
+                diversitySummary += ' | WARNING: ' + lastAction + ' has run ' + consecutiveCount + ' times in a row';
+            }
+        }
         // 組合可選行動清單（帶上下文）
         const actionList = available.map((a, i) =>
             (i + 1) + '. ' + a.id + ' — ' + a.desc + (a.note ? ' (' + a.note + ')' : '')
@@ -2004,6 +2027,10 @@ class AutonomyManager {
             '【最近經驗】',
             journalSummary,
             '',
+            '',
+            diversitySummary ? '【行動分佈統計】' : '',
+            diversitySummary || '',
+            '',
             '【當前時間】' + timeStr,
             '',
             '【可選行動】（已排除不可選的項目）',
@@ -2017,6 +2044,7 @@ class AutonomyManager {
             '- action 只能是: ' + validActionStr,
             '- 括號裡的資訊是事實，參考它來做更好的選擇',
             '- 如果上次某個行動失敗了，考慮換一個方向',
+            '- 多樣化的行動模式比重複單一行動更有價值。如果連續多次執行同一行動，優先考慮其他選項',
             '- 只輸出 JSON，不要加其他文字'
         ].join('\n');
 
@@ -2261,10 +2289,26 @@ ${soul}
         try {
             const currentCode = Introspection.readSelf();
             const advice = memory.getAdvice();
-            const prompt = `【任務】自主進化提案\n【代碼】\n${currentCode.slice(0, 20000)}\n【記憶】${advice}\n【要求】輸出 JSON Array。修改 skills.js 需標註 "file": "skills.js"。`;
+            // Load EVOLUTION skill as prompt template (single source of truth)
+            const evolutionSkill = skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array of patches with search/replace fields.";
+            const prompt = [
+                evolutionSkill,
+                "",
+                "## TARGET CODE (first 18000 chars of index.js)",
+                "",
+                currentCode.slice(0, 18000),
+                "",
+                "## CONTEXT FROM MEMORY",
+                "",
+                advice || "(none)",
+                "",
+                "Now analyse the code above and output ONLY a JSON Array. No other text.",
+            ].join("\n");
             const raw = await this.brain.sendMessage(prompt);
             const reflectionFile = this._saveReflection('self_reflection', raw);
-            const patches = ResponseParser.extractJson(raw);
+            let patches = ResponseParser.extractJson(raw);
+            // Validate: must have search+replace fields, reject cmd fallback results
+            patches = patches.filter(p => p && typeof p.search === "string" && typeof p.replace === "string");
             if (patches.length > 0) {
                 const patch = patches[0];
                 const proposalType = patch.type || 'unknown';
