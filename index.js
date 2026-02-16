@@ -2216,13 +2216,16 @@ ${soul}
             const analysis = await this.brain.sendMessage(analysisPrompt);
             const reflectionFile = this._saveReflection('github_explore', analysis);
             const parsed = TriStreamParser.parse(analysis);
-
+            // 處理記憶流
+            if (parsed.memory) {
+                await this.brain.memorize(parsed.memory, { type: 'github_explore', repo: newRepo.full_name, timestamp: Date.now() });
+                console.log('🧠 [GitHub] 探索記憶已寫入');
+            }
             // 記錄已探索
             this._saveExploredRepo(newRepo);
-
-            // 組裝通知
+            // 組裝通知（只用 reply，不含 tri-stream 標籤）
             const replyText = parsed.reply || analysis;
-            const notification = [
+            const parts = [
                 '🔍 GitHub 探索報告',
                 `📦 ${newRepo.full_name} ⭐ ${newRepo.stargazers_count.toLocaleString()}`,
                 `🏷️ ${newRepo.language || 'N/A'} | 主題: ${topic}`,
@@ -2230,14 +2233,8 @@ ${soul}
                 '',
                 replyText
             ].join('\n');
-
-            // 發送通知
-            if (tgBot && CONFIG.ADMIN_IDS[0]) {
-                await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], notification);
-            } else if (dcClient && CONFIG.DISCORD_ADMIN_ID) {
-                const user = await dcClient.users.fetch(CONFIG.DISCORD_ADMIN_ID);
-                await user.send(notification);
-            }
+            // 走統一出口發送
+            await this._sendToAdmin(parts);
 
             // 寫 journal
             this.appendJournal({
@@ -2316,8 +2313,25 @@ ${soul}
     }
 
     // =========================================================
-    // 📨 發送通知（經過 Tri-Stream 分流）
+    // 📨 通知系統
     // =========================================================
+
+    // 最底層：雙平台純文字發送（單一出口）
+    async _sendToAdmin(text) {
+        if (!text) return;
+        try {
+            if (tgBot && CONFIG.ADMIN_IDS[0]) {
+                await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], text);
+            } else if (dcClient && CONFIG.DISCORD_ADMIN_ID) {
+                const user = await dcClient.users.fetch(CONFIG.DISCORD_ADMIN_ID);
+                await user.send(text);
+            }
+        } catch (e) {
+            console.error('[Autonomy] 發送失敗:', e.message);
+        }
+    }
+
+    // 中間層：解析 tri-stream → 處理 memory → 發送 reply
     async sendNotification(msgText) {
         try {
             const parsed = TriStreamParser.parse(msgText);
@@ -2326,14 +2340,10 @@ ${soul}
             }
             const replyText = parsed.reply;
             if (!replyText) return;
-            if (tgBot && CONFIG.ADMIN_IDS[0]) await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], replyText);
-            else if (dcClient && CONFIG.DISCORD_ADMIN_ID) {
-                const user = await dcClient.users.fetch(CONFIG.DISCORD_ADMIN_ID);
-                await user.send(replyText);
-            }
+            await this._sendToAdmin(replyText);
         } catch (e) {
-            console.warn("[Autonomy] 分流失敗，使用原始文字:", e.message);
-            if (tgBot && CONFIG.ADMIN_IDS[0]) await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], msgText);
+            console.warn('[Autonomy] 分流失敗，使用原始文字:', e.message);
+            await this._sendToAdmin(msgText);
         }
     }
 }
