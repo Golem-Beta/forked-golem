@@ -2627,21 +2627,11 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
             }
 
             const analysis = await OpticNerve.analyze(attachment.url, attachment.mimeType, apiKey);
-            finalInput = `
-【系統通知：視覺訊號輸入】
-使用者上傳了一個檔案。
-檔案類型：${attachment.mimeType}
-
-【Gemini 2.5 Flash 分析報告】
-${analysis}
-
-----------------
-使用者隨附訊息：${ctx.text || "(無文字)"}
-----------------
-【指令】
-1. 請根據「分析報告」的內容來回應使用者，就像你親眼看到了檔案一樣。
-2. 如果報告中包含程式碼錯誤，請直接提供修復建議。
-3. 請明確告知使用者你收到的是「分析報告」而非實體檔案，若使用者要求修圖，請誠實婉拒。`;
+            finalInput = loadPrompt('vision-injection.md', {
+                MIME_TYPE: attachment.mimeType,
+                ANALYSIS: analysis,
+                USER_TEXT: ctx.text || '(無文字)'
+            }) || `[視覺分析] ${analysis}\n使用者：${ctx.text || '(無文字)'}`;
 
             console.log("👁️ [Vision] 分析報告已注入 Prompt");
         }
@@ -2655,12 +2645,10 @@ ${analysis}
             const memories = await brain.recall(queryForMemory);
             if (memories.length > 0) {
                 const memoryText = memories.map(m => `• ${m.text}`).join('\n');
-                finalInput = `
-【相關記憶 (系統提示：這是你的長期記憶，請參考但不需特別提及)】
-${memoryText}
-----------------------------------
-[使用者訊息]
-${finalInput}`;
+                finalInput = loadPrompt('rag-injection.md', {
+                    MEMORIES: memoryText,
+                    USER_INPUT: finalInput
+                }) || `[記憶] ${memoryText}\n[訊息] ${finalInput}`;
                 console.log(`🧠 [RAG] 已注入 ${memories.length} 條記憶`);
             }
         } catch (e) { console.warn("記憶檢索失敗 (跳過):", e.message); }
