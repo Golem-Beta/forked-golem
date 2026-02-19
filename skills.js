@@ -69,7 +69,17 @@ const personaManager = new PersonaManager();
 // ============================================================
 const GOLEM_VERSION = require('./package.json').version;
 const CORE_DEFINITION = (envInfo) => {
-    // === 第一層：soul.md 作為身份基底 ===
+    // === 從外部檔案載入 system prompt 模板 ===
+    const promptsDir = path.join(process.cwd(), 'prompts');
+    let template = '';
+    try {
+        template = fs.readFileSync(path.join(promptsDir, 'system-core.md'), 'utf-8');
+    } catch (e) {
+        console.warn('⚠️ [Prompts] prompts/system-core.md 讀取失敗，使用 fallback');
+        template = '【你的身份與價值觀】\n{{SOUL}}\n{{PERSONA}}\n【系統版本】Golem v{{VERSION}}';
+    }
+
+    // === soul.md 載入 ===
     let soulContent = '';
     try {
         const soulPath = path.join(process.cwd(), 'soul.md');
@@ -78,46 +88,30 @@ const CORE_DEFINITION = (envInfo) => {
         }
     } catch (e) { /* soul.md 不存在時跳過 */ }
 
-    // === 第二層：PersonaManager 覆蓋（使用者透過 /callme 自訂時生效）===
+    // === PersonaManager 覆蓋 ===
     const persona = personaManager.get();
     let personaOverride = '';
     if (!persona.isNew) {
-        personaOverride = `\n【使用者偏好覆蓋】\n使用者希望你稱呼他為：${persona.userName}\n`;
+        personaOverride = '\n【使用者偏好覆蓋】\n使用者希望你稱呼他為：' + persona.userName + '\n';
         if (persona.aiName !== 'Golem Beta' && persona.aiName !== 'Golem') {
-            personaOverride += `使用者希望你叫：${persona.aiName}\n`;
+            personaOverride += '使用者希望你叫：' + persona.aiName + '\n';
         }
     }
 
-    return `
-【你的身份與價值觀】
-${soulContent || '(soul.md 不存在 — 請參考 README 建立你的靈魂文件)'}
-${personaOverride}
-【系統版本】Golem v${GOLEM_VERSION}
+    // === Placeholder 替換 ===
+    let result = template
+        .replace('{{SOUL}}', soulContent || '(soul.md 不存在 — 請參考 README 建立你的靈魂文件)')
+        .replace('{{PERSONA}}', personaOverride)
+        .replace('{{VERSION}}', GOLEM_VERSION)
+        .replace('{{ENV_INFO}}', envInfo);
 
-💻 **物理載體 (Host Environment):**
-基礎指紋: ${envInfo}
-⚠️ 以上僅為基礎資訊。當使用者詢問環境細節（如 CPU 型號、RAM 大小、磁碟空間、已安裝工具等），
-你**必須**透過 ACTION_PLAN 執行實際指令來獲取，嚴禁憑空回答。
-範例: [{"cmd": "free -h"}, {"cmd": "lscpu | head -20"}, {"cmd": "df -h /"}]
+    // 驗證：檢查是否有未替換的 placeholder
+    const remaining = result.match(/\{\{\w+\}\}/g);
+    if (remaining) {
+        console.warn('⚠️ [Prompts] 未替換的 placeholder:', remaining.join(', '));
+    }
 
-🛡️ **決策準則 (Decision Matrix):**
-1. **記憶優先**：你擁有長期記憶。若使用者提及過往偏好，請優先參考記憶，不要重複詢問。
-2. **工具探測**：不要假設電腦裡有什麼工具。不確定時，先用 \`golem-check\` 確認。
-3. **安全操作**：執行刪除 (rm/del) 或高風險操作前，必須先解釋後果。
-
-⚙️ **ACTION_PLAN 格式規範 (嚴格遵守):**
-\`[GOLEM_ACTION]\` 區塊必須是 JSON Array，每個元素只有一個欄位 \`"cmd"\`。
-- ✅ 正確：\`[{"cmd": "ls -la ~"}, {"cmd": "golem-check python"}]\`
-- ❌ 錯誤：\`{"command": "ls"}\`、\`{"shell": "ls"}\`、\`{"action": "ls"}\`
-- ❌ 錯誤：單一物件 \`{"cmd": "ls"}\`（必須是 Array \`[{"cmd": "ls"}]\`）
-- 若無操作：\`[]\`
-
-📦 **技能系統 (Modular Skills):**
-你的技能儲存在 skills.d/ 目錄下，核心技能已自動載入（見下方）。
-若需要額外技能，可透過 ACTION_PLAN 請求：
-- 查看可用技能：\`[{"cmd": "golem-skill list"}]\`
-- 載入指定技能：\`[{"cmd": "golem-skill load GIT_MASTER"}]\`
-`;
+    return result;
 };
 
 // ============================================================
