@@ -1772,20 +1772,10 @@ class AutonomyManager {
             // Phase 3: Gemini 決策引擎（有意圖的行動）
             let decision = await this._makeDecision();
 
-            // Fallback: Gemini 決策失敗 → 從可選行動中隨機
+            // Fallback: Gemini 決策失敗 → 強制 rest（保護配額）
             if (!decision) {
-                console.warn('\u{1F3B2} [Decision] Gemini fallback → 加權隨機');
-                const available = this._getAvailableActions();
-                const ids = available.map(a => a.id);
-                // 優先 github_explore，其次隨機
-                if (ids.includes('github_explore')) {
-                    decision = { action: 'github_explore', reason: 'fallback: Gemini 失敗，預設探索' };
-                } else if (ids.length > 0) {
-                    const pick = ids[Math.floor(Math.random() * ids.length)];
-                    decision = { action: pick, reason: 'fallback: 隨機從可選行動中選取' };
-                } else {
-                    decision = { action: 'rest', reason: 'fallback: 無可選行動' };
-                }
+                console.warn('\u{1F634} [Decision] Gemini 決策失敗 → 強制 rest（避免浪費配額）');
+                decision = { action: 'rest', reason: 'fallback: Gemini 決策失敗，強制休息保護配額' };
             }
 
             // 執行決策
@@ -2074,7 +2064,12 @@ class AutonomyManager {
             console.log("\u{1F3AF} [Decision] Gemini 選擇: " + decision.action + " — " + decision.reason);
             return decision;
         } catch (e) {
-            console.warn('\u26A0\uFE0F [Decision] Gemini 決策失敗:', e.message);
+            const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
+            if (is429) {
+                console.error('\u{1F6A8} [Decision] API 配額耗盡，強制 rest:', e.message);
+            } else {
+                console.warn('\u26A0\uFE0F [Decision] Gemini 決策失敗:', e.message);
+            }
             return null;
         }
     }
@@ -2363,12 +2358,43 @@ ${soul}
     // 最底層：雙平台純文字發送（單一出口）
     async _sendToAdmin(text) {
         if (!text) return;
+        const TG_MAX = 4000; // Telegram 限制 4096，留 buffer
         try {
             if (tgBot && CONFIG.ADMIN_IDS[0]) {
-                await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], text);
+                if (text.length <= TG_MAX) {
+                    await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], text);
+                } else {
+                    // 分段發送：按換行符切割，盡量不切斷段落
+                    const chunks = [];
+                    let current = '';
+                    for (const line of text.split('\n')) {
+                        if ((current + '\n' + line).length > TG_MAX && current) {
+                            chunks.push(current);
+                            current = line;
+                        } else {
+                            current = current ? current + '\n' + line : line;
+                        }
+                    }
+                    if (current) chunks.push(current);
+                    // 如果單行就超過 TG_MAX，硬切
+                    const finalChunks = [];
+                    for (const chunk of chunks) {
+                        if (chunk.length <= TG_MAX) {
+                            finalChunks.push(chunk);
+                        } else {
+                            for (let i = 0; i < chunk.length; i += TG_MAX) {
+                                finalChunks.push(chunk.slice(i, i + TG_MAX));
+                            }
+                        }
+                    }
+                    console.log(`📨 [Autonomy] 訊息過長 (${text.length} chars)，分 ${finalChunks.length} 段發送`);
+                    for (const chunk of finalChunks) {
+                        await tgBot.api.sendMessage(CONFIG.ADMIN_IDS[0], chunk);
+                    }
+                }
             } else if (dcClient && CONFIG.DISCORD_ADMIN_ID) {
                 const user = await dcClient.users.fetch(CONFIG.DISCORD_ADMIN_ID);
-                await user.send(text);
+                await user.send(text.slice(0, 2000)); // Discord 限制 2000
             }
         } catch (e) {
             console.error('[Autonomy] 發送失敗:', e.message);
