@@ -1,17 +1,18 @@
 {
     "awakening": {
-        "minHours": 0.5,
-        "maxHours": 1,
+        "minHours": 2,
+        "maxHours": 4,
         "sleepHours": [
+            22,
+            23,
+            0,
             1,
             2,
             3,
-            4,
-            5,
-            6,
-            7
+	    4,
+	    5
         ],
-        "morningWakeHour": 8
+        "morningWakeHour": 6
     },
     "actions": {
         "self_reflection": {
@@ -25,14 +26,14 @@
         "spontaneous_chat": {
             "dailyLimit": null,
             "blockedHours": [
+		22,
                 23,
                 0,
                 1,
                 2,
                 3,
                 4,
-                5,
-                6
+                5
             ],
             "desc": "主動社交，分享想法或關心近況"
         },
