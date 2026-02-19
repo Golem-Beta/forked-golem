@@ -1111,6 +1111,46 @@ class GolemBrain {
 // ============================================================
 // 🔍 DebugLog (無頭除錯 — GOLEM_DEBUG=true 啟用)
 // ============================================================
+// ============================================================
+// 📝 Prompt Loader (外部化 prompt 讀取)
+// ============================================================
+function loadPrompt(name, vars = {}) {
+    try {
+        const fp = path.join(process.cwd(), 'prompts', name);
+        let text = fs.readFileSync(fp, 'utf-8');
+        for (const [k, v] of Object.entries(vars)) {
+            text = text.replaceAll('{{' + k + '}}', v || '');
+        }
+        return text;
+    } catch (e) {
+        console.warn('[PromptLoader] ' + name + ' 載入失敗:', e.message);
+        return null;
+    }
+}
+
+/**
+ * 從 observation-feedback.md 讀取指定 section
+ * @param {string} section - ROUND2_FEEDBACK / ROUND3_FINAL / APPROVED_FEEDBACK / COHERENCE_CORRECTION / HOTFIX
+ * @param {object} vars - placeholder 替換
+ */
+function loadFeedbackPrompt(section, vars = {}) {
+    try {
+        const fp = path.join(process.cwd(), 'prompts', 'observation-feedback.md');
+        const full = fs.readFileSync(fp, 'utf-8');
+        const regex = new RegExp('## ' + section + '\n([\s\S]*?)(?=\n## |$)');
+        const match = full.match(regex);
+        if (!match) return null;
+        let text = match[1].trim();
+        for (const [k, v] of Object.entries(vars)) {
+            text = text.replaceAll('{{' + k + '}}', v || '');
+        }
+        return text;
+    } catch (e) {
+        console.warn('[PromptLoader] feedback section ' + section + ' 載入失敗:', e.message);
+        return null;
+    }
+}
+
 // ✨ [Consolidated Patch]
 const _DBG = process.env.GOLEM_DEBUG === 'true';
 function dbg(tag, ...args) {
@@ -2077,38 +2117,18 @@ class AutonomyManager {
 
         const validActionStr = available.map(a => a.id).join(', ');
 
-        const decisionPrompt = [
-            '你是 Golem。以下是你的靈魂文件和最近經驗。',
-            '',
-            '【靈魂文件】',
-            soul,
-            '',
-            '【最近經驗】',
-            journalSummary,
-            '',
-            '',
-            diversitySummary ? '【行動分佈統計】' : '',
-            diversitySummary || '',
-            '',
-            memorySummary ? '【老哥最近的互動記憶】' : '',
-            memorySummary || '',
-            '',
-            '【當前時間】' + timeStr,
-            '',
-            '【可選行動】（已排除不可選的項目）',
-            actionList,
-            '',
-            '【要求】',
-            '從上面的可選行動中選一個。',
-            '用 JSON 回覆：{"action": "xxx", "reason": "為什麼選這個"}',
-            '',
-            '注意：',
-            '- action 只能是: ' + validActionStr,
-            '- 括號裡的資訊是事實，參考它來做更好的選擇',
-            '- 如果上次某個行動失敗了，考慮換一個方向',
-            '- 多樣化的行動模式比重複單一行動更有價值。如果連續多次執行同一行動，優先考慮其他選項',
-            '- 只輸出 JSON，不要加其他文字'
-        ].join('\n');
+        // 組合條件區塊
+        const diversitySection = diversitySummary ? '【行動分佈統計】\n' + diversitySummary : '';
+        const memorySection = memorySummary ? '【老哥最近的互動記憶】\n' + memorySummary : '';
+        const decisionPrompt = loadPrompt('decision.md', {
+            SOUL: soul,
+            JOURNAL_SUMMARY: journalSummary,
+            DIVERSITY_SECTION: diversitySection,
+            MEMORY_SECTION: memorySection,
+            TIME_STR: timeStr,
+            ACTION_LIST: actionList,
+            VALID_ACTIONS: validActionStr
+        }) || '選擇一個行動，用 JSON 回覆 {"action":"rest","reason":"fallback"}';
 
         // 決策 API 呼叫：支援換 key 重試（最多嘗試 key 數量次）
         const maxRetries = Math.min(this.brain.keyChain.keys.length, 3);
@@ -2176,15 +2196,12 @@ class AutonomyManager {
             .join('; ');
 
         const soul = this._readSoul();
-        const prompt = `【你的身份與價值觀】
-${soul}
-
-【任務】主動社交
-【現在時間】${timeStr} (${contextNote})
-【最近社交紀錄】${recentSocial || '（無）'}
-【要求】根據你的靈魂文件，用你自己的口吻跟老哥說話。自然、簡短、有溫度。包含對時間的感知。如果最近已經找過對方，換個話題。控制在 100 字以內。
-
-⚠️ 直接輸出要說的話，不要輸出 JSON、不要輸出標籤、不要輸出程式碼。`;
+        const prompt = loadPrompt('spontaneous-chat.md', {
+            SOUL: soul,
+            TIME_STR: timeStr,
+            CONTEXT_NOTE: contextNote,
+            RECENT_SOCIAL: recentSocial || '（無）'
+        }) || `${soul}\n主動社交，時間：${timeStr}，簡短跟老哥打招呼。`;
         const msg = await this._callGeminiDirect(prompt, { maxOutputTokens: 256, temperature: 0.9 });
         await this._sendToAdmin(msg);
 
@@ -2305,26 +2322,14 @@ ${soul}
 
             // Gemini 分析
             const soul = this._readSoul();
-            const analysisPrompt = [
-                '【你的身份與價值觀】',
-                soul,
-                '',
-                '【任務】GitHub 專案探索報告',
-                `【專案】${newRepo.full_name} (⭐ ${newRepo.stargazers_count})`,
-                `【描述】${newRepo.description || '(無)'}`,
-                `【語言】${newRepo.language || '(未標示)'}`,
-                '【README 節錄】',
-                readmeText,
-                '',
-                '【要求】',
-                '1. 用你自己的口吻（根據靈魂文件的身份和價值觀）寫一段探索心得，像是在跟老哥分享你發現的東西',
-                '2. 說明這個專案做什麼、有什麼特色',
-                '3. 對你（ThinkPad X200 上的 Agent）有什麼可借鏡之處？有沒有能用的想法？',
-                '4. 如果跟你的方向無關，誠實說，不要硬湊',
-                '5. 整段回覆控制在 200 字以內，用繁體中文，語氣自然不制式',
-                '',
-                '⚠️ 直接輸出心得文字，不要輸出 JSON、不要輸出程式碼修改建議、不要輸出任何標籤格式'
-            ].join('\n');
+            const analysisPrompt = loadPrompt('github-analysis.md', {
+                SOUL: soul,
+                REPO_FULLNAME: newRepo.full_name,
+                STARS: String(newRepo.stargazers_count),
+                DESCRIPTION: newRepo.description || '(無)',
+                LANGUAGE: newRepo.language || '(未標示)',
+                README_TEXT: readmeText
+            }) || `${soul}\nGitHub 探索：${newRepo.full_name}，用繁體中文寫 200 字心得。`;
 
             const analysis = await this._callGeminiDirect(analysisPrompt, { maxOutputTokens: 512, temperature: 0.7 });
             const reflectionFile = this._saveReflection('github_explore', analysis);
@@ -2584,7 +2589,7 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
         const req = ctx.text.replace('/patch', '').trim() || "優化代碼";
         await ctx.reply(`🧬 收到進化請求: ${req}`);
         const currentCode = Introspection.readSelf();
-        const prompt = `【任務】代碼熱修復\n【需求】${req}\n【源碼】\n${currentCode.slice(0, 15000)}\n【格式】輸出 JSON Array。`;
+        const prompt = loadFeedbackPrompt('HOTFIX', { REQUEST: req, SOURCE_CODE: currentCode.slice(0, 15000) }) || `熱修復：${req}\n源碼前15000字\n輸出 JSON Array`;
         const raw = await brain.sendMessage(prompt);
         const patches = ResponseParser.extractJson(raw);
         if (patches.length > 0) {
@@ -2712,11 +2717,11 @@ ${finalInput}`;
                 await ctx.sendTyping();
 
                 // 自動重試：要求 Gemini 修正格式
-                const correctionPrompt = `[System Format Correction]
-你剛才的回應中，REPLY 提到要執行 ${impliedCmds.map(c => '`' + c + '`').join(', ')}，但 ACTION_PLAN 是空的 []。
-這是格式錯誤。請重新輸出，確保要執行的指令放在 ACTION_PLAN 的 JSON Array 中。
-範例：[{"cmd": "${impliedCmds[0]}"}]
-請直接輸出修正後的三流格式，不需要解釋。`;
+                const impliedCmdsStr = impliedCmds.map(c => '`' + c + '`').join(', ');
+                const correctionPrompt = loadFeedbackPrompt('COHERENCE_CORRECTION', {
+                    IMPLIED_CMDS: impliedCmdsStr,
+                    FIRST_CMD: impliedCmds[0]
+                }) || `[Format Correction] 把 ${impliedCmdsStr} 放進 ACTION_PLAN JSON Array。`;
 
                 try {
                     const retryRaw = await brain.sendMessage(correctionPrompt);
@@ -2754,18 +2759,8 @@ ${finalInput}`;
             // [Round 2: 感知回饋 (Observation Loop)]
             if (observation) {
                 await ctx.sendTyping();
-                const feedbackPrompt = `
-[System Observation Report]
-Here are the results of the actions I executed.
-${observation}
-
-[Response Guidelines]
-1. If successful, summarize the result helpfully.
-2. If failed (Error), do NOT panic.
-Explain what went wrong in simple language and suggest a next step.
-3. Reply in Traditional Chinese naturally.
-4. If you need to run follow-up commands, include them in ACTION_PLAN.
-`;
+                const feedbackPrompt = loadFeedbackPrompt('ROUND2_FEEDBACK', { OBSERVATION: observation })
+                    || `[Observation Report]\n${observation}\nReply in Traditional Chinese.`;
                 const finalResponse = await brain.sendMessage(feedbackPrompt);
                 const r2 = TriStreamParser.parse(finalResponse);
                 if (r2.memory) await brain.memorize(r2.memory, { type: 'fact', timestamp: Date.now() });
@@ -2784,7 +2779,7 @@ Explain what went wrong in simple language and suggest a next step.
                     // Round 3: 只回覆，絕不再解析 action（硬上限 2 輪）
                     if (r2Observation) {
                         await ctx.sendTyping();
-                        const r3Prompt = `[System Observation Report - Final Round]\n${r2Observation}\n\nSummarize the result to the user in Traditional Chinese. Do NOT suggest running any new commands.`;
+                        const r3Prompt = loadFeedbackPrompt('ROUND3_FINAL', { OBSERVATION: r2Observation }) || `[Final Report]\n${r2Observation}\nSummarize in Traditional Chinese.`;
                         const r3Response = await brain.sendMessage(r3Prompt);
                         const r3 = TriStreamParser.parse(r3Response);
                         if (r3.memory) await brain.memorize(r3.memory, { type: 'fact', timestamp: Date.now() });
@@ -2887,8 +2882,7 @@ async function handleUnifiedCallback(ctx, actionData) {
             const observation = [approvedResult, remainingResult].filter(Boolean).join('\n\n----------------\n\n');
 
             if (observation) {
-                const feedbackPrompt = `[System Observation Report - Approved Actions]\nUser approved high-risk actions.
-Result:\n${observation}\n\nReport this to the user naturally in Traditional Chinese. Do NOT suggest running any new commands.`;
+                const feedbackPrompt = loadFeedbackPrompt('APPROVED_FEEDBACK', { OBSERVATION: observation }) || `[Approved]\n${observation}\nReport in Traditional Chinese.`;
                 const finalResponse = await brain.sendMessage(feedbackPrompt);
                 // Round 2 只取回覆，不再解析 action（防止迴圈）
                 const r2 = TriStreamParser.parse(finalResponse);

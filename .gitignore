@@ -16,3 +16,4 @@ setup.sh.original
 patch-*.js
 memory/
 *.bak
+TODO.md
