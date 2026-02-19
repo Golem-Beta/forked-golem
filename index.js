@@ -2360,7 +2360,7 @@ ${soul}
                 "",
                 "Now analyse the code above and output ONLY a JSON Array. No other text.",
             ].join("\n");
-            const raw = await this.brain.sendMessage(prompt);
+            const raw = await this._callGeminiDirect(prompt, { maxOutputTokens: 2048, temperature: 0.3 });
             const reflectionFile = this._saveReflection('self_reflection', raw);
             let patches = ResponseParser.extractJson(raw);
             // Validate: must have search+replace fields, reject cmd fallback results
