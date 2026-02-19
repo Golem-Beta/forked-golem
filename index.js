@@ -1778,6 +1778,12 @@ class AutonomyManager {
                 decision = { action: 'rest', reason: 'fallback: Gemini 決策失敗，強制休息保護配額' };
             }
 
+            // 決策與行動之間加間隔，避免連續 API 呼叫觸發 RPM 限制
+            if (decision.action !== 'rest') {
+                console.log('⏳ [Autonomy] 決策完成，等待 5 秒後執行行動...');
+                await new Promise(r => setTimeout(r, 5000));
+            }
+
             // 執行決策
             const actionEmoji = {
                 'self_reflection': '\u{1F9EC}',
@@ -2038,40 +2044,53 @@ class AutonomyManager {
             '- 只輸出 JSON，不要加其他文字'
         ].join('\n');
 
-        try {
-            const apiKey = await this.brain.keyChain.getKey();
-            if (!apiKey) throw new Error('沒有可用的 API Key');
+        // 決策 API 呼叫：支援換 key 重試（最多嘗試 key 數量次）
+        const maxRetries = Math.min(this.brain.keyChain.keys.length, 3);
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const apiKey = await this.brain.keyChain.getKey();
+                if (!apiKey) throw new Error('沒有可用的 API Key');
 
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.5-flash-lite",
-                generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
-            });
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-2.5-flash-lite",
+                    generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
+                });
 
-            const result = await model.generateContent(decisionPrompt);
-            const text = result.response.text().trim();
-            const cleaned = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            const decision = JSON.parse(cleaned);
+                const result = await model.generateContent(decisionPrompt);
+                const text = result.response.text().trim();
+                const cleaned = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+                const decision = JSON.parse(cleaned);
 
-            // 驗證 action 是否在可選清單中
-            const validIds = available.map(a => a.id);
-            if (!validIds.includes(decision.action)) {
-                console.warn("\u26A0\uFE0F [Decision] Gemini 選了不可選的 action: " + decision.action + "，降級為 " + actionIds[0]);
-                decision.action = actionIds[0] || 'rest';
-                decision.reason += ' (forced: invalid action)';
+                // 驗證 action 是否在可選清單中
+                const validIds = available.map(a => a.id);
+                if (!validIds.includes(decision.action)) {
+                    console.warn("\u26A0\uFE0F [Decision] Gemini 選了不可選的 action: " + decision.action + "，降級為 " + actionIds[0]);
+                    decision.action = actionIds[0] || 'rest';
+                    decision.reason += ' (forced: invalid action)';
+                }
+
+                console.log("\u{1F3AF} [Decision] Gemini 選擇: " + decision.action + " — " + decision.reason);
+                return decision;
+            } catch (e) {
+                const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
+                if (is429) {
+                    // 標記當前 key 冷卻，下次迴圈會自動換 key
+                    const apiKey = this.brain.keyChain.keys[(this.brain.keyChain.currentIndex - 1 + this.brain.keyChain.keys.length) % this.brain.keyChain.keys.length];
+                    this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
+                    if (attempt < maxRetries - 1) {
+                        console.warn(`\u{1F504} [Decision] Key 被 429，換下一把重試 (attempt ${attempt + 1}/${maxRetries})`);
+                        await new Promise(r => setTimeout(r, 3000)); // 換 key 前等 3 秒
+                        continue;
+                    }
+                    console.error('\u{1F6A8} [Decision] 所有 Key 都 429，放棄:', e.message);
+                } else {
+                    console.warn('\u26A0\uFE0F [Decision] Gemini 決策失敗:', e.message);
+                }
+                return null;
             }
-
-            console.log("\u{1F3AF} [Decision] Gemini 選擇: " + decision.action + " — " + decision.reason);
-            return decision;
-        } catch (e) {
-            const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
-            if (is429) {
-                console.error('\u{1F6A8} [Decision] API 配額耗盡，強制 rest:', e.message);
-            } else {
-                console.warn('\u26A0\uFE0F [Decision] Gemini 決策失敗:', e.message);
-            }
-            return null;
         }
+        return null
     }
 
         async performSpontaneousChat() {
