@@ -31,11 +31,16 @@ class DashboardPlugin {
         this.cpuLine = null;
         this.logBox = null;
         this.statusBox = null;
+        this.radarLog = null;
         this.chatBox = null;
+        this.radarLog = null;
         this.footer = null;
         this.timer = null;
 
-        // stdin 按鍵監聽器（detach 狀態用）
+        // 狀態追蹤
+        this.queueCount = 0;
+
+        // stdin 按鍵監聯器（detach 狀態用）
         this._stdinListener = null;
 
         // 📝 日誌檔案初始化
@@ -64,35 +69,42 @@ class DashboardPlugin {
             fullUnicode: true
         });
 
-        // 建立網格
+        // 建立網格 (12x12)
         this.grid = new contrib.grid({ rows: 12, cols: 12, screen: this.screen });
 
-        // 左上：系統負載
+        // [左上] 系統負載 (RAM)
         this.cpuLine = this.grid.set(0, 0, 4, 6, contrib.line, {
             style: { line: "yellow", text: "green", baseline: "black" },
-            label: '⚡ 系統負載 (RAM/CPU)',
+            label: '⚡ 系統負載 (RAM)',
             showLegend: true
         });
 
-        // 左下：核心日誌
-        this.logBox = this.grid.set(4, 0, 7, 6, contrib.log, {
-            fg: "green",
-            selectedFg: "lightgreen",
-            label: '📠 神經網路日誌 (Neuro-Link Logs)',
-            tags: true
-        });
-
-        // 右上：狀態面板
-        this.statusBox = this.grid.set(0, 6, 4, 6, contrib.markdown, {
+        // [右上] 狀態面板（含日期時間）
+        this.statusBox = this.grid.set(0, 6, 2, 6, contrib.markdown, {
             label: '🧠 引擎狀態',
             style: { border: { fg: 'cyan' } }
         });
 
-        // 右下：三流協定
+        // [右中] Autonomy / Chronos 雷達
+        this.radarLog = this.grid.set(2, 6, 2, 6, contrib.log, {
+            fg: "yellow",
+            selectedFg: "yellow",
+            label: '⏰ Autonomy / Chronos'
+        });
+
+        // [左下] 核心日誌
+        this.logBox = this.grid.set(4, 0, 7, 6, contrib.log, {
+            fg: "green",
+            selectedFg: "lightgreen",
+            label: '📠 核心日誌 (Neuro-Link)',
+            tags: true
+        });
+
+        // [右下] 三流協定 + Queue
         this.chatBox = this.grid.set(4, 6, 7, 6, contrib.log, {
             fg: "white",
             selectedFg: "cyan",
-            label: '💬 三流協定 (對話/行動)'
+            label: '💬 三流協定 / Queue'
         });
 
         // 底部說明列
@@ -102,7 +114,7 @@ class DashboardPlugin {
             left: 0,
             width: '100%',
             height: 1,
-            content: ` {bold}F12{/bold}: Detach 畫面 | {bold}Ctrl+C{/bold}: 完全停止 | {bold}v${GOLEM_VERSION}{/bold} `,
+            content: ` {bold}F12{/bold}: Detach | {bold}Ctrl+C{/bold}: 停止 | {bold}v${GOLEM_VERSION}{/bold} `,
             style: { fg: 'black', bg: 'cyan' },
             tags: true
         });
@@ -292,15 +304,27 @@ class DashboardPlugin {
             // 📝 同步寫入 log 檔
             this._writeLog('LOG', msg);
 
-            // 分流邏輯 (ChatBox)
-            if (msg.includes('[💬 REPLY]') || msg.includes('—-回覆開始—-')) {
-                const text = msg.replace('[💬 REPLY]', '').replace('—-回覆開始—-', '').substring(0, 60);
+            // 分流邏輯：Autonomy / Chronos → radarLog
+            if (msg.includes('[Autonomy]') || msg.includes('[Decision]') || msg.includes('[GitHub]')) {
+                if (this.radarLog) this.radarLog.log(`{cyan-fg}${msg}{/cyan-fg}`);
+            }
+            else if (msg.includes('[Chronos]') || msg.includes('排程')) {
+                if (this.radarLog) this.radarLog.log(`{yellow-fg}${msg}{/yellow-fg}`);
+            }
+            // 分流邏輯：TitanQ / Queue → chatBox
+            else if (msg.includes('[TitanQ]') || msg.includes('[Queue]')) {
+                if (this.chatBox) this.chatBox.log(`{magenta-fg}${msg}{/magenta-fg}`);
+                if (msg.includes('合併')) this.queueCount = Math.max(0, (this.queueCount || 0) - 1);
+            }
+            // 分流邏輯：三流協定 → chatBox
+            if (msg.includes('[💬 REPLY]') || msg.includes('[GOLEM_REPLY]') || msg.includes('—-回覆開始—-')) {
+                const text = msg.replace('[💬 REPLY]', '').replace('[GOLEM_REPLY]', '').replace('—-回覆開始—-', '').substring(0, 60);
                 if (this.chatBox) this.chatBox.log(`\x1b[36m[回覆]\x1b[0m ${text}...`);
             }
-            else if (msg.includes('[🤖 ACTION_PLAN]')) {
+            else if (msg.includes('[🤖 ACTION_PLAN]') || msg.includes('[GOLEM_ACTION]')) {
                 if (this.chatBox) this.chatBox.log(`\x1b[33m[行動]\x1b[0m 偵測到指令`);
             }
-            else if (msg.includes('[🧠 MEMORY_IMPRINT]')) {
+            else if (msg.includes('[🧠 MEMORY_IMPRINT]') || msg.includes('[GOLEM_MEMORY]')) {
                 if (this.chatBox) this.chatBox.log(`\x1b[35m[記憶]\x1b[0m 寫入記憶`);
             }
         };
@@ -372,13 +396,19 @@ class DashboardPlugin {
             const hours = Math.floor(uptime / 3600);
             const minutes = Math.floor((uptime % 3600) / 60);
 
+            // 日期時間顯示
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+            const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+
             if (this.statusBox) {
                 this.statusBox.setMarkdown(`
-# 核心狀態
+# ${dateStr} ${timeStr}
 - **模式**: ${mode}
-- **記憶體**: ${memUsage.toFixed(0)} MB
-- **運行**: ${hours}h ${minutes}m
-- **連結**: 🟢 API Direct
+- **RAM**: ${memUsage.toFixed(0)} MB
+- **Uptime**: ${hours}h ${minutes}m
+- **Queue**: ${this.queueCount || 0} 等待中
+- **API**: 🟢 Direct
 `);
             }
             this.screen.render();
