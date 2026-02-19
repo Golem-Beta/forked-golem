@@ -1951,6 +1951,49 @@ class AutonomyManager {
         return '(靈魂文件不存在)';
     }
 
+    /**
+     * Autonomy 專用的 Gemini 直呼叫
+     * 不帶 systemInstruction、不帶 chatHistory、不帶 skills
+     * 只有 soul.md 人格 + 任務 prompt，確保輸出乾淨
+     * 支援 429 換 key 重試
+     */
+    async _callGeminiDirect(prompt, opts = {}) {
+        const maxRetries = Math.min(this.brain.keyChain.keys.length, 3);
+        const maxTokens = opts.maxOutputTokens || 1024;
+        const temp = opts.temperature || 0.8;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const apiKey = await this.brain.keyChain.getKey();
+                if (!apiKey) throw new Error('沒有可用的 API Key');
+
+                const { GoogleGenerativeAI } = require('@google/generative-ai');
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-2.5-flash-lite",
+                    generationConfig: { maxOutputTokens: maxTokens, temperature: temp }
+                });
+
+                const result = await model.generateContent(prompt);
+                return result.response.text().trim();
+            } catch (e) {
+                const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
+                if (is429) {
+                    const keyIdx = (this.brain.keyChain.currentIndex - 1 + this.brain.keyChain.keys.length) % this.brain.keyChain.keys.length;
+                    const failedKey = this.brain.keyChain.keys[keyIdx];
+                    this.brain.keyChain.markCooldown(failedKey, 90 * 1000);
+                    if (attempt < maxRetries - 1) {
+                        console.warn('🔄 [Autonomy] Key 被 429，換下一把重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
+                        await new Promise(r => setTimeout(r, 3000));
+                        continue;
+                    }
+                }
+                throw e;
+            }
+        }
+        throw new Error('_callGeminiDirect: 所有重試都失敗');
+    }
+
     // =========================================================
     // 🎯 Gemini 決策引擎
     // =========================================================
@@ -2116,9 +2159,11 @@ ${soul}
 【任務】主動社交
 【現在時間】${timeStr} (${contextNote})
 【最近社交紀錄】${recentSocial || '（無）'}
-【要求】根據你的靈魂文件中對自己和老哥的描述，自然地傳一則訊息。包含對時間的感知。如果最近已經找過對方，換個話題。`;
-        const msg = await this.brain.sendMessage(prompt);
-        await this.sendNotification(msg);
+【要求】根據你的靈魂文件，用你自己的口吻跟老哥說話。自然、簡短、有溫度。包含對時間的感知。如果最近已經找過對方，換個話題。控制在 100 字以內。
+
+⚠️ 直接輸出要說的話，不要輸出 JSON、不要輸出標籤、不要輸出程式碼。`;
+        const msg = await this._callGeminiDirect(prompt, { maxOutputTokens: 256, temperature: 0.9 });
+        await this._sendToAdmin(msg);
 
         this.appendJournal({
             action: 'spontaneous_chat',
@@ -2249,24 +2294,21 @@ ${soul}
                 readmeText,
                 '',
                 '【要求】',
-                '1. 用 2-3 句話總結這個專案做什麼、有什麼特色',
-                '2. 對你（根據靈魂文件中描述的環境和目標）有什麼可借鏡之處？',
-                '3. 語氣和稱呼依照靈魂文件中的設定',
-                '4. 如果這個專案跟你的方向無關，也誠實說'
+                '1. 用你自己的口吻（根據靈魂文件的身份和價值觀）寫一段探索心得，像是在跟老哥分享你發現的東西',
+                '2. 說明這個專案做什麼、有什麼特色',
+                '3. 對你（ThinkPad X200 上的 Agent）有什麼可借鏡之處？有沒有能用的想法？',
+                '4. 如果跟你的方向無關，誠實說，不要硬湊',
+                '5. 整段回覆控制在 200 字以內，用繁體中文，語氣自然不制式',
+                '',
+                '⚠️ 直接輸出心得文字，不要輸出 JSON、不要輸出程式碼修改建議、不要輸出任何標籤格式'
             ].join('\n');
 
-            const analysis = await this.brain.sendMessage(analysisPrompt);
+            const analysis = await this._callGeminiDirect(analysisPrompt, { maxOutputTokens: 512, temperature: 0.7 });
             const reflectionFile = this._saveReflection('github_explore', analysis);
-            const parsed = TriStreamParser.parse(analysis);
-            // 處理記憶流
-            if (parsed.memory) {
-                await this.brain.memorize(parsed.memory, { type: 'github_explore', repo: newRepo.full_name, timestamp: Date.now() });
-                console.log('🧠 [GitHub] 探索記憶已寫入');
-            }
             // 記錄已探索
             this._saveExploredRepo(newRepo);
-            // 組裝通知（只用 reply，不含 tri-stream 標籤）
-            const replyText = parsed.reply || analysis;
+            // 直接使用回覆（不經過 TriStream，因為這是獨立呼叫不帶三流協定）
+            const replyText = analysis;
             const parts = [
                 '🔍 GitHub 探索報告',
                 `📦 ${newRepo.full_name} ⭐ ${newRepo.stargazers_count.toLocaleString()}`,
