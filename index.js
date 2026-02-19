@@ -191,6 +191,19 @@ class UniversalContext {
         return this.event.content || "";
     }
 
+    // 📎 取得被引用訊息的文字（Telegram reply）
+    get replyText() {
+        if (this.platform === 'telegram') {
+            const msg = this.event.message || this.event.msg;
+            const replied = msg?.reply_to_message;
+            if (replied) {
+                return replied.text || replied.caption || "";
+            }
+        }
+        // Discord: 需要額外 fetch，暫不支援
+        return "";
+    }
+
     // 🛡️ [Flood Guard] 取得訊息時間戳 (毫秒)
     get messageTime() {
         if (this.platform === 'telegram' && this.event.message?.date) {
@@ -1034,10 +1047,12 @@ class GolemBrain {
 
         console.log(`📡 [Brain] 發送至 Gemini API (${text.length} chars)...`);
 
-        // 🛡️ [Flood Guard] 智慧退避：指數退避 + retryDelay 感知
-        const BACKOFF_SCHEDULE = [15000, 60000, 120000]; // 15s → 60s → 120s
+        // 🛡️ 429 智慧退避：Phase 1 快速換 key → Phase 2 指數退避
+        const numKeys = this.keyChain.keys.length;
+        const BACKOFF_SCHEDULE = [15000, 60000, 120000]; // Phase 2: 15s → 60s → 120s
+        const maxAttempts = numKeys + BACKOFF_SCHEDULE.length; // 先嘗試所有 key，再退避重試
         let lastError = null;
-        const maxAttempts = Math.max(this.keyChain.keys.length, 1) + BACKOFF_SCHEDULE.length;
+        let backoffCount = 0; // 追蹤進入 Phase 2 的次數
 
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             let apiKey = null;
@@ -1080,27 +1095,40 @@ class GolemBrain {
 
             } catch (e) {
                 lastError = e;
-                console.warn(`⚠️ [Brain] API 呼叫失敗 (attempt ${attempt + 1}/${maxAttempts}): ${e.message}`);
+                const is429 = e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('Too Many Requests') || e.message.includes('quota');
 
-                // 429 / RESOURCE_EXHAUSTED — 智慧退避
-                if (e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED')) {
-                    // 🧊 標記這把 key 冷卻 (RPD 用完就凍 15 分鐘，RPM 用完凍 90 秒)
-                    if (apiKey) {
-                        const isDaily = e.message.includes('per day') || e.message.includes('RPD');
-                        this.keyChain.markCooldown(apiKey, isDaily ? 15 * 60 * 1000 : 90 * 1000);
+                if (is429 && apiKey) {
+                    // 🧊 標記當前 key 冷卻
+                    const isDaily = e.message.includes('per day') || e.message.includes('RPD');
+                    this.keyChain.markCooldown(apiKey, isDaily ? 15 * 60 * 1000 : 90 * 1000);
+
+                    // Phase 1: 還有未試過的 key → 快速換 key（3s 間隔）
+                    if (attempt < numKeys - 1) {
+                        console.warn(`🔄 [Brain] Key 被 429，換下一把重試 (attempt ${attempt + 1}/${maxAttempts})`);
+                        await new Promise(r => setTimeout(r, 3000));
+                        continue;
                     }
-                    let waitMs;
-                    const retryMatch = e.message.match(/retryDelay['":\s]*(\d+)/i);
-                    if (retryMatch) {
-                        waitMs = parseInt(retryMatch[1]) * 1000;
-                        console.log(`⏳ [Brain] 使用 API 建議的 retryDelay: ${waitMs / 1000}s`);
-                    } else {
-                        const backoffIdx = Math.min(attempt, BACKOFF_SCHEDULE.length - 1);
-                        waitMs = BACKOFF_SCHEDULE[backoffIdx];
-                        console.log(`⏳ [Brain] 指數退避 (level ${backoffIdx + 1}): ${waitMs / 1000}s`);
+
+                    // Phase 2: 所有 key 都試過了 → 指數退避
+                    if (backoffCount < BACKOFF_SCHEDULE.length) {
+                        let waitMs;
+                        const retryMatch = e.message.match(/retryDelay['":\s]*(\d+)/i);
+                        if (retryMatch) {
+                            waitMs = parseInt(retryMatch[1]) * 1000;
+                            console.log(`⏳ [Brain] 所有 Key 都 429，使用 API retryDelay: ${waitMs / 1000}s`);
+                        } else {
+                            waitMs = BACKOFF_SCHEDULE[backoffCount];
+                            console.log(`⏳ [Brain] 所有 Key 都 429，指數退避 (level ${backoffCount + 1}): ${waitMs / 1000}s`);
+                        }
+                        backoffCount++;
+                        await new Promise(r => setTimeout(r, waitMs));
+                        continue;
                     }
-                    await new Promise(r => setTimeout(r, waitMs));
                 }
+
+                // 非 429 錯誤或退避次數用完
+                console.warn(`⚠️ [Brain] API 呼叫失敗 (attempt ${attempt + 1}/${maxAttempts}): ${e.message}`);
+                if (!is429) break; // 非 429 直接放棄
             }
         }
 
@@ -2614,6 +2642,16 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
     try {
         let finalInput = ctx.text;
         let tainted = false; // 🛡️ 汙染追蹤：是否包含外部不可信內容
+
+        // 📎 Reply 上下文注入：如果使用者引用了一則訊息，把被引用的內容加入 prompt
+        const replyCtx = ctx.replyText;
+        if (replyCtx) {
+            finalInput = loadPrompt('reply-context.md', {
+                REPLY_TEXT: replyCtx.substring(0, 2000),
+                USER_TEXT: ctx.text
+            }) || `[引用] ${replyCtx.substring(0, 2000)}\n[回覆] ${ctx.text}`;
+            console.log(`📎 [Reply] 注入被引用訊息 (${replyCtx.length} chars)`);
+        }
         // 👁️ 視覺/檔案處理檢查 [✨ New Vision Logic]
         const attachment = await ctx.getAttachment();
         if (attachment) {
