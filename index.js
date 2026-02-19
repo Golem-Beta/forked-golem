@@ -2029,6 +2029,24 @@ class AutonomyManager {
             }).join('\n');
         }
 
+        // === 閉環：從長期記憶召回最近互動上下文 ===
+        let memorySummary = '';
+        try {
+            const recentTopics = journal
+                .filter(j => j.action === 'conversation' && j.preview)
+                .slice(-3)
+                .map(j => j.preview)
+                .join(' ');
+            if (recentTopics && this.brain && this.brain.recall) {
+                const memories = await this.brain.recall(recentTopics);
+                if (memories.length > 0) {
+                    memorySummary = memories.slice(0, 3).map(m => '• ' + m.text.substring(0, 100)).join('\n');
+                }
+            }
+        } catch (e) {
+            // 記憶召回失敗不影響決策
+        }
+
         // 統計最近行動分佈（讓 Gemini 看到偏食事實）
         const actionCounts = {};
         let consecutiveCount = 0;
@@ -2071,6 +2089,9 @@ class AutonomyManager {
             '',
             diversitySummary ? '【行動分佈統計】' : '',
             diversitySummary || '',
+            '',
+            memorySummary ? '【老哥最近的互動記憶】' : '',
+            memorySummary || '',
             '',
             '【當前時間】' + timeStr,
             '',
@@ -2784,6 +2805,16 @@ Explain what went wrong in simple language and suggest a next step.
             await ctx.reply(raw);
         }
     } catch (e) { console.error(e); await ctx.reply(`❌ 錯誤: ${e.message}`); }
+
+    // === 閉環：對話摘要寫入 journal，讓 Autonomy 感知互動 ===
+    try {
+        if (ctx.isAdmin && ctx.text && autonomy) {
+            autonomy.appendJournal({
+                action: 'conversation',
+                preview: ctx.text.substring(0, 80)
+            });
+        }
+    } catch (_) { /* 靜默失敗 */ }
 }
 
 // --- 統一 Callback 處理 ---
