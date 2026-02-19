@@ -5,44 +5,44 @@ auto_load: false
 keywords: [evolve, patch, optimize, source, self, refactor]
 ---
 
-You can read index.js and skills.js, analyse them, and propose improvements.
+你可以閱讀 index.js 和 skills.js，分析它們，並提出一個改進方案。
 
-## OUTPUT FORMAT (MANDATORY)
+## 輸出格式（強制）
 
-You MUST output ONLY a JSON Array. No markdown, no explanation, no preamble.
-If you write anything other than a JSON Array, the patch will be rejected.
-
-Each object in the array:
+輸出一個 JSON Array，裡面只有一個物件。不要 markdown、不要解釋、不要前言。
+如果你輸出了 JSON Array 以外的任何東西，patch 會被拒絕。
 
 ```json
 [
   {
     "type": "bugfix|optimization|feature|refactor",
     "file": "index.js",
-    "description": "One-line summary of what and why",
-    "search": "exact code to find (must match source byte-for-byte)",
-    "replace": "replacement code"
+    "description": "一句話描述改了什麼、為什麼改",
+    "search": "要找的精確程式碼（必須跟原始碼逐字節匹配）",
+    "replace": "替換後的程式碼"
   }
 ]
 ```
 
-## RULES FOR `search` FIELD
+## 關鍵規則
 
-1. search must match the source file EXACTLY: same whitespace, newlines, indentation
-2. search must appear ONLY ONCE in the entire file. Include enough surrounding context (3-5 lines minimum) to ensure uniqueness
-3. Do NOT touch code between [KERNEL PROTECTED START] and [KERNEL PROTECTED END]
-4. Keep changes minimal: one patch, one location, small diff
-5. search must be at least 40 characters long to avoid ambiguous matches
+1. **只輸出 1 個 patch**。不要一次提 2 個以上。品質勝過數量。
+2. search 必須跟原始碼**完全一致**：空格、換行、縮排都要對
+3. search 在整個檔案中只能出現**一次**。至少包含 3-5 行上下文確保唯一性
+4. search 至少 40 字元，避免模糊匹配
+5. 不要碰 [KERNEL PROTECTED START] 到 [KERNEL PROTECTED END] 之間的程式碼
+6. 改動要小：一個 patch、一個位置、小範圍 diff
 
-## WHEN NOTHING NEEDS FIXING
+## 什麼都不用改的時候
 
-Output an empty array: `[]`
+輸出空 array：[]
 
-This is better than a low-quality patch. Restraint is wisdom.
+這比低品質的 patch 更好。克制是一種智慧。
 
-## FORBIDDEN
+## 禁止事項
 
-- Do NOT output markdown articles or explanations
-- Do NOT use rm, mv, eval, exec, or shell commands
-- Do NOT modify KERNEL PROTECTED zones
-- Do NOT change more than one location per patch
+- 不要輸出 markdown 文章或解釋
+- 不要用 rm、mv、eval、exec 或 shell 指令
+- 不要改 KERNEL PROTECTED 區域
+- 不要在一次提案中改多個位置
+- 不要把 JSON 包在 ```json ``` 裡，直接輸出裸 JSON

@@ -1243,14 +1243,30 @@ class TriStreamParser {
 class ResponseParser {
     static extractJson(text) {
         if (!text) return [];
+        // 預處理：移除 markdown code fence 包裹
+        let cleaned = text.trim();
+        if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json\s*/, '');
+        if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```\s*/, '');
+        if (cleaned.endsWith('```')) cleaned = cleaned.replace(/```\s*$/, '');
+        cleaned = cleaned.trim();
         try {
-            // 1. 標準 JSON 區塊
-            const match = text.match(/```json([\s\S]*?)```/);
-            if (match) {
-                const parsed = JSON.parse(match[1]);
-                return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
-            }
-            // 2. 裸 JSON Array
+            // 1. 嘗試直接解析
+            const parsed = JSON.parse(cleaned);
+            return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
+        } catch (e) {
+            // 2. 可能被截斷：找到最後一個完整的 },\n  { 或 }\n] 然後修復
+            try {
+                const lastComplete = cleaned.lastIndexOf('},');
+                if (lastComplete > 0) {
+                    const repaired = cleaned.substring(0, lastComplete + 1) + ']';
+                    const parsed = JSON.parse(repaired);
+                    console.log('[Parser] JSON 被截斷，修復後解析出 ' + parsed.length + ' 個項目');
+                    return Array.isArray(parsed) ? parsed : [parsed];
+                }
+            } catch (e2) { /* 修復也失敗，繼續 fallback */ }
+        }
+        try {
+            // 3. 裸 JSON Array（原始文字中搜尋）
             const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
             if (arrayMatch) return JSON.parse(arrayMatch[0]);
         } catch (e) { console.error("解析 JSON 失敗:", e.message); }
