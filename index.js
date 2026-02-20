@@ -439,7 +439,7 @@ class SecurityManager {
     constructor() {
         // ✅ 白名單：這些指令 base command 可以自動執行（不需人工審批）
         this.WHITELIST = [
-            'ls', 'dir', 'pwd', 'date', 'echo', 'cat', 'grep', 'find',
+            'ls', 'dir', 'pwd', 'cd', 'date', 'echo', 'cat', 'grep', 'find',
             'whoami', 'tail', 'head', 'df', 'free', 'wc', 'sort', 'uniq',
             'uname', 'uptime', 'hostname', 'which', 'file', 'stat',
             'Get-ChildItem', 'Select-String',
@@ -1580,10 +1580,31 @@ class TaskController {
 }
 
 class Executor {
+    constructor() {
+        // 預設工作目錄：/tmp/golem-workspace（隔離 repo 目錄）
+        this.WORKSPACE = path.join(os.tmpdir(), 'golem-workspace');
+        if (!fs.existsSync(this.WORKSPACE)) fs.mkdirSync(this.WORKSPACE, { recursive: true });
+        this.cwd = this.WORKSPACE;
+    }
+
     run(cmd) {
+        // cd 指令：更新 session cwd 狀態（跨步驟生效）
+        const cdMatch = cmd.match(/^cd\s+(.+)$/);
+        if (cdMatch) {
+            const target = cdMatch[1].trim().replace(/^["']|["']$/g, '');
+            const resolved = path.resolve(this.cwd, target);
+            if (fs.existsSync(resolved)) {
+                this.cwd = resolved;
+                console.log(`⚡ Exec: cd ${target} → cwd=${this.cwd}`);
+                return Promise.resolve(`Changed directory to ${this.cwd}`);
+            } else {
+                return Promise.reject(`cd: no such directory: ${resolved}`);
+            }
+        }
+
         return new Promise((resolve, reject) => {
-            console.log(`⚡ Exec: ${cmd}`);
-            exec(cmd, { cwd: process.cwd() }, (err, stdout, stderr) => {
+            console.log(`⚡ Exec: ${cmd}  (cwd: ${this.cwd})`);
+            exec(cmd, { cwd: this.cwd, timeout: 30000 }, (err, stdout, stderr) => {
                 if (err) reject(stderr || err.message);
                 else resolve(stdout);
             });
