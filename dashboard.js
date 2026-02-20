@@ -90,7 +90,8 @@ class DashboardPlugin {
         this.radarLog = this.grid.set(2, 6, 2, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
-            label: '⏰ Autonomy / Chronos'
+            label: '⏰ Autonomy / Chronos',
+            tags: true
         });
 
         // [左下] 核心日誌
@@ -105,7 +106,8 @@ class DashboardPlugin {
         this.chatBox = this.grid.set(4, 6, 7, 6, contrib.log, {
             fg: "white",
             selectedFg: "cyan",
-            label: '💬 三流協定 / Queue'
+            label: '💬 三流協定 / Queue',
+            tags: true
         });
 
         // 底部說明列

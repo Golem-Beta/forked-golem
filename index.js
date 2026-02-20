@@ -2135,10 +2135,8 @@ class AutonomyManager {
                 return result.response.text().trim();
             } catch (e) {
                 const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
-                if (is429) {
-                    const keyIdx = (this.brain.keyChain.currentIndex - 1 + this.brain.keyChain.keys.length) % this.brain.keyChain.keys.length;
-                    const failedKey = this.brain.keyChain.keys[keyIdx];
-                    this.brain.keyChain.markCooldown(failedKey, 90 * 1000);
+                if (is429 && apiKey) {
+                    this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
                     if (attempt < maxRetries - 1) {
                         console.warn('🔄 [Autonomy] Key 被 429，換下一把重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
                         await new Promise(r => setTimeout(r, 3000));
