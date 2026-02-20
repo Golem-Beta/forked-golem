@@ -23,6 +23,7 @@ class DashboardPlugin {
         // 保存原始的 Console 方法
         this.originalLog = console.log;
         this.originalError = console.error;
+        this.originalWarn = console.warn;
         this.isDetached = false;
 
         // blessed UI 元件（detach 時會被清空）
@@ -151,6 +152,7 @@ class DashboardPlugin {
             this._destroyUI();
             console.log = this.originalLog;
             console.error = this.originalError;
+            console.warn = this.originalWarn;
             console.log("🛑 Golem 系統已完全終止。");
             process.exit(0);
         });
@@ -186,6 +188,7 @@ class DashboardPlugin {
             if (key === '\u0003') {
                 console.log = this.originalLog;
                 console.error = this.originalError;
+                console.warn = this.originalWarn;
                 console.log("\n🛑 Golem 系統已完全終止。");
                 process.exit(0);
             }
@@ -341,6 +344,25 @@ class DashboardPlugin {
 
             // 📝 同步寫入 log 檔
             this._writeLog('ERR', msg);
+        };
+
+        console.warn = (...args) => {
+            if (this.isDetached) {
+                this.originalWarn(...args);
+                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+                this._writeLog('WARN', msg);
+                return;
+            }
+            const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+            if (this.logBox) this.logBox.log(`{yellow-fg}⚠️ ${msg}{/yellow-fg}`);
+
+            // 分流：429 / KeyChain 相關 → radarLog
+            if (msg.includes('[Brain]') || msg.includes('[KeyChain]') || msg.includes('429')) {
+                if (this.radarLog) this.radarLog.log(`{yellow-fg}${msg}{/yellow-fg}`);
+            }
+
+            // 📝 同步寫入 log 檔
+            this._writeLog('WARN', msg);
         };
     }
 
