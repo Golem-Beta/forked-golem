@@ -1868,7 +1868,8 @@ class AutonomyManager {
             clearTimeout(this._timer);
             this._timer = null;
         }
-        const cfg = this._loadAutonomyConfig().awakening;
+        try {
+        const cfg = this._loadAutonomyConfig().awakening || {};
         const range = cfg.maxHours - cfg.minHours;
         const waitMs = (cfg.minHours + Math.random() * range) * 3600000;
         const nextWakeTime = new Date(Date.now() + waitMs);
@@ -1884,6 +1885,11 @@ class AutonomyManager {
             this.manifestFreeWill();
             this.scheduleNextAwakening();
         }, waitMs);
+        } catch (e) {
+            console.error('🛡️ [LifeCycle] scheduleNextAwakening 異常:', e.message);
+            // fallback: 2 小時後重試
+            this._timer = setTimeout(() => { this.scheduleNextAwakening(); }, 2 * 3600000);
+        }
     }
     // 📓 經驗日誌：讀取 / 寫入
     // =========================================================
@@ -3047,3 +3053,25 @@ if (dcClient) {
     dcClient.on('messageCreate', (msg) => { if (!msg.author.bot) handleUnifiedMessage(new UniversalContext('discord', msg, dcClient)); });
     dcClient.on('interactionCreate', (interaction) => { if (interaction.isButton()) handleUnifiedCallback(new UniversalContext('discord', interaction, dcClient), interaction.customId); });
 }
+
+// ============================================================
+// 🛡️ 全域異常守護 — 防止 crash 退出
+// ============================================================
+process.on('uncaughtException', (err) => {
+    console.error('🛡️ [Guard] uncaughtException 已攔截（進程不會退出）:', err.message || err);
+    console.error(err.stack || '');
+    // 寫入 journal 方便事後追蹤
+    try {
+        const jp = require('path').join(process.cwd(), 'memory', 'journal.jsonl');
+        require('fs').appendFileSync(jp, JSON.stringify({
+            ts: new Date().toISOString(),
+            action: 'crash_guard',
+            error: err.message,
+            stack: (err.stack || '').split('\n').slice(0, 3).join(' | ')
+        }) + '\n');
+    } catch (_) {}
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('🛡️ [Guard] unhandledRejection 已攔截:', reason);
+});
