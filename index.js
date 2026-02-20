@@ -449,7 +449,7 @@ class SecurityManager {
             'node', 'python', 'python3',  // 執行腳本
             'npm',          // npm 操作
             'mkdir', 'touch', 'cp',       // 建立/複製 (非破壞性)
-            'fastfetch', 'neofetch', 'htop', 'lsof', 'top', 'ps',  // 系統資訊 (唯讀)
+            'fastfetch', 'neofetch', 'lsof', 'ps',  // 系統資訊 (唯讀，非互動式)
             'systemctl',  // systemd 查詢 (status/list 等)
             'journalctl', // 日誌查看
         ];
@@ -1459,8 +1459,8 @@ class NodeRouter {
 // ============================================================
 class TaskController {
     constructor() {
-        this.executor = new Executor();
         this.security = new SecurityManager();
+        // Executor 在 runSequence 首次呼叫時 lazy-init（每個 sequence 共享 cwd）
     }
 
     /**
@@ -1580,19 +1580,66 @@ class TaskController {
 }
 
 class Executor {
+    /**
+     * Sandboxed command executor with session-persistent cwd.
+     * - 每個 Executor instance 建立獨立的 /tmp/golem-task-<id>/ 工作目錄
+     * - cd 指令在 JS 層追蹤 cwd 狀態，跨步驟生效
+     * - 互動式程式（htop, top, vim 等）自動攔截
+     * - 所有 exec 帶 30s timeout 防掛起
+     * - Golem repo 目錄（~/forked-golem/）不可被 cd 進入
+     */
     constructor() {
-        // 預設工作目錄：/tmp/golem-workspace（隔離 repo 目錄）
-        this.WORKSPACE = path.join(os.tmpdir(), 'golem-workspace');
-        if (!fs.existsSync(this.WORKSPACE)) fs.mkdirSync(this.WORKSPACE, { recursive: true });
+        this.taskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        this.WORKSPACE = path.join(os.tmpdir(), `golem-task-${this.taskId}`);
+        fs.mkdirSync(this.WORKSPACE, { recursive: true });
         this.cwd = this.WORKSPACE;
+
+        // 禁止 cd 進入的路徑（Golem repo + 系統敏感目錄）
+        this.FORBIDDEN_PATHS = [
+            path.resolve(process.cwd()),            // ~/forked-golem/
+            '/etc', '/boot', '/root', '/sys', '/proc'
+        ];
+
+        // 互動式程式黑名單（exec 裡會掛住）
+        this.INTERACTIVE_CMDS = ['htop', 'top', 'vim', 'vi', 'nano', 'less', 'more', 'man', 'ssh', 'ftp', 'python', 'node'];
     }
 
+    /**
+     * 執行一個 shell 指令（沙盒內）
+     * @param {string} cmd - shell 指令
+     * @returns {Promise<string>} stdout
+     */
     run(cmd) {
-        // cd 指令：更新 session cwd 狀態（跨步驟生效）
+        const baseCmd = cmd.trim().split(/\s+/)[0];
+
+        // 互動式程式攔截
+        if (this.INTERACTIVE_CMDS.includes(baseCmd) && !cmd.includes('-e') && !cmd.includes('-c') && !cmd.includes('-b')) {
+            // 特殊處理：top -bn1 這類帶 batch flag 的放行
+            if (baseCmd === 'top' && (cmd.includes('-b') || cmd.includes('--batch'))) {
+                // 放行
+            } else if ((baseCmd === 'python' || baseCmd === 'python3' || baseCmd === 'node') && (cmd.includes('-e') || cmd.includes('-c'))) {
+                // 放行 python -c / node -e
+            } else {
+                const hint = baseCmd === 'top' ? '試試 top -bn1' : `${baseCmd} 是互動式程式，無法在 exec 中執行`;
+                console.warn(`⚠️ Sandbox: 攔截互動式指令 ${baseCmd} — ${hint}`);
+                return Promise.reject(`⚠️ ${baseCmd} 是互動式程式，無法在 exec 中執行。${baseCmd === 'top' ? ' 改用: top -bn1' : ''}`);
+            }
+        }
+
+        // cd 指令：JS 層追蹤 cwd
         const cdMatch = cmd.match(/^cd\s+(.+)$/);
         if (cdMatch) {
             const target = cdMatch[1].trim().replace(/^["']|["']$/g, '');
             const resolved = path.resolve(this.cwd, target);
+
+            // 禁止 cd 進入 Golem repo 或系統敏感目錄
+            for (const forbidden of this.FORBIDDEN_PATHS) {
+                if (resolved === forbidden || resolved.startsWith(forbidden + '/')) {
+                    console.warn(`⚠️ Sandbox: 禁止 cd 進入 ${resolved}`);
+                    return Promise.reject(`⚠️ 安全限制：不允許進入 ${resolved}`);
+                }
+            }
+
             if (fs.existsSync(resolved)) {
                 this.cwd = resolved;
                 console.log(`⚡ Exec: cd ${target} → cwd=${this.cwd}`);
@@ -1604,11 +1651,30 @@ class Executor {
 
         return new Promise((resolve, reject) => {
             console.log(`⚡ Exec: ${cmd}  (cwd: ${this.cwd})`);
-            exec(cmd, { cwd: this.cwd, timeout: 30000 }, (err, stdout, stderr) => {
-                if (err) reject(stderr || err.message);
+            exec(cmd, {
+                cwd: this.cwd,
+                timeout: 30000,
+                maxBuffer: 1024 * 512,    // 512KB stdout 上限
+                env: { ...process.env, HOME: this.WORKSPACE }  // HOME 也指向沙盒
+            }, (err, stdout, stderr) => {
+                if (err) {
+                    if (err.killed) reject('⏱️ 指令超時（30 秒限制）');
+                    else reject(stderr || err.message);
+                }
                 else resolve(stdout);
             });
         });
+    }
+
+    /** 取得沙盒工作目錄路徑 */
+    getWorkspace() { return this.WORKSPACE; }
+
+    /** 清理沙盒目錄 */
+    cleanup() {
+        try {
+            fs.rmSync(this.WORKSPACE, { recursive: true, force: true });
+            console.log(`🧹 Sandbox cleanup: ${this.WORKSPACE}`);
+        } catch (e) { /* 忽略清理失敗 */ }
     }
 }
 
@@ -2916,8 +2982,8 @@ async function handleUnifiedCallback(ctx, actionData) {
                     const toolName = approvedStep.cmd.split(' ')[1];
                     approvedResult = toolName ? `🔍 [ToolCheck] ${ToolScanner.check(toolName)}` : '⚠️ [ToolCheck] 缺少參數';
                 } else {
-                    const executor = new Executor();
-                    const output = await executor.run(approvedStep.cmd);
+                    if (!controller.internalExecutor) controller.internalExecutor = new Executor();
+                    const output = await controller.internalExecutor.run(approvedStep.cmd);
                     approvedResult = `[Approved Step Success] cmd: ${approvedStep.cmd}\nResult/Output:\n${output.trim() || "(No stdout)"}`;
                 }
             } catch (err) {
