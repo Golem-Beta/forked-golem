@@ -1873,19 +1873,17 @@ class AutonomyManager {
         const waitMs = (cfg.minHours + Math.random() * range) * 3600000;
         const nextWakeTime = new Date(Date.now() + waitMs);
         const hour = nextWakeTime.getHours();
-        let finalWait = waitMs;
-        if (cfg.sleepHours.includes(hour)) {
-            console.log("\u{1F4A4} Golem 決定睡個好覺，早上再找你。");
-            const morning = new Date(nextWakeTime);
-            morning.setHours(cfg.morningWakeHour, 0, 0, 0);
-            if (morning < nextWakeTime) morning.setDate(morning.getDate() + 1);
-            finalWait = morning.getTime() - Date.now();
+        const quietHours = cfg.quietHours || cfg.sleepHours || [];
+        const isQuiet = quietHours.includes(hour);
+        if (isQuiet) {
+            console.log("\u{1F319} [LifeCycle] 下次醒來在靜音時段 (" + hour + ":00)，不發社交訊息");
         }
-        console.log("\u267B\uFE0F [LifeCycle] 下次醒來: " + (finalWait / 60000).toFixed(1) + " 分鐘後");
+        console.log("\u267B\uFE0F [LifeCycle] 下次醒來: " + (waitMs / 60000).toFixed(1) + " 分鐘後" + (isQuiet ? " (靜音模式)" : ""));
         this._timer = setTimeout(() => {
+            this.quietMode = isQuiet;
             this.manifestFreeWill();
             this.scheduleNextAwakening();
-        }, finalWait);
+        }, waitMs);
     }
     // 📓 經驗日誌：讀取 / 寫入
     // =========================================================
@@ -1958,7 +1956,13 @@ class AutonomyManager {
                     await this.performGitHubExplore();
                     break;
                 case 'spontaneous_chat':
-                    await this.performSpontaneousChat();
+                    if (this.quietMode) {
+                        console.log('\u{1F319} [Autonomy] 靜音時段，跳過社交 → 改做 GitHub 探索');
+                        this.appendJournal({ action: 'spontaneous_chat', outcome: 'skipped_quiet_mode' });
+                        await this.performGitHubExplore();
+                    } else {
+                        await this.performSpontaneousChat();
+                    }
                     break;
                 case 'rest':
                     console.log('\u{1F634} [Autonomy] Golem 選擇繼續休息。');
