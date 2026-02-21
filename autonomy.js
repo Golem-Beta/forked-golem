@@ -430,6 +430,100 @@ class AutonomyManager {
         return available;
     }
 
+
+    // =========================================================
+    // 📂 取得專案檔案清單（供 Phase 1 診斷用）
+    // =========================================================
+    _getProjectFileList() {
+        try {
+            const cwd = process.cwd();
+            const files = [];
+            const scan = (dir, prefix) => {
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const e of entries) {
+                    if (e.name.startsWith('.') || e.name === 'node_modules') continue;
+                    const rel = prefix ? prefix + '/' + e.name : e.name;
+                    if (e.isDirectory()) {
+                        if (['memory', 'logs', '.git'].includes(e.name)) continue;
+                        scan(path.join(dir, e.name), rel);
+                    } else if (e.name.endsWith('.js') || e.name.endsWith('.md') || e.name.endsWith('.json')) {
+                        try {
+                            const content = fs.readFileSync(path.join(dir, e.name), 'utf-8');
+                            const lines = content.split('\n').length;
+                            files.push(rel + ' (' + lines + ' lines)');
+                        } catch { files.push(rel + ' (unreadable)'); }
+                    }
+                }
+            };
+            scan(cwd, '');
+            return files.join('\n');
+        } catch (e) {
+            return '(檔案清單讀取失敗: ' + e.message + ')';
+        }
+    }
+
+    // =========================================================
+    // 🔬 從檔案中提取指定函式/區段
+    // =========================================================
+    _extractCodeSection(filename, sectionHint) {
+        try {
+            const filePath = path.join(process.cwd(), filename);
+            if (!fs.existsSync(filePath)) return null;
+            const code = fs.readFileSync(filePath, 'utf-8');
+            const lines = code.split('\n');
+
+            // 如果沒有 hint 或 hint 太模糊，返回前 200 行
+            if (!sectionHint || sectionHint.length < 3) {
+                return lines.slice(0, 200).join('\n');
+            }
+
+            // 搜尋策略：找包含 hint 的函式/方法區塊
+            // 1. 先找 hint 出現的行
+            let matchLine = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes(sectionHint)) { matchLine = i; break; }
+            }
+            if (matchLine === -1) {
+                // hint 找不到，嘗試模糊匹配（忽略大小寫）
+                const lower = sectionHint.toLowerCase();
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].toLowerCase().includes(lower)) { matchLine = i; break; }
+                }
+            }
+            if (matchLine === -1) return lines.slice(0, 200).join('\n');
+
+            // 2. 往上找函式開頭（async xxx( 或 xxx() { 的模式）
+            let startLine = matchLine;
+            for (let i = matchLine; i >= Math.max(0, matchLine - 50); i--) {
+                if (/^\s*(async\s+)?[\w_]+\s*\(/.test(lines[i]) || /^\s*(async\s+)?[\w_]+\s*=/.test(lines[i])) {
+                    startLine = i;
+                    break;
+                }
+            }
+
+            // 3. 往下找函式結尾（追蹤大括號平衡）
+            let depth = 0;
+            let endLine = Math.min(lines.length - 1, startLine + 200); // 上限 200 行
+            let foundStart = false;
+            for (let i = startLine; i < Math.min(lines.length, startLine + 300); i++) {
+                for (const ch of lines[i]) {
+                    if (ch === '{') { depth++; foundStart = true; }
+                    if (ch === '}') depth--;
+                }
+                if (foundStart && depth <= 0) { endLine = i; break; }
+            }
+
+            // 加上前後 5 行上下文
+            const from = Math.max(0, startLine - 5);
+            const to = Math.min(lines.length - 1, endLine + 5);
+            return '// [' + filename + ' lines ' + (from+1) + '-' + (to+1) + ']\n' + lines.slice(from, to + 1).join('\n');
+
+        } catch (e) {
+            console.warn('🔬 [Extract] 程式碼提取失敗:', e.message);
+            return null;
+        }
+    }
+
     // =========================================================
     // 📜 靈魂文件讀取 (Phase 3)
     // =========================================================
@@ -455,6 +549,7 @@ class AutonomyManager {
         const maxRetries = Math.min(this.brain.keyChain.keys.length, 3);
         const maxTokens = opts.maxOutputTokens || 1024;
         const temp = opts.temperature || 0.8;
+        const modelId = opts.model || 'gemini-2.5-flash-lite';
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             let apiKey = null;
@@ -464,10 +559,13 @@ class AutonomyManager {
 
                 const { GoogleGenerativeAI } = require('@google/generative-ai');
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({
-                    model: "gemini-2.5-flash-lite",
+                const modelConfig = {
+                    model: modelId,
                     generationConfig: { maxOutputTokens: maxTokens, temperature: temp }
-                });
+                };
+                // 支援 tools 傳遞（如 google_search）
+                if (opts.tools) modelConfig.tools = opts.tools;
+                const model = genAI.getGenerativeModel(modelConfig);
 
                 const result = await model.generateContent(prompt);
                 return result.response.text().trim();
@@ -770,32 +868,22 @@ class AutonomyManager {
             const purpose = topicData.purpose || decisionReason;
             console.log('🌐 [WebResearch] 搜尋主題: ' + query + ' | 目的: ' + purpose);
 
-            // 第二步：用 Gemini + Grounding 搜尋
-            const { GoogleGenerativeAI } = require('@google/generative-ai');
-            const apiKey = await this.brain.keyChain.getKey();
-            if (!apiKey) throw new Error('沒有可用的 API Key');
-
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-2.5-flash-lite',
-                tools: [{ google_search: {} }],
-                generationConfig: { maxOutputTokens: 1024, temperature: 0.5 }
-            });
-
+            // 第二步：用 Gemini + Grounding 搜尋（透過 _callGeminiDirect 統一 429 處理）
             const searchPrompt = '搜尋並用繁體中文摘要以下主題的最新資訊（200-300字）：\n' +
                 '主題：' + query + '\n' +
                 '重點：' + purpose + '\n' +
                 '請包含具體的數據、版本號、日期等事實性資訊。如果找到相關的工具或專案，列出名稱和網址。';
 
-            const result = await model.generateContent(searchPrompt);
-            const response = result.response;
-            const text = response.text().trim();
+            const text = await this._callGeminiDirect(searchPrompt, {
+                maxOutputTokens: 1024,
+                temperature: 0.5,
+                tools: [{ google_search: {} }]
+            });
 
-            // 提取 grounding metadata
-            const gm = response.candidates?.[0]?.groundingMetadata;
-            const searchQueries = gm?.webSearchQueries || [];
-            const sources = (gm?.groundingChuncks || gm?.groundingChunks || [])
-                .map(c => c.web?.title).filter(Boolean).slice(0, 3);
+            // 注意：透過 _callGeminiDirect 後只拿到 text，grounding metadata 丟失
+            // 這是可接受的 tradeoff：統一 429 處理 > grounding 來源追蹤
+            const searchQueries = [];
+            const sources = [];
 
             const reflectionFile = this._saveReflection('web_research', text);
 
@@ -965,10 +1053,6 @@ class AutonomyManager {
     // =========================================================
     async performSelfReflection(triggerCtx = null) {
         try {
-            // 讀取目標程式碼
-            let autonomyCode, indexCode;
-            try { autonomyCode = fs.readFileSync(path.join(process.cwd(), 'autonomy.js'), 'utf-8'); } catch (e) { autonomyCode = '(autonomy.js 讀取失敗)'; }
-            try { indexCode = this.Introspection.readSelf(); } catch (e) { indexCode = ''; }
             const advice = this.memory.getAdvice();
 
             // 讀取最近 journal 提供經驗上下文
@@ -981,31 +1065,98 @@ class AutonomyManager {
                 }).join('\n');
             }
 
-            // Load EVOLUTION skill as prompt template
-            const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array.";
-            const prompt = [
-                evolutionSkill,
-                "",
-                "## PRIMARY TARGET: autonomy.js (full source)",
-                "",
-                autonomyCode,
-                "",
-                "## SECONDARY CONTEXT: index.js (first 8000 chars, for reference only)",
-                "",
-                indexCode.slice(0, 8000),
-                "",
-                "## RECENT EXPERIENCE (journal)",
-                "",
+            // === Phase 1: 診斷（flash-lite，低成本）===
+            // 只給檔案清單 + journal，讓 Gemini 決定要看哪裡
+            const soul = this._readSoul();
+            const fileList = this._getProjectFileList();
+            const diagPrompt = [
+                '你是 Golem，一個自律型 AI Agent。你正在做自我反省。',
+                '',
+                '【靈魂文件】',
+                soul,
+                '',
+                '【最近經驗】',
                 journalContext,
-                "",
-                "## CONTEXT FROM MEMORY",
-                "",
-                advice || "(none)",
-                "",
-                "Based on the code and your recent experience, output ONLY a JSON Array. No other text.",
-            ].join("\n");
+                '',
+                '【老哥的建議】',
+                advice || '(無)',
+                '',
+                '【專案檔案清單（含行數）】',
+                fileList,
+                '',
+                '【要求】',
+                '根據你最近的經驗（特別是失敗、錯誤、或可改進的地方），判斷：',
+                '1. 你想改進什麼？（具體描述問題）',
+                '2. 需要看哪個檔案的哪個函式或區段？',
+                '3. 改進方案的大致方向（不需要寫程式碼）',
+                '',
+                '用 JSON 回覆：',
+                '{"diagnosis": "問題描述", "target_file": "autonomy.js", "target_section": "函式名或關鍵字", "approach": "改進方向"}',
+                '只輸出 JSON。如果你認為目前沒有需要改進的地方，回覆：',
+                '{"diagnosis": "none", "reason": "為什麼不需要改進"}',
+            ].join('\n');
 
-            const raw = await this._callGeminiDirect(prompt, { maxOutputTokens: 2048, temperature: 0.3 });
+            console.log('🧬 [Reflection] Phase 1: 診斷（flash-lite）...');
+            const diagRaw = await this._callGeminiDirect(diagPrompt, { maxOutputTokens: 512, temperature: 0.5 });
+            const diagFile = this._saveReflection('self_reflection_diag', diagRaw);
+
+            let diag;
+            try {
+                const cleaned = diagRaw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+                diag = JSON.parse(cleaned);
+            } catch (e) {
+                console.warn('🧬 [Reflection] 診斷 JSON 解析失敗:', e.message);
+                this.appendJournal({ action: 'self_reflection', phase: 'diagnosis', outcome: 'parse_failed', reflection_file: diagFile });
+                return;
+            }
+
+            if (diag.diagnosis === 'none') {
+                console.log('🧬 [Reflection] 診斷結果：目前無需改進 — ' + (diag.reason || ''));
+                this.appendJournal({ action: 'self_reflection', phase: 'diagnosis', outcome: 'no_issues', reason: diag.reason, reflection_file: diagFile });
+                return;
+            }
+
+            console.log('🧬 [Reflection] 診斷: ' + diag.diagnosis);
+            console.log('🧬 [Reflection] 目標: ' + (diag.target_file || 'autonomy.js') + ' → ' + (diag.target_section || '(全文)'));
+
+            // === Phase 2: 開刀（gemini-2.5-flash，更強模型 + 更小 context）===
+            const targetFile = diag.target_file || 'autonomy.js';
+            const targetSection = diag.target_section || '';
+            const codeSnippet = this._extractCodeSection(targetFile, targetSection);
+
+            if (!codeSnippet || codeSnippet.length < 10) {
+                console.warn('🧬 [Reflection] 無法提取目標程式碼區段');
+                this.appendJournal({ action: 'self_reflection', phase: 'extraction', outcome: 'section_not_found', target: targetFile + ':' + targetSection, reflection_file: diagFile });
+                return;
+            }
+
+            const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array.";
+            const patchPrompt = [
+                evolutionSkill,
+                '',
+                '## DIAGNOSIS（Phase 1 的分析結果）',
+                '問題：' + diag.diagnosis,
+                '改進方向：' + (diag.approach || ''),
+                '',
+                '## TARGET CODE（' + targetFile + '，相關區段）',
+                '',
+                codeSnippet,
+                '',
+                '## RECENT EXPERIENCE (journal)',
+                '',
+                journalContext,
+                '',
+                'Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.',
+                'The "search" field must EXACTLY match a substring in the target code above.',
+                'Keep the patch small and focused. ONE change only.',
+            ].join('\n');
+
+            console.log('🧬 [Reflection] Phase 2: 生成 patch（gemini-2.5-flash, ' + codeSnippet.length + ' chars context）...');
+            const raw = await this._callGeminiDirect(patchPrompt, {
+                model: 'gemini-2.5-flash',
+                maxOutputTokens: 2048,
+                temperature: 0.2
+            });
             const reflectionFile = this._saveReflection('self_reflection', raw);
 
             // 解析回應
