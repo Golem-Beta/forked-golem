@@ -691,13 +691,24 @@ class AutonomyManager {
     // =========================================================
     async performSelfReflection(triggerCtx = null) {
         try {
-            // 主要分析 autonomy.js（最活躍的模組），index.js 作為輔助上下文
+            // 讀取目標程式碼
             let autonomyCode, indexCode;
             try { autonomyCode = fs.readFileSync(path.join(process.cwd(), 'autonomy.js'), 'utf-8'); } catch (e) { autonomyCode = '(autonomy.js 讀取失敗)'; }
             try { indexCode = this.Introspection.readSelf(); } catch (e) { indexCode = ''; }
             const advice = this.memory.getAdvice();
-            // Load EVOLUTION skill as prompt template (single source of truth)
-            const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array of patches with search/replace fields.";
+
+            // 讀取最近 journal 提供經驗上下文
+            const recentJournal = this.readRecentJournal(10);
+            let journalContext = '(無)';
+            if (recentJournal.length > 0) {
+                journalContext = recentJournal.map(j => {
+                    const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
+                    return '[' + time + '] ' + j.action + ': ' + (j.outcome || j.description || j.topic || '');
+                }).join('\n');
+            }
+
+            // Load EVOLUTION skill as prompt template
+            const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array.";
             const prompt = [
                 evolutionSkill,
                 "",
@@ -709,58 +720,112 @@ class AutonomyManager {
                 "",
                 indexCode.slice(0, 8000),
                 "",
+                "## RECENT EXPERIENCE (journal)",
+                "",
+                journalContext,
+                "",
                 "## CONTEXT FROM MEMORY",
                 "",
                 advice || "(none)",
                 "",
-                "Now analyse the code above and output ONLY a JSON Array. No other text.",
+                "Based on the code and your recent experience, output ONLY a JSON Array. No other text.",
             ].join("\n");
+
             const raw = await this._callGeminiDirect(prompt, { maxOutputTokens: 2048, temperature: 0.3 });
             const reflectionFile = this._saveReflection('self_reflection', raw);
-            let patches = this.ResponseParser.extractJson(raw);
-            // Validate: must have search+replace fields, reject cmd fallback results
-            patches = patches.filter(p => p && typeof p.search === "string" && typeof p.replace === "string");
-            if (patches.length > 0) {
-                const patch = patches[0];
-                const proposalType = patch.type || 'unknown';
+
+            // 解析回應
+            let proposals = this.ResponseParser.extractJson(raw);
+            if (!Array.isArray(proposals) || proposals.length === 0) {
+                this.appendJournal({ action: 'self_reflection', outcome: 'no_proposals', reflection_file: reflectionFile });
+                return;
+            }
+
+            const proposal = proposals[0];
+            const mode = proposal.mode || (proposal.search ? 'core_patch' : 'unknown');
+
+            // ====== 模式一：技能擴展 ======
+            if (mode === 'skill_create') {
+                const skillName = proposal.skill_name;
+                const content = proposal.content;
+                if (!skillName || !content) {
+                    this.appendJournal({ action: 'self_reflection', mode: 'skill_create', outcome: 'invalid_proposal', reflection_file: reflectionFile });
+                    return;
+                }
+                // 寫入技能檔案
+                const skillPath = path.join(process.cwd(), 'skills.d', skillName + '.md');
+                if (fs.existsSync(skillPath)) {
+                    this.appendJournal({ action: 'self_reflection', mode: 'skill_create', outcome: 'skill_already_exists', skill_name: skillName, reflection_file: reflectionFile });
+                    return;
+                }
+                // 技能檔案不需要審批，直接寫入
+                fs.writeFileSync(skillPath, content);
+                const msgText = '🧩 **新技能已建立**: ' + skillName + '\n' + (proposal.description || '') + '\n原因: ' + (proposal.reason || '');
+                await this._sendToAdmin(msgText);
+                this.appendJournal({
+                    action: 'self_reflection',
+                    mode: 'skill_create',
+                    skill_name: skillName,
+                    description: proposal.description,
+                    outcome: 'skill_created',
+                    reflection_file: reflectionFile
+                });
+                return;
+            }
+
+            // ====== 模式二：核心進化 ======
+            if (mode === 'core_patch' || (proposal.search && proposal.replace !== undefined)) {
+                if (typeof proposal.search !== 'string' || typeof proposal.replace !== 'string') {
+                    this.appendJournal({ action: 'self_reflection', mode: 'core_patch', outcome: 'invalid_patch', reflection_file: reflectionFile });
+                    return;
+                }
+                const proposalType = proposal.type || 'unknown';
                 this.memory.recordProposal(proposalType);
-                const targetName = patch.file === 'skills.js' ? 'skills.js' : (patch.file === 'index.js' ? 'index.js' : 'autonomy.js');
+
+                // 決定目標檔案
+                const validFiles = ['autonomy.js', 'index.js', 'skills.js'];
+                const targetName = validFiles.includes(proposal.file) ? proposal.file : 'autonomy.js';
                 const targetPath = path.join(process.cwd(), targetName);
-                const testFile = this.PatchManager.createTestClone(targetPath, patches);
+
+                const testFile = this.PatchManager.createTestClone(targetPath, [proposal]);
                 let isVerified = false;
-                if (targetName === 'skills.js') { try { require(path.resolve(testFile)); isVerified = true; } catch (e) { console.error(e); } }
-                else { isVerified = this.PatchManager.verify(testFile); }
+                if (targetName === 'skills.js') {
+                    try { require(path.resolve(testFile)); isVerified = true; } catch (e) { console.error(e); }
+                } else {
+                    isVerified = this.PatchManager.verify(testFile);
+                }
 
                 if (isVerified) {
-                    global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: patch.description };
-                    const msgText = `💡 **自主進化提案** (${proposalType})\n目標：${targetName}\n內容：${patch.description}`;
+                    global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
+                    const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '');
                     const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
                     if (triggerCtx) { await triggerCtx.reply(msgText, options); await triggerCtx.sendDocument(testFile); }
-                    else if (this.tgBot && this.CONFIG.ADMIN_IDS[0]) { await this.tgBot.api.sendMessage(this.CONFIG.ADMIN_IDS[0], msgText, options); await this.tgBot.api.sendDocument(this.CONFIG.ADMIN_IDS[0], new this.InputFile(testFile)); }
-
+                    else if (this.tgBot && this.CONFIG.ADMIN_IDS[0]) {
+                        await this.tgBot.api.sendMessage(this.CONFIG.ADMIN_IDS[0], msgText, options);
+                        await this.tgBot.api.sendDocument(this.CONFIG.ADMIN_IDS[0], new this.InputFile(testFile));
+                    }
                     this.appendJournal({
-                        action: 'self_reflection',
-                        proposal: proposalType,
-                        target: targetName,
-                        description: patch.description,
-                        outcome: 'proposed',
+                        action: 'self_reflection', mode: 'core_patch',
+                        proposal: proposalType, target: targetName,
+                        description: proposal.description, outcome: 'proposed',
                         reflection_file: reflectionFile
                     });
                 } else {
                     this.appendJournal({
-                        action: 'self_reflection',
-                        proposal: proposalType,
-                        outcome: 'verification_failed',
+                        action: 'self_reflection', mode: 'core_patch',
+                        proposal: proposalType, outcome: 'verification_failed',
                         reflection_file: reflectionFile
                     });
                 }
-            } else {
-                this.appendJournal({
-                    action: 'self_reflection',
-                    outcome: 'no_patches_generated',
-                    reflection_file: reflectionFile
-                });
+                return;
             }
+
+            // 未知模式
+            this.appendJournal({
+                action: 'self_reflection', mode: mode,
+                outcome: 'unknown_mode', reflection_file: reflectionFile
+            });
+
         } catch (e) {
             console.error("[錯誤] 自主進化失敗:", e.message || e);
             this.appendJournal({ action: 'self_reflection', outcome: 'error', error: e.message });
