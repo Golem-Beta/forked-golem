@@ -1153,7 +1153,7 @@ class AutonomyManager {
 
             console.log('🧬 [Reflection] Phase 2: 生成 patch（gemini-2.5-flash, ' + codeSnippet.length + ' chars context）...');
             const raw = await this._callGeminiDirect(patchPrompt, {
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3-flash-preview',
                 maxOutputTokens: 2048,
                 temperature: 0.2
             });

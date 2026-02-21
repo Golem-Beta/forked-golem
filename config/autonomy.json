@@ -1,7 +1,7 @@
 {
     "awakening": {
-        "minHours": 2,
-        "maxHours": 4,
+        "minHours": 0.5,
+        "maxHours": 1,
         "quietHours": [22, 23, 0, 1, 2, 3, 4, 5],
         "morningWakeHour": 6
     },
@@ -13,6 +13,10 @@
         "github_explore": {
             "dailyLimit": null,
             "desc": "去 GitHub 探索 AI/Agent 相關專案，學習新知識"
+        },
+        "web_research": {
+            "dailyLimit": 2,
+            "desc": "根據目標或經驗中的線索，主動上網搜尋研究特定主題"
         },
         "spontaneous_chat": {
             "dailyLimit": null,
