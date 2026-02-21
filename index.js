@@ -1304,6 +1304,10 @@ class ResponseParser {
         if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```\s*/, '');
         if (cleaned.endsWith('```')) cleaned = cleaned.replace(/```\s*$/, '');
         cleaned = cleaned.trim();
+        // 預處理：修復 ES6 Unicode escape（Gemini 常生成 \u{1F504} 等，JSON 不合法）
+        cleaned = cleaned.replace(/\\u\{([0-9A-Fa-f]+)\}/g, (_, hex) => {
+            try { return String.fromCodePoint(parseInt(hex, 16)); } catch { return ''; }
+        });
         try {
             // 1. 嘗試直接解析
             const parsed = JSON.parse(cleaned);
