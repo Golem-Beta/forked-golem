@@ -2130,8 +2130,9 @@ class AutonomyManager {
         const temp = opts.temperature || 0.8;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
+            let apiKey = null;
             try {
-                const apiKey = await this.brain.keyChain.getKey();
+                apiKey = await this.brain.keyChain.getKey();
                 if (!apiKey) throw new Error('沒有可用的 API Key');
 
                 const { GoogleGenerativeAI } = require('@google/generative-ai');
