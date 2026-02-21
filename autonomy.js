@@ -40,6 +40,9 @@ class AutonomyManager {
         this.Introspection = deps.Introspection;
         this.PatchManager = deps.PatchManager;
         this.TriStreamParser = deps.TriStreamParser;
+
+        // 📬 社交回應追蹤
+        this._pendingSocialChat = null; // { ts, timer, context }
         this.ResponseParser = deps.ResponseParser;
         this.InputFile = deps.InputFile;
         this._timer = null;
@@ -588,6 +591,26 @@ class AutonomyManager {
             context: contextNote,
             outcome: 'sent'
         });
+
+        // 設定 30 分鐘回應追蹤
+        if (this._pendingSocialChat && this._pendingSocialChat.timer) {
+            clearTimeout(this._pendingSocialChat.timer);
+        }
+        this._pendingSocialChat = {
+            ts: new Date().toISOString(),
+            context: contextNote,
+            timer: setTimeout(() => {
+                // 30 分鐘沒收到回應
+                this.appendJournal({
+                    action: 'social_feedback',
+                    outcome: 'no_response',
+                    context: contextNote,
+                    note: '老哥 30 分鐘內沒回應'
+                });
+                console.log('📬 [Social] 30 分鐘無回應，已記錄');
+                this._pendingSocialChat = null;
+            }, 30 * 60 * 1000)
+        };
     }
 
     // =========================================================
@@ -954,6 +977,28 @@ class AutonomyManager {
             console.warn('[Autonomy] 分流失敗，使用原始文字:', e.message);
             await this._sendToAdmin(msgText);
         }
+    }
+    // 📬 老哥回應回流 — 由 index.js 訊息路由呼叫
+    onAdminReply(text) {
+        if (!this._pendingSocialChat) return; // 沒有待追蹤的社交訊息
+        
+        clearTimeout(this._pendingSocialChat.timer);
+        const context = this._pendingSocialChat.context;
+        const waitMs = Date.now() - new Date(this._pendingSocialChat.ts).getTime();
+        const waitMin = Math.round(waitMs / 60000);
+        
+        // 擷取回應摘要（前 80 字，不存完整內容）
+        const preview = text.length > 80 ? text.substring(0, 80) + '...' : text;
+        
+        this.appendJournal({
+            action: 'social_feedback',
+            outcome: 'replied',
+            context: context,
+            reply_preview: preview,
+            response_time_min: waitMin
+        });
+        console.log('📬 [Social] 老哥回應了（' + waitMin + ' 分鐘後），已記錄');
+        this._pendingSocialChat = null;
     }
 }
 

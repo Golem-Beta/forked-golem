@@ -1919,6 +1919,9 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
 
     if (!ctx.text && !hasMedia) return; // 沒文字也沒附件就退出
     if (!ctx.isAdmin) return;
+
+    // 📬 通知 Autonomy：老哥回訊息了（社交回應追蹤）
+    if (ctx.text && autonomy.onAdminReply) autonomy.onAdminReply(ctx.text);
     if (await NodeRouter.handle(ctx, brain)) return;
     if (global.pendingPatch && ['ok', 'deploy', 'y', '部署'].includes(ctx.text.toLowerCase())) return executeDeploy(ctx);
     if (global.pendingPatch && ['no', 'drop', 'n', '丟棄'].includes(ctx.text.toLowerCase())) return executeDrop(ctx);
