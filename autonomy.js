@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { Index: FlexIndex } = require('flexsearch');
 
 class AutonomyManager {
     /**
@@ -40,6 +41,11 @@ class AutonomyManager {
         this.Introspection = deps.Introspection;
         this.PatchManager = deps.PatchManager;
         this.TriStreamParser = deps.TriStreamParser;
+
+        // 🔍 Journal 全文索引 (FlexSearch)
+        this._journalIndex = null;
+        this._journalEntries = [];  // id → entry 映射
+        this._buildJournalIndex();
 
         // 📬 社交回應追蹤
         this._pendingSocialChat = null; // { ts, timer, context }
@@ -92,7 +98,45 @@ class AutonomyManager {
     }
     // 📓 經驗日誌：讀取 / 寫入
     // =========================================================
-    readRecentJournal(n = 10) {
+    // 🔍 Journal 全文索引
+    _buildJournalIndex() {
+        try {
+            this._journalIndex = new FlexIndex({ tokenize: 'forward', resolution: 5 });
+            this._journalEntries = [];
+            if (!fs.existsSync(this.journalPath)) return;
+            const lines = fs.readFileSync(this.journalPath, 'utf-8').trim().split('\n');
+            lines.forEach((line, i) => {
+                try {
+                    const entry = JSON.parse(line);
+                    this._journalEntries.push(entry);
+                    const searchText = [
+                        entry.action, entry.outcome, entry.topic, entry.context,
+                        entry.preview, entry.note, entry.repo, entry.reply_preview,
+                        entry.error, entry.learning
+                    ].filter(Boolean).join(' ');
+                    this._journalIndex.add(i, searchText);
+                } catch {}
+            });
+            console.log('🔍 [JournalIndex] 索引完成: ' + this._journalEntries.length + ' 條');
+        } catch (e) {
+            console.warn('🔍 [JournalIndex] 建立失敗:', e.message);
+            this._journalIndex = null;
+            this._journalEntries = [];
+        }
+    }
+
+    searchJournal(query, limit = 5) {
+        if (!this._journalIndex || !query) return [];
+        try {
+            const ids = this._journalIndex.search(query, { limit });
+            return ids.map(id => this._journalEntries[id]).filter(Boolean);
+        } catch (e) {
+            console.warn('🔍 [JournalIndex] 搜尋失敗:', e.message);
+            return [];
+        }
+    }
+
+        readRecentJournal(n = 10) {
         try {
             if (!fs.existsSync(this.journalPath)) return [];
             const lines = fs.readFileSync(this.journalPath, 'utf-8').trim().split('\n');
@@ -112,6 +156,12 @@ class AutonomyManager {
             const record = { ts: new Date().toISOString(), ...entry };
             fs.appendFileSync(this.journalPath, JSON.stringify(record) + '\n');
             console.log(`📓 [Journal] 記錄: ${entry.action} → ${entry.outcome || 'done'}`);
+            // 即時更新索引
+            if (this._journalIndex) {
+                const searchText = [record.action, record.outcome, record.topic, record.context, record.preview, record.note, record.repo, record.reply_preview, record.error, record.learning].filter(Boolean).join(' ');
+                this._journalIndex.add(this._journalEntries.length, searchText);
+                this._journalEntries.push(record);
+            }
         } catch (e) {
             console.warn("[Journal] 寫入失敗:", e.message);
         }
@@ -500,11 +550,35 @@ class AutonomyManager {
         const diversitySection = diversitySummary ? '【行動分佈統計】\n' + diversitySummary : '';
         const statsSection = '【全量 Journal 統計】\n' + this.buildJournalStats();
         const memorySection = memorySummary ? '【老哥最近的互動記憶】\n' + memorySummary : '';
+
+        // 🔍 BM25 智慧召回：根據最近話題搜尋相關歷史經驗
+        let journalSearchSection = '';
+        try {
+            // 從最近 journal 提取搜尋關鍵字
+            const recentTopics = journal.slice(-3)
+                .map(j => [j.topic, j.action, j.outcome].filter(Boolean).join(' '))
+                .join(' ');
+            if (recentTopics && this._journalIndex) {
+                const related = this.searchJournal(recentTopics, 5);
+                // 過濾掉已在 recent journal 裡的（避免重複）
+                const recentTs = new Set(journal.map(j => j.ts));
+                const unique = related.filter(r => !recentTs.has(r.ts));
+                if (unique.length > 0) {
+                    journalSearchSection = '【歷史相關經驗（BM25 召回）】\n' + unique.map(j => {
+                        const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
+                        return '[' + time + '] ' + j.action + ': ' + (j.outcome || j.topic || '');
+                    }).join('\n');
+                }
+            }
+        } catch (e) {
+            // 搜尋失敗不影響決策
+        }
         const decisionPrompt = this.loadPrompt('decision.md', {
             SOUL: soul,
             JOURNAL_SUMMARY: journalSummary,
             DIVERSITY_SECTION: diversitySection,
             STATS_SECTION: statsSection,
+            JOURNAL_SEARCH_SECTION: journalSearchSection,
             MEMORY_SECTION: memorySection,
             TIME_STR: timeStr,
             ACTION_LIST: actionList,
