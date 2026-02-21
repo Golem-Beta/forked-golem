@@ -103,7 +103,7 @@ class DashboardPlugin {
         });
 
         // [右下] 三流協定 + Queue
-        this.chatBox = this.grid.set(5, 6, 6, 6, contrib.log, {
+        this.chatBox = this.grid.set(5, 6, 7, 6, contrib.log, {
             fg: "white",
             selectedFg: "cyan",
             label: '💬 三流協定 / Queue',
