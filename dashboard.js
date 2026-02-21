@@ -95,7 +95,7 @@ class DashboardPlugin {
         });
 
         // [左下] 核心日誌
-        this.logBox = this.grid.set(4, 0, 7, 6, contrib.log, {
+        this.logBox = this.grid.set(4, 0, 8, 6, contrib.log, {
             fg: "green",
             selectedFg: "lightgreen",
             label: '📠 核心日誌 (Neuro-Link)',
