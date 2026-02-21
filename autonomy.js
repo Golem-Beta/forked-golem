@@ -114,6 +114,62 @@ class AutonomyManager {
         }
     }
 
+    // 📊 全量 Journal 統計摘要（治標：給決策引擎全局視野）
+    buildJournalStats() {
+        try {
+            if (!fs.existsSync(this.journalPath)) return '(無 journal 資料)';
+            const lines = fs.readFileSync(this.journalPath, 'utf-8').trim().split('\n');
+            const all = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+            if (all.length === 0) return '(無 journal 資料)';
+
+            // 行動類型統計
+            const actionCounts = {};
+            const outcomeMap = {};
+            let droppedProposals = [];
+            let repoCount = 0;
+            let firstTs = all[0].ts, lastTs = all[all.length - 1].ts;
+
+            for (const j of all) {
+                actionCounts[j.action] = (actionCounts[j.action] || 0) + 1;
+                const key = j.action + ':' + (j.outcome || '?');
+                outcomeMap[key] = (outcomeMap[key] || 0) + 1;
+                if (j.action === 'github_explore' && j.repo) repoCount++;
+                if (j.action === 'self_reflection_feedback' && j.outcome === 'dropped') {
+                    droppedProposals.push(j.description || '未知');
+                }
+            }
+
+            // 組裝摘要文字
+            const parts = [];
+            parts.push('總記錄: ' + all.length + ' 條 (' + firstTs.substring(0,10) + ' ~ ' + lastTs.substring(0,10) + ')');
+
+            const actionStr = Object.entries(actionCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, v]) => k + '=' + v)
+                .join(', ');
+            parts.push('行動分佈: ' + actionStr);
+
+            if (repoCount > 0) parts.push('已探索 GitHub repo: ' + repoCount + ' 個');
+
+            // self_reflection 成功率
+            const reflTotal = actionCounts['self_reflection'] || 0;
+            const reflSuccess = (outcomeMap['self_reflection:proposed'] || 0) + (outcomeMap['self_reflection:skill_created'] || 0);
+            if (reflTotal > 0) {
+                parts.push('self_reflection: ' + reflTotal + ' 次, 成功產出 ' + reflSuccess + ' 次');
+            }
+
+            // 被拒絕的提案方向（最近 3 個）
+            if (droppedProposals.length > 0) {
+                const recent = droppedProposals.slice(-3);
+                parts.push('⚠️ 老哥最近拒絕的提案: ' + recent.join('; '));
+            }
+
+            return parts.join('\n');
+        } catch (e) {
+            return '(journal 統計失敗: ' + e.message + ')';
+        }
+    }
+
     // 檢查今天是否已做過某個 action
     hasActionToday(actionType) {
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -439,11 +495,13 @@ class AutonomyManager {
 
         // 組合條件區塊
         const diversitySection = diversitySummary ? '【行動分佈統計】\n' + diversitySummary : '';
+        const statsSection = '【全量 Journal 統計】\n' + this.buildJournalStats();
         const memorySection = memorySummary ? '【老哥最近的互動記憶】\n' + memorySummary : '';
         const decisionPrompt = this.loadPrompt('decision.md', {
             SOUL: soul,
             JOURNAL_SUMMARY: journalSummary,
             DIVERSITY_SECTION: diversitySection,
+            STATS_SECTION: statsSection,
             MEMORY_SECTION: memorySection,
             TIME_STR: timeStr,
             ACTION_LIST: actionList,

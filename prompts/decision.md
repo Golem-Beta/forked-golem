@@ -8,6 +8,8 @@
 
 {{DIVERSITY_SECTION}}
 
+{{STATS_SECTION}}
+
 {{MEMORY_SECTION}}
 
 【當前時間】{{TIME_STR}}
