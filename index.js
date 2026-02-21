@@ -1064,6 +1064,7 @@ class GolemBrain {
                 const model = genAI.getGenerativeModel({
                     model: "gemini-2.5-flash-lite",
                     systemInstruction: this.systemInstruction,
+                    tools: [{ google_search: {} }],
                     generationConfig: {
                         maxOutputTokens: 8192,
                         temperature: 0.7,
