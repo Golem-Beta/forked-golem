@@ -179,6 +179,7 @@ class AutonomyManager {
             const actionCounts = {};
             const outcomeMap = {};
             let droppedProposals = [];
+            let deployedProposals = [];
             let repoCount = 0;
             let firstTs = all[0].ts, lastTs = all[all.length - 1].ts;
 
@@ -189,6 +190,9 @@ class AutonomyManager {
                 if (j.action === 'github_explore' && j.repo) repoCount++;
                 if (j.action === 'self_reflection_feedback' && j.outcome === 'dropped') {
                     droppedProposals.push(j.description || '未知');
+                }
+                if (j.action === 'self_reflection_feedback' && j.outcome === 'deployed') {
+                    deployedProposals.push(j.description || '未知');
                 }
             }
 
@@ -211,10 +215,23 @@ class AutonomyManager {
                 parts.push('self_reflection: ' + reflTotal + ' 次, 成功產出 ' + reflSuccess + ' 次');
             }
 
-            // 被拒絕的提案方向（最近 3 個）
+
+            // 社交回饋統計
+            const socialSent = outcomeMap['spontaneous_chat:sent'] || 0;
+            const socialReplied = outcomeMap['social_feedback:replied'] || 0;
+            const socialNoReply = outcomeMap['social_feedback:no_response'] || 0;
+            if (socialSent > 0) {
+                parts.push('社交互動: 發起 ' + socialSent + ' 次, 老哥回覆 ' + socialReplied + ' 次, 無回應 ' + socialNoReply + ' 次');
+            }
+
+            // 提案結果回饋
+            if (deployedProposals.length > 0) {
+                const recent = deployedProposals.slice(-3);
+                parts.push('✅ 老哥接受的提案: ' + recent.join('; '));
+            }
             if (droppedProposals.length > 0) {
                 const recent = droppedProposals.slice(-3);
-                parts.push('⚠️ 老哥最近拒絕的提案: ' + recent.join('; '));
+                parts.push('⚠️ 老哥拒絕的提案: ' + recent.join('; '));
             }
 
             return parts.join('\n');
