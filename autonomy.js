@@ -600,6 +600,13 @@ class AutonomyManager {
                 return result.response.text().trim();
             } catch (e) {
                 const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
+                const is503 = e.message && (e.message.includes('503') || e.message.includes('UNAVAILABLE') || e.message.includes('overloaded'));
+                if (is503 && attempt < maxRetries - 1) {
+                    const backoff = (attempt + 1) * 15000; // 15s, 30s 指數退避
+                    console.warn('⏳ [Autonomy] API 503 過載，' + (backoff / 1000) + '秒後重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
+                    await new Promise(r => setTimeout(r, backoff));
+                    continue;
+                }
                 if (is429 && apiKey) {
                     const isQuota = e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED');
                     if (isQuota) this.brain.keyChain.markCooldownUntilReset(apiKey);
@@ -767,6 +774,13 @@ class AutonomyManager {
                 return decision;
             } catch (e) {
                 const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
+                const is503d = e.message && (e.message.includes('503') || e.message.includes('UNAVAILABLE') || e.message.includes('overloaded'));
+                if (is503d && attempt < maxRetries - 1) {
+                    const backoff = (attempt + 1) * 15000;
+                    console.warn('⏳ [Decision] API 503 過載，' + (backoff / 1000) + '秒後重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
+                    await new Promise(r => setTimeout(r, backoff));
+                    continue;
+                }
                 if (is429) {
                     // 標記當前 key 冷卻，下次迴圈會自動換 key
                     const apiKey = this.brain.keyChain.keys[(this.brain.keyChain.currentIndex - 1 + this.brain.keyChain.keys.length) % this.brain.keyChain.keys.length];
