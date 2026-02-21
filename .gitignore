@@ -15,6 +15,6 @@ setup.sh.original
 *.bak_*
 patch-*.js
 memory/
-*.bak
+*.bak*
 TODO.md
 Shioaji

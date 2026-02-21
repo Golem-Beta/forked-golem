@@ -20,6 +20,8 @@ Forked from [Arvincreator/project-golem](https://github.com/Arvincreator/project
 | **自主行為** | 無 | Autonomy v2 — Gemini 決策引擎 |
 | **身份系統** | 無 | soul.md 靈魂文件 + journal 經驗迴路 |
 | **時間排程** | IndexedDB (瀏覽器) | Chronos — setTimeout + JSON 持久化 |
+| **網路搜尋** | 無 | Google Search grounding + 自主 web_research |
+| **日誌搜尋** | 無 | FlexSearch BM25 全文索引 |
 
 ---
 
@@ -188,6 +190,12 @@ forked-golem/
 | v9.3.0 | Autonomy v2 Phase 1 — journal 經驗迴路 |
 | v9.3.1 | Autonomy v2 Phase 2+3 — GitHub 探索 + Gemini 決策 + soul.md |
 | v9.4.0 | Chronos 時間排程 + .env.sample |
+| v9.5.0 | Autonomy 設定檔外部化 + 決策多樣性統計 + EVOLUTION v2 |
+| v9.5.1 | self_reflection pipeline 修復 + Executor 沙盒隔離 |
+| v9.5.2 | 靜音模式 (24hr 運作) + 全域異常守護 + prompts 外部化 |
+| v9.6.0 | AutonomyManager 抽離 + FlexSearch journal 全文搜尋 + 社交回饋迴路 |
+| v9.6.1 | web_research + Google Search grounding + 兩階段 self_reflection |
+| v9.6.2 | KeyChain RPD 太平洋午夜重置 + gemini-3-flash-preview 支援 |
 
 ---
 
