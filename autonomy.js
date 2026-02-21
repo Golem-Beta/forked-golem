@@ -539,6 +539,35 @@ class AutonomyManager {
         return '(靈魂文件不存在)';
     }
 
+    // =========================================================
+    // 🕐 統一時間上下文（所有 prompt 共用，避免各自拼裝導致資訊不一致）
+    // =========================================================
+    _getTimeContext(now = new Date()) {
+        const weekdays = ['週日','週一','週二','週三','週四','週五','週六'];
+        const hour = now.getHours();
+        const day = now.getDay();
+        let period = '平常時段';
+        if (hour >= 0 && hour < 7) period = '深夜/凌晨，不適合打擾';
+        else if (hour >= 7 && hour < 9) period = '早晨';
+        else if (hour >= 9 && hour <= 18 && day > 0 && day < 6) period = '工作時間，語氣簡潔暖心';
+        else if (day === 0 || day === 6) period = '週末假日，語氣輕鬆';
+        else if (hour > 22) period = '深夜時段，提醒休息';
+        else if (hour > 18) period = '傍晚';
+        return {
+            display: now.toLocaleString('zh-TW', {
+                weekday: 'long', year: 'numeric', month: 'long',
+                day: 'numeric', hour: '2-digit', minute: '2-digit',
+                hour12: false
+            }),
+            weekday: weekdays[day],
+            hour,
+            day,
+            isWeekend: day === 0 || day === 6,
+            period,
+            iso: now.toISOString()
+        };
+    }
+
     /**
      * Autonomy 專用的 Gemini 直呼叫
      * 不帶 systemInstruction、不帶 chatHistory、不帶 skills
@@ -595,11 +624,8 @@ class AutonomyManager {
         const soul = this._readSoul();
         const journal = this.readRecentJournal(cfg.journal.decisionReadCount);
         const now = new Date();
-        const timeStr = now.toLocaleString('zh-TW', {
-            weekday: 'long', year: 'numeric', month: 'long',
-            day: 'numeric', hour: '2-digit', minute: '2-digit',
-            hour12: false
-        });
+        const timeCtx = this._getTimeContext(now);
+        const timeStr = timeCtx.display;
 
         // JS 層篩選可選行動
         const available = this._getAvailableActions();
@@ -764,13 +790,9 @@ class AutonomyManager {
 
         async performSpontaneousChat() {
         const now = new Date();
-        const timeStr = now.toLocaleString('zh-TW', { hour12: false });
-        const day = now.getDay();
-        const hour = now.getHours();
-        let contextNote = "平常時段";
-        if (day === 0 || day === 6) contextNote = "週末假日，語氣輕鬆";
-        if (hour >= 9 && hour <= 18 && day > 0 && day < 6) contextNote = "工作時間，語氣簡潔暖心";
-        if (hour > 22) contextNote = "深夜時段，提醒休息";
+        const timeCtx = this._getTimeContext(now);
+        const timeStr = timeCtx.display;
+        const contextNote = timeCtx.period;
 
         // 從 journal 讀取最近的社交經驗，避免重複話題
         const recentSocial = this.readRecentJournal(5)
