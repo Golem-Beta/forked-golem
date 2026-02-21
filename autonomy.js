@@ -691,16 +691,23 @@ class AutonomyManager {
     // =========================================================
     async performSelfReflection(triggerCtx = null) {
         try {
-            const currentCode = this.Introspection.readSelf();
+            // 主要分析 autonomy.js（最活躍的模組），index.js 作為輔助上下文
+            let autonomyCode, indexCode;
+            try { autonomyCode = fs.readFileSync(path.join(process.cwd(), 'autonomy.js'), 'utf-8'); } catch (e) { autonomyCode = '(autonomy.js 讀取失敗)'; }
+            try { indexCode = this.Introspection.readSelf(); } catch (e) { indexCode = ''; }
             const advice = this.memory.getAdvice();
             // Load EVOLUTION skill as prompt template (single source of truth)
             const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array of patches with search/replace fields.";
             const prompt = [
                 evolutionSkill,
                 "",
-                "## TARGET CODE (first 18000 chars of index.js)",
+                "## PRIMARY TARGET: autonomy.js (full source)",
                 "",
-                currentCode.slice(0, 18000),
+                autonomyCode,
+                "",
+                "## SECONDARY CONTEXT: index.js (first 8000 chars, for reference only)",
+                "",
+                indexCode.slice(0, 8000),
                 "",
                 "## CONTEXT FROM MEMORY",
                 "",
@@ -717,8 +724,8 @@ class AutonomyManager {
                 const patch = patches[0];
                 const proposalType = patch.type || 'unknown';
                 this.memory.recordProposal(proposalType);
-                const targetName = patch.file === 'skills.js' ? 'skills.js' : 'index.js';
-                const targetPath = targetName === 'skills.js' ? path.join(process.cwd(), 'skills.js') : path.join(process.cwd(), 'index.js');
+                const targetName = patch.file === 'skills.js' ? 'skills.js' : (patch.file === 'index.js' ? 'index.js' : 'autonomy.js');
+                const targetPath = path.join(process.cwd(), targetName);
                 const testFile = this.PatchManager.createTestClone(targetPath, patches);
                 let isVerified = false;
                 if (targetName === 'skills.js') { try { require(path.resolve(testFile)); isVerified = true; } catch (e) { console.error(e); } }

@@ -2242,8 +2242,10 @@ async function executeDeploy(ctx) {
         fs.copyFileSync(targetPath, `${targetName}.bak-${Date.now()}`);
         fs.writeFileSync(targetPath, fs.readFileSync(patchPath));
         fs.unlinkSync(patchPath);
+        const patchDesc = global.pendingPatch.description || '(no description)';
         global.pendingPatch = null;
         memory.recordSuccess();
+        autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'deployed', target: targetName, description: patchDesc });
         await ctx.reply(`🚀 ${targetName} 升級成功！正在重啟...`);
         const subprocess = spawn(process.argv[0], process.argv.slice(1), { detached: true, stdio: 'ignore' });
         subprocess.unref();
@@ -2254,8 +2256,10 @@ async function executeDeploy(ctx) {
 async function executeDrop(ctx) {
     if (!global.pendingPatch) return;
     try { fs.unlinkSync(global.pendingPatch.path); } catch (e) { }
+    const patchDesc = global.pendingPatch ? global.pendingPatch.description || '(no description)' : '?';
     global.pendingPatch = null;
     memory.recordRejection();
+    autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'dropped', description: patchDesc });
     await ctx.reply("🗑️ 提案已丟棄");
 }
 
