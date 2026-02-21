@@ -272,6 +272,7 @@ class AutonomyManager {
                 'self_reflection': '\u{1F9EC}',
                 'github_explore': '\u{1F50D}',
                 'spontaneous_chat': '\u{1F4AC}',
+                'web_research': '\u{1F310}',
                 'rest': '\u{1F634}'
             };
             console.log((actionEmoji[decision.action] || '\u2753') + " Golem 決定: " + decision.action + " — " + decision.reason);
@@ -291,6 +292,9 @@ class AutonomyManager {
                     } else {
                         await this.performSpontaneousChat();
                     }
+                    break;
+                case 'web_research':
+                    await this.performWebResearch(decision.reason);
                     break;
                 case 'rest':
                     console.log('\u{1F634} [Autonomy] Golem 選擇繼續休息。');
@@ -331,6 +335,7 @@ class AutonomyManager {
                 self_reflection: { dailyLimit: 1, desc: "閱讀自己的程式碼，提出改進方案" },
                 github_explore: { dailyLimit: null, desc: "去 GitHub 探索 AI/Agent 相關專案" },
                 spontaneous_chat: { dailyLimit: null, blockedHours: [23,0,1,2,3,4,5,6], desc: "主動社交" },
+                web_research: { dailyLimit: 2, desc: "根據目標或經驗中的線索，主動上網搜尋研究特定主題" },
                 rest: { desc: "繼續休息" }
             },
             cooldown: { minActionGapMinutes: 120 },
@@ -568,15 +573,19 @@ class AutonomyManager {
         const statsSection = '【全量 Journal 統計】\n' + this.buildJournalStats();
         const memorySection = memorySummary ? '【老哥最近的互動記憶】\n' + memorySummary : '';
 
-        // 🔍 BM25 智慧召回：根據最近話題搜尋相關歷史經驗
+        // 🔍 BM25 智慧召回：根據最近話題 + soul 目標搜尋相關歷史經驗
         let journalSearchSection = '';
         try {
             // 從最近 journal 提取搜尋關鍵字
             const recentTopics = journal.slice(-3)
                 .map(j => [j.topic, j.action, j.outcome].filter(Boolean).join(' '))
                 .join(' ');
-            if (recentTopics && this._journalIndex) {
-                const related = this.searchJournal(recentTopics, 5);
+            // 從 soul.md 提取目標關鍵字（補充長期方向）
+            const soulGoals = soul.match(/(?:目標|方向|當前|長期|終極|短期|下一階段|研究|探索|改進)[：:]\s*(.+)/g);
+            const soulKeywords = soulGoals ? soulGoals.map(g => g.replace(/^[^：:]+[：:]\s*/, '')).join(' ') : '';
+            const combinedQuery = (recentTopics + ' ' + soulKeywords).trim();
+            if (combinedQuery && this._journalIndex) {
+                const related = this.searchJournal(combinedQuery, 5);
                 // 過濾掉已在 recent journal 裡的（避免重複）
                 const recentTs = new Set(journal.map(j => j.ts));
                 const unique = related.filter(r => !recentTs.has(r.ts));
@@ -726,6 +735,99 @@ class AutonomyManager {
         // 保留最近 200 筆
         const trimmed = list.slice(-200);
         fs.writeFileSync(fp, JSON.stringify(trimmed, null, 2));
+    }
+
+
+    // =========================================================
+    // 🌐 主動網路研究
+    // =========================================================
+    async performWebResearch(decisionReason = '') {
+        try {
+            const soul = this._readSoul();
+            const recentJournal = this.readRecentJournal(5);
+
+            // 第一步：讓 Gemini 根據目標和經驗決定搜尋什麼
+            const topicPrompt = this.loadPrompt('web-research-topic.md', {
+                SOUL: soul,
+                RECENT_JOURNAL: JSON.stringify(recentJournal.slice(-5), null, 0),
+                DECISION_REASON: decisionReason
+            }) || `你是 Golem。根據你的目標和經驗，你決定要上網研究一個主題。
+決策理由：${decisionReason}
+用 JSON 回覆：{"query": "搜尋關鍵字（英文）", "purpose": "為什麼要研究這個"}`;
+
+            const topicRaw = await this._callGeminiDirect(topicPrompt, { maxOutputTokens: 256, temperature: 0.7 });
+            const topicCleaned = topicRaw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+            let topicData;
+            try {
+                topicData = JSON.parse(topicCleaned);
+            } catch {
+                console.warn('🌐 [WebResearch] 主題 JSON 解析失敗:', topicCleaned.substring(0, 100));
+                this.appendJournal({ action: 'web_research', outcome: 'topic_parse_failed' });
+                return;
+            }
+
+            const query = topicData.query || 'AI agent architecture';
+            const purpose = topicData.purpose || decisionReason;
+            console.log('🌐 [WebResearch] 搜尋主題: ' + query + ' | 目的: ' + purpose);
+
+            // 第二步：用 Gemini + Grounding 搜尋
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const apiKey = await this.brain.keyChain.getKey();
+            if (!apiKey) throw new Error('沒有可用的 API Key');
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-2.5-flash-lite',
+                tools: [{ google_search: {} }],
+                generationConfig: { maxOutputTokens: 1024, temperature: 0.5 }
+            });
+
+            const searchPrompt = '搜尋並用繁體中文摘要以下主題的最新資訊（200-300字）：\n' +
+                '主題：' + query + '\n' +
+                '重點：' + purpose + '\n' +
+                '請包含具體的數據、版本號、日期等事實性資訊。如果找到相關的工具或專案，列出名稱和網址。';
+
+            const result = await model.generateContent(searchPrompt);
+            const response = result.response;
+            const text = response.text().trim();
+
+            // 提取 grounding metadata
+            const gm = response.candidates?.[0]?.groundingMetadata;
+            const searchQueries = gm?.webSearchQueries || [];
+            const sources = (gm?.groundingChuncks || gm?.groundingChunks || [])
+                .map(c => c.web?.title).filter(Boolean).slice(0, 3);
+
+            const reflectionFile = this._saveReflection('web_research', text);
+
+            // 組合訊息發送給老哥
+            const parts = [
+                '🌐 網路研究報告',
+                '🔎 主題: ' + query,
+                '💡 目的: ' + purpose,
+                sources.length > 0 ? '📰 來源: ' + sources.join(', ') : '',
+                '',
+                text
+            ].filter(Boolean).join('\n');
+
+            await this._sendToAdmin(parts);
+
+            // 寫 journal
+            this.appendJournal({
+                action: 'web_research',
+                topic: query,
+                purpose: purpose,
+                search_queries: searchQueries,
+                sources: sources,
+                outcome: 'shared',
+                reflection_file: reflectionFile
+            });
+
+            console.log('✅ [WebResearch] 研究報告已發送: ' + query);
+
+        } catch (e) {
+            console.error('❌ [WebResearch] 研究失敗:', e.message);
+            this.appendJournal({ action: 'web_research', outcome: 'error', error: e.message });
+        }
     }
 
     async performGitHubExplore() {
