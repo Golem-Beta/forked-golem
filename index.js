@@ -641,6 +641,23 @@ class KeyChain {
         const idx = this.keys.indexOf(key);
         console.log(`🧊 [KeyChain] Key #${idx} 進入冷卻，${Math.round(durationMs / 1000)}s 後解除`);
     }
+    // 標記某把 key 冷卻到太平洋時間午夜（RPD 重置時間）
+    markCooldownUntilReset(key) {
+        // RPD 在太平洋時間 00:00 重置（UTC-8，夏令時 UTC-7）
+        const now = new Date();
+        // 用 Los Angeles 時區算出下一個午夜
+        const laStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+        const laNow = new Date(laStr);
+        const tomorrow = new Date(laNow);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 10, 0); // 午夜 + 10 秒安全邊距
+        const msUntilReset = tomorrow.getTime() - laNow.getTime();
+        const hours = Math.round(msUntilReset / 3600000 * 10) / 10;
+        const idx = this.keys.indexOf(key);
+        console.log(`🧊 [KeyChain] Key #${idx} RPD 耗盡，冷卻到太平洋時間午夜（約 ${hours}h）`);
+        this._cooldownUntil.set(key, Date.now() + msUntilReset);
+    }
+
     // 檢查 key 是否在冷卻中
     _isCooling(key) {
         const until = this._cooldownUntil.get(key);
@@ -1100,8 +1117,12 @@ class GolemBrain {
 
                 if (is429 && apiKey) {
                     // 🧊 標記當前 key 冷卻
-                    const isDaily = e.message.includes('per day') || e.message.includes('RPD');
-                    this.keyChain.markCooldown(apiKey, isDaily ? 15 * 60 * 1000 : 90 * 1000);
+                    const isQuota = e.message.includes('quota') || e.message.includes('per day') || e.message.includes('RPD') || e.message.includes('RESOURCE_EXHAUSTED');
+                    if (isQuota) {
+                        this.keyChain.markCooldownUntilReset(apiKey);
+                    } else {
+                        this.keyChain.markCooldown(apiKey, 90 * 1000);
+                    }
 
                     // Phase 1: 還有未試過的 key → 快速換 key（3s 間隔）
                     if (attempt < numKeys - 1) {

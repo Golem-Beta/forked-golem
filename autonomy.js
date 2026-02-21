@@ -572,7 +572,9 @@ class AutonomyManager {
             } catch (e) {
                 const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
                 if (is429 && apiKey) {
-                    this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
+                    const isQuota = e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED');
+                    if (isQuota) this.brain.keyChain.markCooldownUntilReset(apiKey);
+                    else this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
                     if (attempt < maxRetries - 1) {
                         console.warn('🔄 [Autonomy] Key 被 429，換下一把重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
                         await new Promise(r => setTimeout(r, 3000));
@@ -742,7 +744,9 @@ class AutonomyManager {
                 if (is429) {
                     // 標記當前 key 冷卻，下次迴圈會自動換 key
                     const apiKey = this.brain.keyChain.keys[(this.brain.keyChain.currentIndex - 1 + this.brain.keyChain.keys.length) % this.brain.keyChain.keys.length];
-                    this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
+                    const isQuota = e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED');
+                    if (isQuota) this.brain.keyChain.markCooldownUntilReset(apiKey);
+                    else this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
                     if (attempt < maxRetries - 1) {
                         console.warn(`\u{1F504} [Decision] Key 被 429，換下一把重試 (attempt ${attempt + 1}/${maxRetries})`);
                         await new Promise(r => setTimeout(r, 3000)); // 換 key 前等 3 秒
