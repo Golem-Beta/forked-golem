@@ -87,7 +87,7 @@ class DashboardPlugin {
         });
 
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(2, 6, 4, 6, contrib.log, {
+        this.radarLog = this.grid.set(2, 6, 3, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
@@ -103,7 +103,7 @@ class DashboardPlugin {
         });
 
         // [右下] 三流協定 + Queue
-        this.chatBox = this.grid.set(6, 6, 5, 6, contrib.log, {
+        this.chatBox = this.grid.set(5, 6, 6, 6, contrib.log, {
             fg: "white",
             selectedFg: "cyan",
             label: '💬 三流協定 / Queue',
