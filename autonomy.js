@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+// [ModelRouter] GoogleGenerativeAI require 已移至 model-router/adapters/gemini.js
 const { Index: FlexIndex } = require('flexsearch');
 
 class AutonomyManager {
@@ -575,52 +575,19 @@ class AutonomyManager {
      * 支援 429 換 key 重試
      */
     async _callGeminiDirect(prompt, opts = {}) {
-        const maxRetries = Math.min(this.brain.keyChain.keys.length, 3);
         const maxTokens = opts.maxOutputTokens || 1024;
         const temp = opts.temperature || 0.8;
-        const modelId = opts.model || 'gemini-2.5-flash-lite';
+        const intent = opts.intent || 'utility';
 
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            let apiKey = null;
-            try {
-                apiKey = await this.brain.keyChain.getKey();
-                if (!apiKey) throw new Error('沒有可用的 API Key');
+        const result = await this.brain.router.complete({
+            intent,
+            messages: [{ role: 'user', content: prompt }],
+            maxTokens,
+            temperature: temp,
+            tools: opts.tools,
+        });
 
-                const { GoogleGenerativeAI } = require('@google/generative-ai');
-                const genAI = new GoogleGenerativeAI(apiKey);
-                const modelConfig = {
-                    model: modelId,
-                    generationConfig: { maxOutputTokens: maxTokens, temperature: temp }
-                };
-                // 支援 tools 傳遞（如 google_search）
-                if (opts.tools) modelConfig.tools = opts.tools;
-                const model = genAI.getGenerativeModel(modelConfig);
-
-                const result = await model.generateContent(prompt);
-                return result.response.text().trim();
-            } catch (e) {
-                const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
-                const is503 = e.message && (e.message.includes('503') || e.message.includes('UNAVAILABLE') || e.message.includes('overloaded'));
-                if (is503 && attempt < maxRetries - 1) {
-                    const backoff = (attempt + 1) * 15000; // 15s, 30s 指數退避
-                    console.warn('⏳ [Autonomy] API 503 過載，' + (backoff / 1000) + '秒後重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
-                    await new Promise(r => setTimeout(r, backoff));
-                    continue;
-                }
-                if (is429 && apiKey) {
-                    const isQuota = e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED');
-                    if (isQuota) this.brain.keyChain.markCooldownUntilReset(apiKey);
-                    else this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
-                    if (attempt < maxRetries - 1) {
-                        console.warn('🔄 [Autonomy] Key 被 429，換下一把重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
-                        await new Promise(r => setTimeout(r, 3000));
-                        continue;
-                    }
-                }
-                throw e;
-            }
-        }
-        throw new Error('_callGeminiDirect: 所有重試都失敗');
+        return result.text;
     }
 
     // =========================================================
@@ -744,62 +711,33 @@ class AutonomyManager {
             VALID_ACTIONS: validActionStr
         }) || '選擇一個行動，用 JSON 回覆 {"action":"rest","reason":"fallback"}';
 
-        // 決策 API 呼叫：支援換 key 重試（最多嘗試 key 數量次）
-        const maxRetries = Math.min(this.brain.keyChain.keys.length, 3);
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const apiKey = await this.brain.keyChain.getKey();
-                if (!apiKey) throw new Error('沒有可用的 API Key');
+        try {
+            const result = await this.brain.router.complete({
+                intent: 'decision',
+                messages: [{ role: 'user', content: decisionPrompt }],
+                maxTokens: 256,
+                temperature: 0.8,
+                requireJson: true,
+            });
 
-                const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({
-                    model: "gemini-2.5-flash-lite",
-                    generationConfig: { maxOutputTokens: 256, temperature: 0.8 }
-                });
+            const text = result.text;
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+            const decision = JSON.parse(cleaned);
 
-                const result = await model.generateContent(decisionPrompt);
-                const text = result.response.text().trim();
-                const cleaned = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-                const decision = JSON.parse(cleaned);
-
-                // 驗證 action 是否在可選清單中
-                const validIds = available.map(a => a.id);
-                if (!validIds.includes(decision.action)) {
-                    console.warn("\u26A0\uFE0F [Decision] Gemini 選了不可選的 action: " + decision.action + "，降級為 " + actionIds[0]);
-                    decision.action = actionIds[0] || 'rest';
-                    decision.reason += ' (forced: invalid action)';
-                }
-
-                console.log("\u{1F3AF} [Decision] Gemini 選擇: " + decision.action + " — " + decision.reason);
-                return decision;
-            } catch (e) {
-                const is429 = e.message && (e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('quota'));
-                const is503d = e.message && (e.message.includes('503') || e.message.includes('UNAVAILABLE') || e.message.includes('overloaded'));
-                if (is503d && attempt < maxRetries - 1) {
-                    const backoff = (attempt + 1) * 15000;
-                    console.warn('⏳ [Decision] API 503 過載，' + (backoff / 1000) + '秒後重試 (attempt ' + (attempt + 1) + '/' + maxRetries + ')');
-                    await new Promise(r => setTimeout(r, backoff));
-                    continue;
-                }
-                if (is429) {
-                    // 標記當前 key 冷卻，下次迴圈會自動換 key
-                    const apiKey = this.brain.keyChain.keys[(this.brain.keyChain.currentIndex - 1 + this.brain.keyChain.keys.length) % this.brain.keyChain.keys.length];
-                    const isQuota = e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED');
-                    if (isQuota) this.brain.keyChain.markCooldownUntilReset(apiKey);
-                    else this.brain.keyChain.markCooldown(apiKey, 90 * 1000);
-                    if (attempt < maxRetries - 1) {
-                        console.warn(`\u{1F504} [Decision] Key 被 429，換下一把重試 (attempt ${attempt + 1}/${maxRetries})`);
-                        await new Promise(r => setTimeout(r, 3000)); // 換 key 前等 3 秒
-                        continue;
-                    }
-                    console.error('\u{1F6A8} [Decision] 所有 Key 都 429，放棄:', e.message);
-                } else {
-                    console.warn('\u26A0\uFE0F [Decision] Gemini 決策失敗:', e.message);
-                }
-                return null;
+            // 驗證 action 是否在可選清單中
+            const validIds = available.map(a => a.id);
+            if (!validIds.includes(decision.action)) {
+                console.warn("\u26A0\uFE0F [Decision] 選了不可選的 action: " + decision.action + "，降級為 " + actionIds[0]);
+                decision.action = actionIds[0] || 'rest';
+                decision.reason += ' (forced: invalid action)';
             }
+
+            console.log("\u{1F3AF} [Decision] " + result.meta.provider + " 選擇: " + decision.action + " — " + decision.reason);
+            return decision;
+        } catch (e) {
+            console.warn("\u26A0\uFE0F [Decision] 決策失敗:", e.message);
+            return null;
         }
-        return null
     }
 
         async performSpontaneousChat() {

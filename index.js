@@ -1,21 +1,19 @@
 /**
- * 🦞 Forked-Golem v9.2.0 (Direct-Link Edition)
+ * 🦞 Forked-Golem v9.7.0 (ModelRouter Edition)
  * ---------------------------------------------------
  * 基於 Arvincreator/project-golem 分支，重構為 API 直連 + 輕量 headless 架構
  * 目標硬體：ThinkPad X200, 4-8GB RAM, Arch Linux headless (TTY + SSH)
  *
- * 架構：[Universal Context] -> [Node.js 反射層 + 雙模記憶引擎] <==> [Gemini API 直連]
+ * 架構：[Universal Context] -> [Node.js 反射層] <==> [ModelRouter] <==> [Gemini/Groq/DeepSeek/...]
  * 特性：
  *   1. 🐍 Hydra Link — Telegram (grammy) + Discord 雙平台
- *   2. 🧠 Gemini API Direct — 移除 Puppeteer/CDP，直連 @google/generative-ai SDK
- *   3. 🗝️ KeyChain v2 — 多 Key 輪替 + 429 智慧冷卻 + 指數退避
- *   4. ⚓ Tri-Stream Protocol — Memory/Action/Reply 三流並行
- *   5. 🔮 OpticNerve — Gemini Flash 視覺解析（圖片/文件）
- *   6. 🌗 Dual-Engine Memory — Native FS / QMD 雙模記憶核心
- *   7. 🔍 Auto-Discovery — 環境工具自動探測
- *   8. 🛡️ SecurityManager v2 — 白名單/黑名單 + Taint 偵測 + Flood Guard
- *   9. 📦 Titan Queue — 訊息防抖合併 + Per-chat 序列化（v9.1）
- *  10. 📟 Dashboard — blessed 戰術控制台（支援 detach/reattach）
+ *   2. 🚀 ModelRouter — 多供應商 LLM 智慧路由（intent-based 選路 + 健康追蹤）
+ *   3. ⚓ Tri-Stream Protocol — Memory/Action/Reply 三流並行
+ *   4. 🔮 OpticNerve — 視覺解析（圖片/文件）
+ *   5. 🌗 Dual-Engine Memory — Native FS / QMD 雙模記憶核心
+ *   6. 🛡️ SecurityManager v2 — 白名單/黑名單 + Taint 偵測 + Flood Guard
+ *   7. 📦 Titan Queue — 訊息防抖合併 + Per-chat 序列化
+ *   8. 📟 Dashboard — blessed 戰術控制台（支援 detach/reattach）
  */
 
 // ==========================================
@@ -118,8 +116,8 @@ global.pendingPatch = null; // 暫存等待審核的 Patch
 // 👁️ OpticNerve (視神經 - Gemini 2.5 Flash Bridge)
 // ============================================================
 class OpticNerve {
-    static async analyze(fileUrl, mimeType, apiKey) {
-        console.log(`👁️ [OpticNerve] 正在透過 Gemini 2.5 Flash 分析檔案 (${mimeType})...`);
+    static async analyze(fileUrl, mimeType, router) {
+        console.log(`👁️ [OpticNerve] 正在透過 ModelRouter 分析檔案 (${mimeType})...`);
         try {
             // 1. 下載檔案為 Buffer
             const buffer = await new Promise((resolve, reject) => {
@@ -130,26 +128,24 @@ class OpticNerve {
                     res.on('error', reject);
                 });
             });
-            // 2. 呼叫 Gemini API (使用 2.5-flash)
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            // 2. 透過 ModelRouter 分析（vision intent）
             const prompt = mimeType.startsWith('image/')
                 ? "請詳細描述這張圖片的視覺內容。如果包含文字或程式碼，請完整轉錄。如果是介面截圖，請描述UI元件。請忽略無關的背景雜訊。"
                 : "請閱讀這份文件，並提供詳細的摘要、關鍵數據與核心內容。";
 
-            const result = await model.generateContent([
-                prompt,
-                {
-                    inlineData: {
-                        data: buffer.toString('base64'),
-                        mimeType: mimeType
-                    }
-                }
-            ]);
+            const result = await router.complete({
+                intent: 'vision',
+                messages: [{ role: 'user', content: prompt }],
+                maxTokens: 8192,
+                temperature: 0.5,
+                inlineData: {
+                    data: buffer.toString('base64'),
+                    mimeType: mimeType
+                },
+            });
 
-            const text = result.response.text();
-            console.log("✅ [OpticNerve] 分析完成 (長度: " + text.length + ")");
-            return text;
+            console.log("✅ [OpticNerve] 分析完成 (長度: " + result.text.length + ", via " + result.meta.provider + ")");
+            return result.text;
         } catch (e) {
             console.error("❌ [OpticNerve] 解析失敗:", e.message);
             return `(系統錯誤：視神經無法解析此檔案。原因：${e.message})`;
@@ -619,103 +615,8 @@ ${CONFIG.DONATE_URL}
     }
 }
 
-// ============================================================
-// 🗝️ KeyChain (API Key 輪替 + 節流)
-// ============================================================
-class KeyChain {
-    constructor() {
-        this.keys = CONFIG.API_KEYS;
-        this.currentIndex = 0;
-        // 🛡️ [Flood Guard] API 節流
-        this._lastCallTime = 0;
-        this._minInterval = API_MIN_INTERVAL_MS || 2500;
-        this._throttleQueue = Promise.resolve();
-        // 🧊 [Smart Cooldown] 每把 key 的冷卻時間戳
-        this._cooldownUntil = new Map(); // key -> timestamp
-        console.log(`🗝️ [KeyChain] 已載入 ${this.keys.length} 把 API Key (節流: ${this._minInterval}ms)。`);
-    }
-    // 標記某把 key 進入冷卻 (預設 15 分鐘)
-    markCooldown(key, durationMs = 15 * 60 * 1000) {
-        const until = Date.now() + durationMs;
-        this._cooldownUntil.set(key, until);
-        const idx = this.keys.indexOf(key);
-        console.log(`🧊 [KeyChain] Key #${idx} 進入冷卻，${Math.round(durationMs / 1000)}s 後解除`);
-    }
-    // 標記某把 key 冷卻到太平洋時間午夜（RPD 重置時間）
-    markCooldownUntilReset(key) {
-        // RPD 在太平洋時間 00:00 重置（UTC-8，夏令時 UTC-7）
-        const now = new Date();
-        // 用 Los Angeles 時區算出下一個午夜
-        const laStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-        const laNow = new Date(laStr);
-        const tomorrow = new Date(laNow);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 10, 0); // 午夜 + 10 秒安全邊距
-        const msUntilReset = tomorrow.getTime() - laNow.getTime();
-        const hours = Math.round(msUntilReset / 3600000 * 10) / 10;
-        const idx = this.keys.indexOf(key);
-        console.log(`🧊 [KeyChain] Key #${idx} RPD 耗盡，冷卻到太平洋時間午夜（約 ${hours}h）`);
-        this._cooldownUntil.set(key, Date.now() + msUntilReset);
-    }
+// [已移除] KeyChain — 邏輯已遷移至 model-router/adapters/gemini.js
 
-    // 檢查 key 是否在冷卻中
-    _isCooling(key) {
-        const until = this._cooldownUntil.get(key);
-        if (!until) return false;
-        if (Date.now() >= until) {
-            this._cooldownUntil.delete(key);
-            return false;
-        }
-        return true;
-    }
-    // 同步版：跳過冷卻中的 key
-    getKeySync() {
-        if (this.keys.length === 0) return null;
-        const startIdx = this.currentIndex;
-        for (let i = 0; i < this.keys.length; i++) {
-            const idx = (startIdx + i) % this.keys.length;
-            const key = this.keys[idx];
-            if (!this._isCooling(key)) {
-                this.currentIndex = (idx + 1) % this.keys.length;
-                return key;
-            }
-        }
-        // 全部冷卻中：回傳最快解除的那把，並清除其冷卻
-        console.warn('⚠️ [KeyChain] 所有 Key 都在冷卻中，強制使用最早解除的');
-        let earliest = null, earliestTime = Infinity;
-        for (const [k, t] of this._cooldownUntil) {
-            if (t < earliestTime) { earliest = k; earliestTime = t; }
-        }
-        if (earliest) this._cooldownUntil.delete(earliest);
-        return earliest || this.keys[0];
-    }
-    // 非同步版：帶節流，確保 API 呼叫之間有最小間隔
-    async getKey() {
-        return new Promise((resolve) => {
-            this._throttleQueue = this._throttleQueue.then(async () => {
-                const now = Date.now();
-                const elapsed = now - this._lastCallTime;
-                if (elapsed < this._minInterval) {
-                    const waitMs = this._minInterval - elapsed;
-                    dbg('KeyChain', `節流等待 ${waitMs}ms`);
-                    await new Promise(r => setTimeout(r, waitMs));
-                }
-                this._lastCallTime = Date.now();
-                resolve(this.getKeySync());
-            });
-        });
-    }
-    // 取得狀態摘要
-    getStatus() {
-        const cooling = [];
-        for (const [k, t] of this._cooldownUntil) {
-            const idx = this.keys.indexOf(k);
-            const remain = Math.max(0, Math.round((t - Date.now()) / 1000));
-            if (remain > 0) cooling.push(`#${idx}(${remain}s)`);
-        }
-        return cooling.length > 0 ? `冷卻中: ${cooling.join(', ')}` : '全部可用';
-    }
-}
 
 // [已移除] DOMDoctor — API 直連模式不需要 DOM 自癒
 // [已移除] BrowserMemoryDriver — API 直連模式不需要瀏覽器記憶驅動
@@ -966,10 +867,8 @@ class MessageBuffer {
 function getSystemFingerprint() { return `OS: ${os.platform()} | Arch: ${os.arch()} | Mode: ${cleanEnv(process.env.GOLEM_MEMORY_MODE || 'native')}`; }
 
 class GolemBrain {
-    constructor() {
-        this.keyChain = new KeyChain();
-        // 保留 doctor 物件供 OpticNerve 借用 keyChain
-        this.doctor = { keyChain: this.keyChain };
+    constructor(modelRouter) {
+        this.router = modelRouter;
         this.chatHistory = [];
         this.model = null;
         this._initialized = false;
@@ -989,20 +888,10 @@ class GolemBrain {
     async init(forceReload = false) {
         if (this._initialized && !forceReload) return;
 
-        // 1. 初始化 Gemini API
-        const apiKey = this.keyChain.getKeySync();
-        if (!apiKey) {
-            throw new Error("❌ 沒有可用的 GEMINI_API_KEYS，無法啟動。");
+        // 1. ModelRouter 已在外部初始化，這裡只確認可用
+        if (!this.router || this.router.adapters.size === 0) {
+            throw new Error("❌ ModelRouter 無可用 provider，無法啟動。");
         }
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-        this.model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-lite",
-            generationConfig: {
-                maxOutputTokens: 8192,
-                temperature: 0.7,
-            }
-        });
 
         // 2. 啟動記憶驅動
         try {
@@ -1028,8 +917,7 @@ class GolemBrain {
         this.chatHistory = [];
         this._initialized = true;
 
-        console.log("🧠 [Brain] Gemini API 直連已就緒 (無瀏覽器模式)");
-        console.log(`🗝️ [Brain] 使用模型: gemini-2.5-flash-lite`);
+        console.log("🧠 [Brain] ModelRouter 已就緒");
     }
 
     async recall(queryText) {
@@ -1062,99 +950,35 @@ class GolemBrain {
             return "";
         }
 
-        console.log(`📡 [Brain] 發送至 Gemini API (${text.length} chars)...`);
+        console.log(`📡 [Brain] 發送至 ModelRouter (${text.length} chars)...`);
 
-        // 🛡️ 429 智慧退避：Phase 1 快速換 key → Phase 2 指數退避
-        const numKeys = this.keyChain.keys.length;
-        const BACKOFF_SCHEDULE = [15000, 60000, 120000]; // Phase 2: 15s → 60s → 120s
-        const maxAttempts = numKeys + BACKOFF_SCHEDULE.length; // 先嘗試所有 key，再退避重試
-        let lastError = null;
-        let backoffCount = 0; // 追蹤進入 Phase 2 的次數
+        const result = await this.router.complete({
+            intent: 'chat',
+            messages: [{ role: 'user', content: text }],
+            maxTokens: 8192,
+            temperature: 0.7,
+            systemInstruction: this.systemInstruction,
+            tools: [{ google_search: {} }],
+            chatHistory: this.chatHistory,
+        });
 
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            let apiKey = null;
-            try {
-                apiKey = await this.keyChain.getKey();
-                if (!apiKey) throw new Error("沒有可用的 API Key");
+        const response = result.text;
 
-                const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({
-                    model: "gemini-2.5-flash-lite",
-                    systemInstruction: this.systemInstruction,
-                    tools: [{ google_search: {} }],
-                    generationConfig: {
-                        maxOutputTokens: 8192,
-                        temperature: 0.7,
-                    }
-                });
+        // 更新對話歷史 (保留最近 20 輪防止 context 爆炸)
+        this.chatHistory.push({ role: 'user', parts: [{ text }] });
+        this.chatHistory.push({ role: 'model', parts: [{ text: response }] });
 
-                const chat = model.startChat({
-                    history: this.chatHistory,
-                });
-
-                const result = await chat.sendMessage(text);
-                const response = result.response.text();
-
-                // 更新對話歷史 (保留最近 20 輪防止 context 爆炸)
-                this.chatHistory.push({ role: 'user', parts: [{ text }] });
-                this.chatHistory.push({ role: 'model', parts: [{ text: response }] });
-
-                if (this.chatHistory.length > 40) {
-                    this.chatHistory = this.chatHistory.slice(-40);
-                }
-
-                console.log(`✅ [Brain] 回應接收完成 (${response.length} chars)`);
-
-                // 清理舊版錨點 (相容性)
-                return response
-                    .replace('—-回覆開始—-', '')
-                    .replace('—-回覆結束—-', '')
-                    .trim();
-
-            } catch (e) {
-                lastError = e;
-                const is429 = e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('Too Many Requests') || e.message.includes('quota');
-
-                if (is429 && apiKey) {
-                    // 🧊 標記當前 key 冷卻
-                    const isQuota = e.message.includes('quota') || e.message.includes('per day') || e.message.includes('RPD') || e.message.includes('RESOURCE_EXHAUSTED');
-                    if (isQuota) {
-                        this.keyChain.markCooldownUntilReset(apiKey);
-                    } else {
-                        this.keyChain.markCooldown(apiKey, 90 * 1000);
-                    }
-
-                    // Phase 1: 還有未試過的 key → 快速換 key（3s 間隔）
-                    if (attempt < numKeys - 1) {
-                        console.warn(`🔄 [Brain] Key 被 429，換下一把重試 (attempt ${attempt + 1}/${maxAttempts})`);
-                        await new Promise(r => setTimeout(r, 3000));
-                        continue;
-                    }
-
-                    // Phase 2: 所有 key 都試過了 → 指數退避
-                    if (backoffCount < BACKOFF_SCHEDULE.length) {
-                        let waitMs;
-                        const retryMatch = e.message.match(/retryDelay['":\s]*(\d+)/i);
-                        if (retryMatch) {
-                            waitMs = parseInt(retryMatch[1]) * 1000;
-                            console.log(`⏳ [Brain] 所有 Key 都 429，使用 API retryDelay: ${waitMs / 1000}s`);
-                        } else {
-                            waitMs = BACKOFF_SCHEDULE[backoffCount];
-                            console.log(`⏳ [Brain] 所有 Key 都 429，指數退避 (level ${backoffCount + 1}): ${waitMs / 1000}s`);
-                        }
-                        backoffCount++;
-                        await new Promise(r => setTimeout(r, waitMs));
-                        continue;
-                    }
-                }
-
-                // 非 429 錯誤或退避次數用完
-                console.warn(`⚠️ [Brain] API 呼叫失敗 (attempt ${attempt + 1}/${maxAttempts}): ${e.message}`);
-                if (!is429) break; // 非 429 直接放棄
-            }
+        if (this.chatHistory.length > 40) {
+            this.chatHistory = this.chatHistory.slice(-40);
         }
 
-        throw new Error(`所有 API Key 都失敗 (嘗試 ${maxAttempts} 次): ${lastError?.message}`);
+        console.log(`✅ [Brain] 回應接收完成 (${response.length} chars, via ${result.meta.provider}/${result.meta.model})`);
+
+        // 清理舊版錨點 (相容性)
+        return response
+            .replace('—-回覆開始—-', '')
+            .replace('—-回覆結束—-', '')
+            .trim();
     }
 }
 
@@ -1872,7 +1696,9 @@ const AutonomyManager = require('./autonomy');
 // ============================================================
 // 🎮 Hydra Main Loop
 // ============================================================
-const brain = new GolemBrain();
+const ModelRouter = require('./model-router');
+const modelRouter = new ModelRouter();
+const brain = new GolemBrain(modelRouter);
 const controller = new TaskController();
 const chronos = new ChronosManager();
 const autonomy = new AutonomyManager({
@@ -1998,16 +1824,8 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
         // 👁️ 視覺/檔案處理檢查 [✨ New Vision Logic]
         const attachment = await ctx.getAttachment();
         if (attachment) {
-            await ctx.reply("👁️ 正在透過 OpticNerve (Gemini 2.5 Flash) 分析檔案，請稍候...");
-            const apiKey = await brain.doctor.keyChain.getKey();
-            // 借用 Doctor 的 KeyChain
-
-            if (!apiKey) {
-                await ctx.reply("⚠️ 系統錯誤：找不到可用的 API Key，無法啟動視覺模組。");
-                return;
-            }
-
-            const analysis = await OpticNerve.analyze(attachment.url, attachment.mimeType, apiKey);
+            await ctx.reply("👁️ 正在透過 OpticNerve 分析檔案，請稍候...");
+            const analysis = await OpticNerve.analyze(attachment.url, attachment.mimeType, modelRouter);
             finalInput = loadPrompt('vision-injection.md', {
                 MIME_TYPE: attachment.mimeType,
                 ANALYSIS: analysis,
