@@ -4,7 +4,7 @@
   "description": "Project Golem v8.5 (Neuro-Link Edition) - CDP Dual-Track Monitoring & Auto-Discovery",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node --max-old-space-size=512 index.js",
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

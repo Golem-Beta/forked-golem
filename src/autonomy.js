@@ -255,6 +255,9 @@ class AutonomyManager {
     async manifestFreeWill() {
         this.nextWakeTime = null; // 行動中，Dashboard 顯示「行動中」
         try {
+            const _heapBefore = process.memoryUsage();
+            console.log(`🧠 [Heap] 醒來: RSS=${(_heapBefore.rss/1024/1024).toFixed(0)}MB, Heap=${(_heapBefore.heapUsed/1024/1024).toFixed(0)}MB/${(_heapBefore.heapTotal/1024/1024).toFixed(0)}MB`);
+
             // Phase 3: Gemini 決策引擎（有意圖的行動）
             let decision = await this._makeDecision();
 
@@ -1038,6 +1041,8 @@ class AutonomyManager {
     // 🧬 自我進化（每天最多 1 次，用 journal 判斷）
     // =========================================================
     async performSelfReflection(triggerCtx = null) {
+        const _heapReflect = process.memoryUsage();
+        console.log(`🧠 [Heap] self_reflection 開始: RSS=${(_heapReflect.rss/1024/1024).toFixed(0)}MB, Heap=${(_heapReflect.heapUsed/1024/1024).toFixed(0)}MB`);
         try {
             const advice = this.memory.getAdvice();
 
