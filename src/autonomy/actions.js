@@ -589,8 +589,8 @@ class ActionRunner {
             if (summaryMatch) { summary = summaryMatch[1].trim(); }
             else { summary = result.substring(0, 200).trim() + '...'; }
 
-            await this.notifier.sendNotification(
-                '[GOLEM_REPLY]\n📝 消化歸納完成\n\n' + summary + '\n\n📄 完整文件: memory/synthesis/' + filename
+            await this.notifier.sendToAdmin(
+                '📝 消化歸納完成\n\n' + summary + '\n\n📄 完整文件: memory/synthesis/' + filename
             );
 
             this.journal.append({
