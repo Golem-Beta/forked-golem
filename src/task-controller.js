@@ -17,7 +17,7 @@ class TaskController {
         this._pendingTasks = deps.pendingTasks || new Map();
     }
 
-    async runSequence(ctx, steps, startIndex = 0, tainted = false) {
+    async runSequence(ctx, steps, startIndex = 0, tainted = false, approvedIndex = -1) {
         let reportBuffer = [];
         for (let i = startIndex; i < steps.length; i++) {
             const step = steps[i];
@@ -92,27 +92,31 @@ class TaskController {
                 continue;
             }
 
-            // 🛡️ 風險評估
-            const risk = this.security.assess(step.cmd, tainted);
-            dbg('Security', `[${risk.level}] ${step.cmd.substring(0, 60)}${tainted ? ' (tainted)' : ''}`);
+            // 🛡️ 風險評估（已批准的步驟跳過安全檢查，直接執行）
+            if (i === approvedIndex) {
+                dbg('Security', `[APPROVED-SKIP] ${step.cmd.substring(0, 60)}`);
+            } else {
+                const risk = this.security.assess(step.cmd, tainted);
+                dbg('Security', `[${risk.level}] ${step.cmd.substring(0, 60)}${tainted ? ' (tainted)' : ''}`);
 
-            if (risk.level === 'BLOCKED') {
-                return `⛔ 指令被系統攔截：${step.cmd} (原因: ${risk.reason})`;
-            }
-            if (risk.level === 'WARNING' || risk.level === 'DANGER') {
-                const approvalId = uuidv4();
-                this._pendingTasks.set(approvalId, { steps, nextIndex: i, ctx, tainted });
-                const taintedNote = tainted ? '\n⚠️ **注意：此指令源自包含外部內容的上下文**' : '';
-                const confirmMsg = `${risk.level === 'DANGER' ? '🔥' : '⚠️'} **請求確認**\n指令：\`${step.cmd}\`\n風險：${risk.reason}${taintedNote}`;
-                await ctx.reply(confirmMsg, {
-                    reply_markup: {
-                        inline_keyboard: [[
-                            { text: '✅ 批准', callback_data: `APPROVE:${approvalId}` },
-                            { text: '🛡️ 駁回', callback_data: `DENY:${approvalId}` }
-                        ]]
-                    }
-                });
-                return null;
+                if (risk.level === 'BLOCKED') {
+                    return `⛔ 指令被系統攔截：${step.cmd} (原因: ${risk.reason})`;
+                }
+                if (risk.level === 'WARNING' || risk.level === 'DANGER') {
+                    const approvalId = uuidv4();
+                    this._pendingTasks.set(approvalId, { steps, nextIndex: i, ctx, tainted });
+                    const taintedNote = tainted ? '\n⚠️ **注意：此指令源自包含外部內容的上下文**' : '';
+                    const confirmMsg = `${risk.level === 'DANGER' ? '🔥' : '⚠️'} **請求確認**\n指令：\`${step.cmd}\`\n風險：${risk.reason}${taintedNote}`;
+                    await ctx.reply(confirmMsg, {
+                        reply_markup: {
+                            inline_keyboard: [[
+                                { text: '✅ 批准', callback_data: `APPROVE:${approvalId}` },
+                                { text: '🛡️ 駁回', callback_data: `DENY:${approvalId}` }
+                            ]]
+                        }
+                    });
+                    return null;
+                }
             }
 
             try {

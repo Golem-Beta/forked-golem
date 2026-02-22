@@ -84,7 +84,6 @@ const memory = new ExperienceMemory();
 // ============================================================
 const NodeRouter = require('./src/node-router');
 const TaskController = require('./src/task-controller');
-const Executor = require('./src/executor');
 const ChronosManager = require('./src/chronos');
 
 const AutonomyManager = require('./src/autonomy');
@@ -442,42 +441,8 @@ async function handleUnifiedCallback(ctx, actionData) {
             await ctx.reply("✅ 授權通過，執行中...");
             await ctx.sendTyping();
 
-            // 先執行被批准的那一步（跳過 security check）
-            const approvedStep = steps[nextIndex];
-            let approvedResult = '';
-            try {
-                if (approvedStep.cmd.startsWith('golem-skill')) {
-                    const parts = approvedStep.cmd.split(/\s+/);
-                    const subCmd = parts[1];
-                    if (subCmd === 'list') {
-                        approvedResult = `📦 [技能目錄]\n${skills.skillLoader.listSkills()}`;
-                    } else if (subCmd === 'load' && parts[2]) {
-                        const content = skills.skillLoader.loadSkill(parts[2]);
-                        if (content) {
-                            await brain.sendMessage(`[系統注入] 已載入技能 ${parts[2]}:\n${content}`, true);
-                            approvedResult = `✅ 技能 ${parts[2]} 已載入`;
-                        } else {
-                            approvedResult = `❌ 找不到技能: ${parts[2]}`;
-                        }
-                    } else if (subCmd === 'reload') {
-                        skills.skillLoader.reload();
-                        approvedResult = '✅ 技能索引已重新掃描';
-                    }
-                } else if (approvedStep.cmd.startsWith('golem-check')) {
-                    const toolName = approvedStep.cmd.split(' ')[1];
-                    approvedResult = toolName ? `🔍 [ToolCheck] ${ToolScanner.check(toolName)}` : '⚠️ [ToolCheck] 缺少參數';
-                } else {
-                    if (!controller.internalExecutor) controller.internalExecutor = new Executor();
-                    const output = await controller.internalExecutor.run(approvedStep.cmd);
-                    approvedResult = `[Approved Step Success] cmd: ${approvedStep.cmd}\nResult/Output:\n${output.trim() || "(No stdout)"}`;
-                }
-            } catch (err) {
-                approvedResult = `[Approved Step Failed] cmd: ${approvedStep.cmd}\nError:\n${err.message}`;
-            }
-
-            // 繼續執行剩餘步驟（從 nextIndex+1 開始，正常 security check）
-            const remainingResult = await controller.runSequence(ctx, steps, nextIndex + 1, tainted || false);
-            const observation = [approvedResult, remainingResult].filter(Boolean).join('\n\n----------------\n\n');
+            // 從被批准的步驟開始繼續執行（security assess 會對 whitelist 指令直接放行）
+            const observation = await controller.runSequence(ctx, steps, nextIndex, tainted || false, nextIndex);
 
             if (observation) {
                 const feedbackPrompt = loadFeedbackPrompt('APPROVED_FEEDBACK', { OBSERVATION: observation }) || `[Approved]\n${observation}\nReport in Traditional Chinese.`;

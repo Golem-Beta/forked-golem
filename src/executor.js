@@ -12,10 +12,12 @@ class Executor {
         this.taskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         this.WORKSPACE = path.join(os.tmpdir(), `golem-task-${this.taskId}`);
         fs.mkdirSync(this.WORKSPACE, { recursive: true });
-        this.cwd = this.WORKSPACE;
+        // 預設 cwd 為專案目錄（大多數指令需要在此執行）
+        this.cwd = process.cwd();
 
+        // cd 限制：只擋系統敏感目錄，專案目錄允許進入
+        // 註：指令層面的安全由 SecurityManager 負責，Executor 只管 cd 導航邊界
         this.FORBIDDEN_PATHS = [
-            path.resolve(process.cwd()),
             '/etc', '/boot', '/root', '/sys', '/proc'
         ];
 
@@ -61,8 +63,7 @@ class Executor {
             exec(cmd, {
                 cwd: this.cwd,
                 timeout: 30000,
-                maxBuffer: 1024 * 512,
-                env: { ...process.env, HOME: this.WORKSPACE }
+                maxBuffer: 1024 * 512
             }, (err, stdout, stderr) => {
                 if (err) {
                     if (err.killed) reject('⏱️ 指令超時（30 秒限制）');
