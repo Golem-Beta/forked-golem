@@ -1698,6 +1698,14 @@ const AutonomyManager = require('./autonomy');
 // ============================================================
 const ModelRouter = require('./model-router');
 const modelRouter = new ModelRouter();
+
+// 📟 Dashboard 注入 ModelRouter 參照
+try {
+    const dash = require.cache[require.resolve('./dashboard')];
+    if (dash && dash.exports && dash.exports._modelRouter === undefined) {
+        dash.exports._modelRouter = modelRouter;
+    }
+} catch(e) { /* dashboard 未載入時靜默跳過 */ }
 const brain = new GolemBrain(modelRouter);
 const controller = new TaskController();
 const chronos = new ChronosManager();

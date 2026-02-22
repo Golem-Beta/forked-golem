@@ -394,7 +394,13 @@ class DashboardPlugin {
             const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
             // 🔧 [v8.5.2] 只去除 blessed 色彩/格式標籤，保留 JSON 大括號
             const clean = msg.replace(/\{\/?(?:[\w]+-fg|[\w]+-bg|bold|underline|blink|inverse|invisible)\}/g, '');
-            this._logStream.write(`[${ts}] [${level}] ${clean}\n`);
+            // 🔧 [v9.7.0] 多行訊息逐行加 timestamp，避免 groq 行沒 timestamp
+            const lines = clean.split('\n');
+            for (const line of lines) {
+                if (line.trim()) {
+                    this._logStream.write(`[${ts}] [${level}] ${line}\n`);
+                }
+            }
         } catch (e) {
             // 寫入失敗不影響主程式
         }
@@ -425,6 +431,22 @@ class DashboardPlugin {
             const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
             const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
 
+            // 取得 ModelRouter 狀態
+            let routerInfo = 'N/A';
+            try {
+                const mr = this._modelRouter;
+                if (mr) {
+                    const lines = [];
+                    for (const [name, h] of mr.health.providers) {
+                        if (!h.hasKey) continue;
+                        const cool = h.coolUntil > Date.now();
+                        const icon = cool ? '🧊' : (h.reliability >= 0.8 ? '🟢' : '🟡');
+                        lines.push(`  ${icon} ${name}: ${h.rpd.used}/${h.rpd.limit === Infinity ? '∞' : h.rpd.limit}`);
+                    }
+                    routerInfo = lines.join('\n');
+                }
+            } catch(e) { routerInfo = '❌ error'; }
+
             if (this.statusBox) {
                 this.statusBox.setMarkdown(`
 # ${dateStr} ${timeStr}
@@ -432,7 +454,8 @@ class DashboardPlugin {
 - **RAM**: ${memUsage.toFixed(0)} MB
 - **Uptime**: ${hours}h ${minutes}m
 - **Queue**: ${this.queueCount || 0} 等待中
-- **API**: 🟢 Direct
+## API Providers
+${routerInfo}
 `);
             }
             this.screen.render();
