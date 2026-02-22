@@ -114,53 +114,26 @@ class DecisionEngine {
         }
     }
 
-    extractCodeSection(filename, sectionHint) {
+    /**
+     * 讀取目標檔案的程式碼。
+     * 模組化後每個檔案 40-600 行，可直接整檔讀入作為 LLM context。
+     * 超過 15000 字元才截斷（安全閥，正常不會觸發）。
+     */
+    extractCodeSection(filename) {
         try {
-            const filePath = path.join(process.cwd(), filename);
+            // 支援 src/ 前綴和不帶前綴兩種寫法
+            let filePath = path.join(process.cwd(), filename);
+            if (!fs.existsSync(filePath) && !filename.startsWith('src/')) {
+                filePath = path.join(process.cwd(), 'src', filename);
+            }
             if (!fs.existsSync(filePath)) return null;
             const code = fs.readFileSync(filePath, 'utf-8');
-            const lines = code.split('\n');
-
-            if (!sectionHint || sectionHint.length < 3) {
-                return lines.slice(0, 200).join('\n');
+            if (code.length > 15000) {
+                return code.substring(0, 15000) + '\n// ... (truncated at 15000 chars)';
             }
-
-            let matchLine = -1;
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].includes(sectionHint)) { matchLine = i; break; }
-            }
-            if (matchLine === -1) {
-                const lower = sectionHint.toLowerCase();
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].toLowerCase().includes(lower)) { matchLine = i; break; }
-                }
-            }
-            if (matchLine === -1) return lines.slice(0, 200).join('\n');
-
-            let startLine = matchLine;
-            for (let i = matchLine; i >= Math.max(0, matchLine - 50); i--) {
-                if (/^\s*(async\s+)?[\w_]+\s*\(/.test(lines[i]) || /^\s*(async\s+)?[\w_]+\s*=/.test(lines[i])) {
-                    startLine = i;
-                    break;
-                }
-            }
-
-            let depth = 0;
-            let endLine = Math.min(lines.length - 1, startLine + 200);
-            let foundStart = false;
-            for (let i = startLine; i < Math.min(lines.length, startLine + 300); i++) {
-                for (const ch of lines[i]) {
-                    if (ch === '{') { depth++; foundStart = true; }
-                    if (ch === '}') depth--;
-                }
-                if (foundStart && depth <= 0) { endLine = i; break; }
-            }
-
-            const from = Math.max(0, startLine - 5);
-            const to = Math.min(lines.length - 1, endLine + 5);
-            return '// [' + filename + ' lines ' + (from+1) + '-' + (to+1) + ']\n' + lines.slice(from, to + 1).join('\n');
+            return code;
         } catch (e) {
-            console.warn('🔬 [Extract] 程式碼提取失敗:', e.message);
+            console.warn('[extractCodeSection]', e.message);
             return null;
         }
     }

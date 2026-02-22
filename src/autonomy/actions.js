@@ -334,7 +334,8 @@ class ActionRunner {
                 '2. 需要看哪個檔案的哪個函式或區段？',
                 '3. 改進方案的大致方向（不需要寫程式碼）',
                 '', '用 JSON 回覆：',
-                '{"diagnosis": "問題描述", "target_file": "autonomy.js", "target_section": "函式名或關鍵字", "approach": "改進方向"}',
+                '{"diagnosis": "問題描述", "target_file": "src/autonomy/actions.js", "approach": "改進方向"}',
+                '注意：target_file 必須是上方檔案清單中的完整路徑（例如 src/brain.js, src/autonomy/decision.js）',
                 '只輸出 JSON。如果你認為目前沒有需要改進的地方，回覆：',
                 '{"diagnosis": "none", "reason": "為什麼不需要改進"}',
             ].join('\n');
@@ -360,12 +361,11 @@ class ActionRunner {
             }
 
             console.log('🧬 [Reflection] 診斷: ' + diag.diagnosis);
-            console.log('🧬 [Reflection] 目標: ' + (diag.target_file || 'autonomy.js') + ' → ' + (diag.target_section || '(全文)'));
+            console.log('🧬 [Reflection] 目標: ' + (diag.target_file || 'src/autonomy/actions.js'));
 
             // Phase 2: 生成 patch
-            const targetFile = diag.target_file || 'autonomy.js';
-            const targetSection = diag.target_section || '';
-            const codeSnippet = this.decision.extractCodeSection(targetFile, targetSection);
+            const targetFile = diag.target_file || 'src/autonomy/actions.js';
+            const codeSnippet = this.decision.extractCodeSection(targetFile);
 
             if (!codeSnippet || codeSnippet.length < 10) {
                 console.warn('🧬 [Reflection] 無法提取目標程式碼區段');
@@ -383,6 +383,8 @@ class ActionRunner {
                 '', '## RECENT EXPERIENCE (journal)', '', journalContext,
                 '', 'Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.',
                 'The "search" field must EXACTLY match a substring in the target code above.',
+                'Include "file" field with the target file path (e.g. "src/brain.js").',
+                'Include "affected_files" listing other src/ files that call the modified function/method.',
                 'Keep the patch small and focused. ONE change only.',
             ].join('\n');
 

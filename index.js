@@ -93,13 +93,8 @@ const AutonomyManager = require('./src/autonomy');
 const ModelRouter = require('./src/model-router');
 const modelRouter = new ModelRouter();
 
-// 📟 Dashboard 注入 ModelRouter 參照
-try {
-    const dash = require.cache[require.resolve('./src/dashboard')];
-    if (dash && dash.exports && dash.exports._modelRouter === undefined) {
-        dash.exports._modelRouter = modelRouter;
-    }
-} catch(e) { /* dashboard 未載入時靜默跳過 */ }
+// 📟 Dashboard 注入 ModelRouter
+dashboard.inject({ modelRouter });
 const brain = new GolemBrain(modelRouter);
 const chronos = new ChronosManager({ tgBot, adminChatId: CONFIG.ADMIN_IDS[0] });
 const controller = new TaskController({ chronos, brain, skills, pendingTasks });
@@ -109,13 +104,8 @@ const autonomy = new AutonomyManager({
     Introspection, PatchManager, TriStreamParser, ResponseParser, InputFile
 });
 
-// 📟 Dashboard 注入 Autonomy 參照（倒數計時用）
-try {
-    const dash = require.cache[require.resolve('./src/dashboard')];
-    if (dash && dash.exports && dash.exports._autonomy === undefined) {
-        dash.exports._autonomy = autonomy;
-    }
-} catch(e) { /* dashboard 未載入時靜默跳過 */ }
+// 📟 Dashboard 注入 Autonomy
+dashboard.inject({ autonomy });
 
 (async () => {
     // 測試模式攔截器：防止在 CI/CD 或純邏輯測試時啟動瀏覽器

@@ -66,6 +66,15 @@ class DashboardPlugin {
         this.startMonitoring();
     }
 
+    /**
+     * 注入外部依賴（取代 require.cache hack）
+     * @param {{ modelRouter?, autonomy? }} deps
+     */
+    inject(deps) {
+        if (deps.modelRouter) this._modelRouter = deps.modelRouter;
+        if (deps.autonomy) this._autonomy = deps.autonomy;
+    }
+
     // =========================================================
     // UI 建立 / 銷毀
     // =========================================================
