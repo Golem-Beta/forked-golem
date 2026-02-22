@@ -342,6 +342,37 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
         if (chatPart) await ctx.reply(chatPart);
 
         if (steps.length > 0) {
+            // [Hallucination Guard] flash-lite 過濾幻覺指令
+            try {
+                const userMsg = (ctx._text || "").substring(0, 300);
+                const cmds = steps.map((s, i) => i + ": " + s.cmd).join("\n");
+                const guardPrompt = [
+                    "User message: \"" + userMsg.replace(/"/g, "\x27") + "\"",
+                    "AI generated these commands:", cmds, "",
+                    "Which commands did the user EXPLICITLY request or clearly imply?",
+                    "Commands the AI invented on its own (not requested) should be dropped.",
+                    "Reply ONLY a JSON object: {\"keep\":[indices],\"drop\":[indices]}",
+                    "Example: {\"keep\":[0],\"drop\":[1,2]}"
+                ].join("\n");
+                const guardResult = await modelRouter.route(guardPrompt, { intent: "chat", maxOutputTokens: 100, temperature: 0 });
+                const guardJson = (guardResult || "").replace(/```json|```/g, "").trim();
+                try {
+                    const verdict = JSON.parse(guardJson);
+                    const dropSet = new Set(verdict.drop || []);
+                    if (dropSet.size > 0) {
+                        const dropped = steps.filter((_, i) => dropSet.has(i));
+                        steps = steps.filter((_, i) => !dropSet.has(i));
+                        console.log("\ud83d\udee1\ufe0f [HallucinationGuard] 過濾 " + dropped.length + " 個幻覺指令: " + dropped.map(s => s.cmd).join(", "));
+                    }
+                } catch (parseErr) {
+                    dbg("HallucinationGuard", "JSON parse failed, executing all:", parseErr.message);
+                }
+            } catch (guardErr) {
+                console.warn("\u26a0\ufe0f [HallucinationGuard] 判斷失敗，照常執行:", guardErr.message);
+            }
+        }
+
+        if (steps.length > 0) {
             // [Action: 汙染感知執行]
             const observation = await controller.runSequence(ctx, steps, 0, tainted);
             // [Round 2: 感知回饋 (Observation Loop)]
