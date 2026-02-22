@@ -111,12 +111,20 @@ class ProviderHealth {
     /**
      * 啟動摘要
      */
-    getSummary() {
+    getSummary(adapters) {
         const lines = [];
         for (const [name, h] of this.providers) {
             if (!h.hasKey) continue;
-            const rpdStr = h.rpd.limit === Infinity ? '∞' : `${h.rpd.used}/${h.rpd.limit}`;
-            lines.push(`  ${name}: RPD ${rpdStr}, rel ${h.reliability.toFixed(2)}`);
+            const rpdStr = h.rpd.limit === Infinity ? '∞' : String(h.rpd.limit);
+            // 顯示 key 數量（如果 adapter 有 keys 屬性）
+            let keyInfo = '';
+            if (adapters) {
+                const adapter = adapters.get(name);
+                if (adapter && adapter.keys) {
+                    keyInfo = `, ${adapter.keys.length} key(s)`;
+                }
+            }
+            lines.push(`  ${name}: RPD limit ${rpdStr}${keyInfo}`);
         }
         return lines.join('\n');
     }

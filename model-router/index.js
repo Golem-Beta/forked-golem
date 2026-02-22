@@ -30,7 +30,7 @@ class ModelRouter {
         }
 
         console.log(`🚀 [ModelRouter] ${this.adapters.size} provider(s) ready:`);
-        console.log(this.health.getSummary());
+        console.log(this.health.getSummary(this.adapters));
 
         // DeepSeek 隱私提醒
         if (this.adapters.has('deepseek')) {
@@ -221,7 +221,7 @@ class ModelRouter {
      * 取得狀態摘要（Dashboard 用）
      */
     getStatus() {
-        return this.health.getSummary();
+        return this.health.getSummary(this.adapters);
     }
 
     /**
