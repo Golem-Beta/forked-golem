@@ -273,6 +273,7 @@ class AutonomyManager {
                 'github_explore': '\u{1F50D}',
                 'spontaneous_chat': '\u{1F4AC}',
                 'web_research': '\u{1F310}',
+                'digest': '\u{1F4DD}',
                 'rest': '\u{1F634}'
             };
             console.log((actionEmoji[decision.action] || '\u2753') + " Golem 決定: " + decision.action + " — " + decision.reason);
@@ -295,6 +296,9 @@ class AutonomyManager {
                     break;
                 case 'web_research':
                     await this.performWebResearch(decision.reason);
+                    break;
+                case 'digest':
+                    await this.performDigest();
                     break;
                 case 'rest':
                     console.log('\u{1F634} [Autonomy] Golem 選擇繼續休息。');
@@ -1324,6 +1328,172 @@ class AutonomyManager {
         console.log('📬 [Social] 老哥回應了（' + waitMin + ' 分鐘後），已記錄');
         this._pendingSocialChat = null;
     }
-}
 
-module.exports = AutonomyManager;
+    // =========================================================
+    // \u{1F4DD} Digest — \u6D88\u5316\u6B78\u7D0D\uFF1A\u56DE\u9867\u7D93\u9A57\u7522\u51FA\u6D1E\u5BDF
+    // =========================================================
+    async performDigest() {
+        try {
+            console.log('\u{1F4DD} [Digest] \u958B\u59CB\u6D88\u5316\u6B78\u7D0D...');
+
+            // 1. \u8B80\u53D6\u7D20\u6750
+            const soul = this._readSoul();
+            const journal = this.readRecentJournal(30); // \u8B80\u8FD1 30 \u689D
+            
+            // \u8B80\u53D6\u6700\u8FD1\u7684 reflection \u6A94\u6848
+            const reflDir = path.join(process.cwd(), 'memory', 'reflections');
+            let recentReflections = [];
+            if (fs.existsSync(reflDir)) {
+                const files = fs.readdirSync(reflDir)
+                    .filter(f => f.endsWith('.txt'))
+                    .sort()
+                    .slice(-10); // \u6700\u8FD1 10 \u4EFD
+                for (const f of files) {
+                    try {
+                        const content = fs.readFileSync(path.join(reflDir, f), 'utf-8');
+                        // \u622A\u53D6\u524D 500 \u5B57\u7BC0\u7701 token
+                        recentReflections.push({
+                            file: f,
+                            preview: content.substring(0, 500)
+                        });
+                    } catch {}
+                }
+            }
+
+            // \u8B80\u53D6\u5DF2\u63A2\u7D22 repo \u8A18\u9304
+            let exploredRepos = [];
+            try {
+                const repoPath = path.join(process.cwd(), 'memory', 'explored-repos.json');
+                if (fs.existsSync(repoPath)) {
+                    const all = JSON.parse(fs.readFileSync(repoPath, 'utf-8'));
+                    exploredRepos = all.slice(-20); // \u6700\u8FD1 20 \u500B
+                }
+            } catch {}
+
+            // \u8B80\u53D6\u904E\u53BB\u7684 synthesis \u6A94\u6848\u6A19\u984C\uFF08\u907F\u514D\u91CD\u8907\u4E3B\u984C\uFF09
+            const synthDir = path.join(process.cwd(), 'memory', 'synthesis');
+            let pastSynthTitles = [];
+            if (fs.existsSync(synthDir)) {
+                pastSynthTitles = fs.readdirSync(synthDir)
+                    .filter(f => f.endsWith('.md'))
+                    .sort()
+                    .slice(-10);
+            }
+
+            // 2. \u7D44\u88DD prompt
+            const prompt = [
+                '\u4F60\u662F Golem Beta\uFF0C\u4E00\u500B\u904B\u884C\u5728 ThinkPad X200 \u4E0A\u7684\u81EA\u5F8B\u578B AI Agent\u3002',
+                '\u73FE\u5728\u662F\u4F60\u7684\u300C\u6D88\u5316\u6B78\u7D0D\u300D\u6642\u9593 \u2014\u2014 \u56DE\u9867\u6700\u8FD1\u7684\u7D93\u9A57\uFF0C\u7522\u51FA\u6709\u50F9\u503C\u7684\u6D1E\u5BDF\u3002',
+                '',
+                '\u3010\u9748\u9B42\u6587\u4EF6\u3011',
+                soul || '(\u7121\u6CD5\u8B80\u53D6)',
+                '',
+                '\u3010\u6700\u8FD1\u7D93\u9A57\u65E5\u8A8C\uFF08' + journal.length + ' \u689D\uFF09\u3011',
+                journal.map(j => {
+                    const parts = [j.ts, j.action];
+                    if (j.repo) parts.push(j.repo);
+                    if (j.topic) parts.push('topic:' + j.topic);
+                    if (j.outcome) parts.push('outcome:' + j.outcome);
+                    if (j.learning) parts.push('learning:' + j.learning);
+                    if (j.reason) parts.push('reason:' + j.reason);
+                    return parts.join(' | ');
+                }).join('\n'),
+                '',
+                '\u3010\u6700\u8FD1\u63A2\u7D22\u7684 GitHub Repo\uFF08' + exploredRepos.length + ' \u500B\uFF09\u3011',
+                exploredRepos.map(r => (r.full_name || r.name || '?') + ' \u2605' + (r.stars || '?') + ' - ' + (r.description || '').substring(0, 80)).join('\n'),
+                '',
+                '\u3010\u6700\u8FD1\u7684\u53CD\u601D\u5831\u544A\u6458\u8981\u3011',
+                recentReflections.map(r => '--- ' + r.file + ' ---\n' + r.preview).join('\n\n'),
+                '',
+                pastSynthTitles.length > 0
+                    ? '\u3010\u5DF2\u7522\u51FA\u904E\u7684\u6D88\u5316\u6B78\u7D0E\u3011\n' + pastSynthTitles.join('\n') + '\n\u8ACB\u907F\u514E\u91CD\u8907\u9019\u4E9B\u4E3B\u984C\uFF0C\u627E\u65B0\u7684\u89D2\u5EA6\u3002'
+                    : '\u9019\u662F\u4F60\u7B2C\u4E00\u6B21\u505A\u6D88\u5316\u6B78\u7D0D\u3002',
+                '',
+                '\u3010\u4EFB\u52D9\u3011',
+                '\u6839\u64DA\u4EE5\u4E0A\u7D20\u6750\uFF0C\u7522\u51FA\u4E00\u4EFD\u300C\u6D88\u5316\u6B78\u7D0D\u300D\u6587\u4EF6\u3002\u4F60\u53EF\u4EE5\u81EA\u7531\u9078\u64C7\u4E3B\u984C\u548C\u5F62\u5F0F\uFF0C\u4F8B\u5982\uFF1A',
+                '- \u63A2\u7D22\u6210\u679C\u5BE9\u67E5\uFF1A\u54EA\u4E9B repo \u6709\u50F9\u503C\u3001\u54EA\u4E9B\u662F\u5674\u5C04\u504F\u96E2',
+                '- \u884C\u70BA\u6A21\u5F0F\u89C0\u5BDF\uFF1A\u6211\u6700\u8FD1\u7684\u6C7A\u7B56\u54C1\u8CEA\u5982\u4F55\u3001\u6709\u6C92\u6709\u91CD\u8907\u7684\u932F\u8AA4',
+                '- TODO \u5EFA\u8B70\uFF1A\u5F9E\u7D93\u9A57\u4E2D\u767C\u73FE\u7684\u6539\u9032\u65B9\u5411',
+                '- \u81EA\u6211\u8A55\u4F30\uFF1A\u6211\u7684\u512A\u52E2\u548C\u4E0D\u8DB3',
+                '- \u4EFB\u4F55\u4F60\u89BA\u5F97\u503C\u5F97\u8A18\u4E0B\u4F86\u7684\u60F3\u6CD5',
+                '',
+                '\u3010\u8F38\u51FA\u683C\u5F0F\u3011',
+                '\u7528 Markdown \u683C\u5F0F\u5BEB\u3002\u7B2C\u4E00\u884C\u662F # \u6A19\u984C\uFF08\u7C21\u6F54\u63CF\u8FF0\u4E3B\u984C\uFF09\u3002',
+                '\u5167\u5BB9\u8981\u6709\u5BE6\u8CEA\uFF0C\u4E0D\u8981\u5BEB\u5E9F\u8A71\u3002\u7528\u7E41\u9AD4\u4E2D\u6587\u3002',
+                '\u6700\u5F8C\u52A0\u4E00\u500B ## \u6458\u8981 \u6BB5\u843D\uFF082-3 \u53E5\u8A71\u6FC3\u7E2E\u6838\u5FC3\u767C\u73FE\uFF09\u3002',
+            ].join('\n');
+
+            const result = await this._callGeminiDirect(prompt, {
+                maxOutputTokens: 2048,
+                temperature: 0.7,
+                intent: 'analysis'
+            });
+
+            if (!result) {
+                console.warn('\u{1F4DD} [Digest] Gemini \u56DE\u50B3\u7A7A\u767D');
+                this.appendJournal({ ts: new Date().toISOString(), action: 'digest', outcome: 'empty_response' });
+                return;
+            }
+
+            // 3. \u5B58\u6A94
+            const synthDir2 = path.join(process.cwd(), 'memory', 'synthesis');
+            fs.mkdirSync(synthDir2, { recursive: true });
+
+            // \u5F9E\u7B2C\u4E00\u884C\u53D6\u6A19\u984C\u4F5C\u70BA\u6A94\u540D
+            const firstLine = result.split('\n')[0].replace(/^#\s*/, '').trim();
+            const safeTitle = firstLine
+                .replace(/[^\u4e00-\u9fff\u3400-\u4dbfa-zA-Z0-9_-]/g, '_')
+                .substring(0, 50)
+                .replace(/_+/g, '_')
+                .replace(/_$/, '');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const filename = dateStr + '-' + (safeTitle || 'digest') + '.md';
+            const filepath = path.join(synthDir2, filename);
+
+            fs.writeFileSync(filepath, result);
+            console.log('\u{1F4DD} [Digest] \u5DF2\u5B58\u6A94: memory/synthesis/' + filename);
+
+            // \u540C\u6642\u5B58\u4E00\u4EFD\u5230 reflections/ (\u8207\u5176\u4ED6 action \u4E00\u81F4)
+            this._saveReflection('digest', result);
+
+            // 4. \u50B3\u6458\u8981\u7D66\u8001\u54E5
+            // \u53D6\u300C## \u6458\u8981\u300D\u6BB5\u843D\uFF0C\u82E5\u7121\u5247\u53D6\u524D 200 \u5B57
+            let summary = '';
+            const summaryMatch = result.match(/##\s*\u6458\u8981[\s\S]*?\n([\s\S]*?)(?=\n##|$)/);
+            if (summaryMatch) {
+                summary = summaryMatch[1].trim();
+            } else {
+                summary = result.substring(0, 200).trim() + '...';
+            }
+
+            await this.sendNotification(
+                '[GOLEM_REPLY]\n' +
+                '\u{1F4DD} \u6D88\u5316\u6B78\u7D0D\u5B8C\u6210\n\n' +
+                summary + '\n\n' +
+                '\u{1F4C4} \u5B8C\u6574\u6587\u4EF6: memory/synthesis/' + filename
+            );
+
+            // 5. \u8A18\u9304 journal
+            this.appendJournal({
+                ts: new Date().toISOString(),
+                action: 'digest',
+                topic: firstLine,
+                outcome: 'completed',
+                file: 'synthesis/' + filename,
+                summary_preview: summary.substring(0, 100)
+            });
+
+            console.log('\u{1F4DD} [Digest] \u6D88\u5316\u6B78\u7D0D\u5B8C\u6210\u3002');
+
+        } catch (e) {
+            console.error('\u274C [Digest] \u5931\u6557:', e.message);
+            this.appendJournal({
+                ts: new Date().toISOString(),
+                action: 'digest',
+                outcome: 'error',
+                error: e.message
+            });
+        }
+    }
+
+}
