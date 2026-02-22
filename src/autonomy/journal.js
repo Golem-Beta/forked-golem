@@ -13,7 +13,28 @@ class JournalManager {
         this.journalPath = path.join(process.cwd(), 'memory', 'journal.jsonl');
         this._index = null;
         this._entries = [];
+        this._ensureSaneSize();   // 啟動時檢查，防止爆檔
         this.rebuildIndex();
+    }
+
+    /**
+     * 防爆：journal 超過 2MB 就截斷保留最後 500 行
+     */
+    _ensureSaneSize() {
+        try {
+            if (!fs.existsSync(this.journalPath)) return;
+            const stat = fs.statSync(this.journalPath);
+            if (stat.size > 2 * 1024 * 1024) {
+                console.warn('[Journal] ⚠️ 檔案過大 (' + (stat.size / 1024 / 1024).toFixed(1) + 'MB)，截斷保留最後 500 行');
+                const buf = fs.readFileSync(this.journalPath, 'utf-8');
+                const lines = buf.trim().split('\n');
+                const kept = lines.slice(-500);
+                fs.writeFileSync(this.journalPath, kept.join('\n') + '\n');
+                console.log('[Journal] 截斷完成: ' + lines.length + ' → ' + kept.length + ' 行');
+            }
+        } catch (e) {
+            console.warn('[Journal] _ensureSaneSize 失敗:', e.message);
+        }
     }
 
     // === 全文索引 ===
@@ -55,6 +76,12 @@ class JournalManager {
     readRecent(n = 10) {
         try {
             if (!fs.existsSync(this.journalPath)) return [];
+            // 安全檢查：超過 5MB 直接拒絕整檔讀取，用 tail 方式
+            const stat = fs.statSync(this.journalPath);
+            if (stat.size > 5 * 1024 * 1024) {
+                console.warn('[Journal] 檔案過大 (' + (stat.size / 1024 / 1024).toFixed(1) + 'MB)，執行截斷...');
+                this._ensureSaneSize();
+            }
             const lines = fs.readFileSync(this.journalPath, 'utf-8').trim().split('\n');
             return lines.slice(-n).map(l => {
                 try { return JSON.parse(l); } catch { return null; }
