@@ -88,7 +88,7 @@ class DashboardPlugin {
         });
 
         // [右中上] API Provider 狀態
-        this.providerBox = this.grid.set(2, 6, 1, 6, contrib.log, {
+        this.providerBox = this.grid.set(2, 6, 3, 6, contrib.log, {
             fg: 'cyan',
             selectedFg: 'white',
             label: '🚀 API Providers',
@@ -96,7 +96,7 @@ class DashboardPlugin {
         });
 
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(3, 6, 4, 6, contrib.log, {
+        this.radarLog = this.grid.set(5, 6, 3, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
@@ -112,7 +112,7 @@ class DashboardPlugin {
         });
 
         // [右下] 三流協定 + Queue
-        this.chatBox = this.grid.set(7, 6, 5, 6, contrib.log, {
+        this.chatBox = this.grid.set(8, 6, 4, 6, contrib.log, {
             fg: "white",
             selectedFg: "cyan",
             label: '💬 三流協定 / Queue',
@@ -458,19 +458,40 @@ class DashboardPlugin {
                     const pLines = [];
                     for (const [name, h] of mr.health.providers) {
                         if (!h.hasKey) continue;
-                        const cool = h.coolUntil > Date.now();
-                        const rel = h.reliability;
-                        let icon = "🟢";
-                        if (cool && rel === 0) icon = "💀";
-                        else if (cool) icon = "🧊";
-                        else if (rel < 0.8) icon = "🟡";
-                        const rpdStr = h.rpd.limit === Infinity ? "∞" : `${h.rpd.used}/${h.rpd.limit}`;
-                        pLines.push(`${icon} ${name} ${rpdStr}`);
+                        const adapter = mr.adapters.get(name);
+                        // Key-level 狀態
+                        let keyStatus = '';
+                        if (adapter && adapter.keys) {
+                            const parts = [];
+                            for (let i = 0; i < adapter.keys.length; i++) {
+                                const k = adapter.keys[i];
+                                const coolUntil = adapter._cooldownUntil.get(k);
+                                if (coolUntil && coolUntil > Date.now()) {
+                                    const remain = coolUntil - Date.now();
+                                    if (h.reliability === 0) {
+                                        parts.push(`#${i}x`);
+                                    } else if (remain > 3600000) {
+                                        parts.push(`#${i}~${(remain/3600000).toFixed(1)}h`);
+                                    } else {
+                                        parts.push(`#${i}~${Math.ceil(remain/60000)}m`);
+                                    }
+                                } else {
+                                    parts.push(`#${i}ok`);
+                                }
+                            }
+                            keyStatus = parts.join(' ');
+                        }
+                        const rpdStr = h.rpd.limit === Infinity ? '~' : `${h.rpd.used}/${h.rpd.limit}`;
+                        pLines.push(`${name}: ${keyStatus} | RPD ${rpdStr}`);
                     }
-                    const snap = pLines.join(" | ");
+                    const snap = pLines.join('\n');
                     if (snap !== this._lastProviderSnap) {
                         this._lastProviderSnap = snap;
-                        this.providerBox.log(snap);
+                        // 清空再逐行寫入
+                        this.providerBox.setContent('');
+                        for (const line of pLines) {
+                            this.providerBox.log(line);
+                        }
                     }
                 } catch(e) {}
             }
