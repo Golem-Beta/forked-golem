@@ -9,29 +9,34 @@ const INTENT_PREFERENCES = {
     decision: [
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     chat: [
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'deepseek',  model: 'deepseek-chat' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     analysis: [
         { provider: 'gemini',    model: 'gemini-2.5-flash' },
         { provider: 'deepseek',  model: 'deepseek-chat' },
+        { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     reflection: [
         { provider: 'deepseek',  model: 'deepseek-reasoner' },
         { provider: 'gemini',    model: 'gemini-2.5-flash' },
+        { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     utility: [
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     vision: [

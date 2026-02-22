@@ -759,7 +759,7 @@ class AutonomyManager {
             CONTEXT_NOTE: contextNote,
             RECENT_SOCIAL: recentSocial || '（無）'
         }) || `${soul}\n主動社交，時間：${timeStr}，簡短跟老哥打招呼。`;
-        const msg = await this._callGeminiDirect(prompt, { maxOutputTokens: 256, temperature: 0.9 });
+        const msg = await this._callGeminiDirect(prompt, { maxOutputTokens: 256, temperature: 0.9, intent: 'chat' });
         await this._sendToAdmin(msg);
 
         this.appendJournal({
@@ -831,7 +831,7 @@ class AutonomyManager {
 決策理由：${decisionReason}
 用 JSON 回覆：{"query": "搜尋關鍵字（英文）", "purpose": "為什麼要研究這個"}`;
 
-            const topicRaw = await this._callGeminiDirect(topicPrompt, { maxOutputTokens: 256, temperature: 0.7 });
+            const topicRaw = await this._callGeminiDirect(topicPrompt, { maxOutputTokens: 256, temperature: 0.7, intent: 'decision' });
             const topicCleaned = topicRaw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
             let topicData;
             try {
@@ -855,6 +855,7 @@ class AutonomyManager {
             const text = await this._callGeminiDirect(searchPrompt, {
                 maxOutputTokens: 1024,
                 temperature: 0.5,
+                intent: 'analysis',
                 tools: [{ google_search: {} }]
             });
 
@@ -991,7 +992,7 @@ class AutonomyManager {
                 README_TEXT: readmeText
             }) || `${soul}\nGitHub 探索：${newRepo.full_name}，用繁體中文寫 200 字心得。`;
 
-            const analysis = await this._callGeminiDirect(analysisPrompt, { maxOutputTokens: 512, temperature: 0.7 });
+            const analysis = await this._callGeminiDirect(analysisPrompt, { maxOutputTokens: 512, temperature: 0.7, intent: 'analysis' });
             const reflectionFile = this._saveReflection('github_explore', analysis);
             // 記錄已探索
             this._saveExploredRepo(newRepo);
@@ -1075,7 +1076,7 @@ class AutonomyManager {
             ].join('\n');
 
             console.log('🧬 [Reflection] Phase 1: 診斷（flash-lite）...');
-            const diagRaw = await this._callGeminiDirect(diagPrompt, { maxOutputTokens: 512, temperature: 0.5 });
+            const diagRaw = await this._callGeminiDirect(diagPrompt, { maxOutputTokens: 512, temperature: 0.5, intent: 'analysis' });
             const diagFile = this._saveReflection('self_reflection_diag', diagRaw);
 
             let diag;
@@ -1132,6 +1133,7 @@ class AutonomyManager {
             console.log('🧬 [Reflection] Phase 2: 生成 patch（gemini-2.5-flash, ' + codeSnippet.length + ' chars context）...');
             const raw = await this._callGeminiDirect(patchPrompt, {
                 model: 'gemini-3-flash-preview',
+                intent: 'reflection',
                 maxOutputTokens: 2048,
                 temperature: 0.2
             });
