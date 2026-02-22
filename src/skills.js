@@ -67,7 +67,7 @@ const personaManager = new PersonaManager();
 // ============================================================
 // 1. 核心定義 (CORE DEFINITION)
 // ============================================================
-const GOLEM_VERSION = require('./package.json').version;
+const GOLEM_VERSION = require('../package.json').version;
 const CORE_DEFINITION = (envInfo) => {
     // === 從外部檔案載入 system prompt 模板 ===
     const promptsDir = path.join(process.cwd(), 'prompts');

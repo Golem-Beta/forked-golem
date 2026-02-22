@@ -23,7 +23,7 @@
 // ==========================================
 if (process.argv.includes('dashboard')) {
     try {
-        require('./dashboard');
+        require('./src/dashboard');
         console.log("✅ 戰術控制台已啟動 (繁體中文版)");
     } catch (e) {
         console.error("❌ 無法載入 Dashboard:", e.message);
@@ -45,7 +45,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const skills = require('./skills');
+const skills = require('./src/skills');
 
 // --- ⚙️ 全域配置 ---
 const cleanEnv = (str, allowSpaces = false) => {
@@ -1692,16 +1692,16 @@ class ChronosManager {
     }
 }
 
-const AutonomyManager = require('./autonomy');
+const AutonomyManager = require('./src/autonomy');
 // ============================================================
 // 🎮 Hydra Main Loop
 // ============================================================
-const ModelRouter = require('./model-router');
+const ModelRouter = require('./src/model-router');
 const modelRouter = new ModelRouter();
 
 // 📟 Dashboard 注入 ModelRouter 參照
 try {
-    const dash = require.cache[require.resolve('./dashboard')];
+    const dash = require.cache[require.resolve('./src/dashboard')];
     if (dash && dash.exports && dash.exports._modelRouter === undefined) {
         dash.exports._modelRouter = modelRouter;
     }
@@ -1717,7 +1717,7 @@ const autonomy = new AutonomyManager({
 
 // 📟 Dashboard 注入 Autonomy 參照（倒數計時用）
 try {
-    const dash = require.cache[require.resolve('./dashboard')];
+    const dash = require.cache[require.resolve('./src/dashboard')];
     if (dash && dash.exports && dash.exports._autonomy === undefined) {
         dash.exports._autonomy = autonomy;
     }
@@ -2143,31 +2143,41 @@ if (dcClient) {
 // ============================================================
 // 🛡️ 全域異常守護 — 防止 crash 退出
 // ============================================================
-// crash_guard 節流：同一錯誤 60 秒內只寫一次 journal，EPIPE 完全忽略
+// crash_guard v2: EPIPE/pipe 錯誤最先擋、reentry guard、journal size guard
 const _crashGuardSeen = new Map();
+let _crashGuardBusy = false;
 process.on('uncaughtException', (err) => {
     const msg = err.message || String(err);
-    console.error('🛡️ [Guard] uncaughtException 已攔截（進程不會退出）:', msg);
-    console.error(err.stack || '');
-    // EPIPE / ECONNRESET 是 pipe 斷開，寫 journal 會再觸發 → 忽略
-    if (msg.includes('EPIPE') || msg.includes('ECONNRESET')) return;
-    // 節流：同一 error message 60 秒內只寫一次
-    const now = Date.now();
-    if (_crashGuardSeen.has(msg) && now - _crashGuardSeen.get(msg) < 60000) return;
-    _crashGuardSeen.set(msg, now);
-    // 清理舊紀錄防止 Map 無限增長
-    if (_crashGuardSeen.size > 50) {
-        for (const [k, t] of _crashGuardSeen) { if (now - t > 60000) _crashGuardSeen.delete(k); }
-    }
+    // 1) pipe 錯誤最先擋 — 在任何 I/O（含 console.error）之前 return
+    if (msg.includes('EPIPE') || msg.includes('ECONNRESET') || msg.includes('write after end')) return;
+    // 2) reentry guard — 防止 handler 內的 I/O 再觸發異常
+    if (_crashGuardBusy) return;
+    _crashGuardBusy = true;
     try {
+        console.error('🛡️ [Guard] uncaughtException:', msg);
+        // 3) 節流：同一 error message 60 秒內只寫一次
+        const now = Date.now();
+        if (_crashGuardSeen.has(msg) && now - _crashGuardSeen.get(msg) < 60000) return;
+        _crashGuardSeen.set(msg, now);
+        if (_crashGuardSeen.size > 50) {
+            for (const [k, t] of _crashGuardSeen) { if (now - t > 60000) _crashGuardSeen.delete(k); }
+        }
+        // 4) journal size guard — 超過 1MB 不寫（防爆）
         const jp = require('path').join(process.cwd(), 'memory', 'journal.jsonl');
+        try {
+            const stat = require('fs').statSync(jp);
+            if (stat.size > 1 * 1024 * 1024) return; // 1MB 上限
+        } catch (_) {}
         require('fs').appendFileSync(jp, JSON.stringify({
             ts: new Date().toISOString(),
             action: 'crash_guard',
             error: msg,
             stack: (err.stack || '').split('\n').slice(0, 3).join(' | ')
         }) + '\n');
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+        _crashGuardBusy = false;
+    }
 });
 
 process.on('unhandledRejection', (reason) => {

@@ -11,7 +11,7 @@
  *    - detach 後在 console 按 F12 可重新叫出面板
  *    - 使用 stdin raw mode 監聽按鍵，不依賴 blessed
  */
-const GOLEM_VERSION = require('./package.json').version;
+const GOLEM_VERSION = require('../package.json').version;
 const blessed = require('blessed');
 const contrib = require('blessed-contrib');
 const os = require('os');
