@@ -131,7 +131,9 @@ class ModelRouter {
                 const errType = e.providerError || 'error';
 
                 // 更新健康狀態
-                if (errType === '429') {
+                if (errType === 'fatal') {
+                    this.health.onFatal(provider);
+                } else if (errType === '429') {
                     this.health.on429(provider, e.retryAfterMs || 90000);
                 } else if (errType === '503') {
                     this.health.on503(provider);

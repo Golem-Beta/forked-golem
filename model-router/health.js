@@ -97,6 +97,14 @@ class ProviderHealth {
         console.log(`❌ [Health] ${provider} 網路錯誤，reliability → ${h.reliability.toFixed(2)}`);
     }
 
+    onFatal(provider) {
+        const h = this.providers.get(provider);
+        if (!h) return;
+        h.coolUntil = Date.now() + 86400000;  // 24 小時冷卻
+        h.reliability = 0;
+        console.log(`💀 [Health] ${provider} 致命錯誤（auth/balance），冷卻 24h`);
+    }
+
     /**
      * RPD 重置（太平洋時間午夜呼叫）
      */

@@ -161,6 +161,15 @@ class OpenAICompatAdapter extends ProviderAdapter {
                             return;
                         }
 
+                        // 401 (auth) / 402 (balance) = 長期不可用，標記特殊錯誤類型
+                        if (res.statusCode === 401 || res.statusCode === 402) {
+                            const errMsg = json.error?.message || JSON.stringify(json);
+                            const err = new Error(`[${this.name}] HTTP ${res.statusCode}: ${errMsg}`);
+                            err.providerError = 'fatal';  // router 給長冷卻
+                            reject(err);
+                            return;
+                        }
+
                         if (res.statusCode >= 400) {
                             const errMsg = json.error?.message || JSON.stringify(json);
                             const err = new Error(`[${this.name}] HTTP ${res.statusCode}: ${errMsg}`);
