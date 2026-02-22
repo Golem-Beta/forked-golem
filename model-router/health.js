@@ -4,6 +4,8 @@
 class ProviderHealth {
     constructor() {
         this.providers = new Map();  // provider name → health state
+        this._deepseekBalance = null; // { total, granted, topped_up }
+        this._deepseekBalanceTs = 0;  // 上次查詢時間
     }
 
     register(name, config) {
@@ -114,6 +116,41 @@ class ProviderHealth {
             h.reliability = Math.min(1.0, h.reliability * 0.8 + 0.2);  // 緩慢恢復
         }
         console.log('🔄 [Health] RPD 已重置（太平洋時間午夜）');
+    }
+
+    /**
+     * 查詢 DeepSeek 帳戶餘額
+     * @param {string} apiKey
+     */
+    async fetchDeepSeekBalance(apiKey) {
+        if (!apiKey) return null;
+        try {
+            const resp = await fetch('https://api.deepseek.com/user/balance', {
+                headers: { 'Authorization': 'Bearer ' + apiKey }
+            });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            if (data.balance_infos && data.balance_infos.length > 0) {
+                const info = data.balance_infos[0];
+                this._deepseekBalance = {
+                    total: parseFloat(info.total_balance),
+                    granted: parseFloat(info.granted_balance),
+                    topped_up: parseFloat(info.topped_up_balance),
+                };
+                this._deepseekBalanceTs = Date.now();
+                return this._deepseekBalance;
+            }
+        } catch (e) {
+            // 查詢失敗不影響正常運作
+        }
+        return null;
+    }
+
+    /**
+     * 取得快取的 DeepSeek 餘額（不發 API 請求）
+     */
+    getDeepSeekBalance() {
+        return this._deepseekBalance;
     }
 
     /**

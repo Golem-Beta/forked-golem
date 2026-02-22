@@ -487,7 +487,13 @@ class DashboardPlugin {
                         if (h.reliability === 0) pIcon = '{red-fg}✗{/}';
                         else if (h.coolUntil > Date.now()) pIcon = '{cyan-fg}●{/}';
                         else if (h.reliability < 0.8) pIcon = '{yellow-fg}●{/}';
-                        pLines.push(`${pIcon} ${name}: ${keyStatus} | RPD ${rpdStr}`);
+                        // DeepSeek 顯示餘額
+                        let extraInfo = '';
+                        if (name === 'deepseek') {
+                            const bal = mr.health.getDeepSeekBalance();
+                            if (bal) extraInfo = ' | \x24' + bal.total.toFixed(2);
+                        }
+                        pLines.push(`${pIcon} ${name}: ${keyStatus} | RPD ${rpdStr}${extraInfo}`);
                     }
                     const snap = pLines.join('\n');
                     if (snap !== this._lastProviderSnap) {

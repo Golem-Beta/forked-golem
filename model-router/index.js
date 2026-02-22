@@ -32,9 +32,20 @@ class ModelRouter {
         console.log(`🚀 [ModelRouter] ${this.adapters.size} provider(s) ready:`);
         console.log(this.health.getSummary(this.adapters));
 
-        // DeepSeek 隱私提醒
+        // DeepSeek 隱私提醒 + 餘額查詢
         if (this.adapters.has('deepseek')) {
             console.log('⚠️ [ModelRouter] DeepSeek: 伺服器在中國，prompt 可能用於模型訓練');
+            const dsKey = (process.env.DEEPSEEK_API_KEY || '').trim();
+            this.health.fetchDeepSeekBalance(dsKey).then(bal => {
+                if (bal) {
+                    const D = '\x24';  // dollar sign
+                    console.log(`\u{1F4B0} [DeepSeek] 餘額: ${D}${bal.total.toFixed(2)} (充值: ${D}${bal.topped_up.toFixed(2)}, 贈送: ${D}${bal.granted.toFixed(2)})`);
+                }
+            });
+            // 每 5 分鐘刷新餘額
+            this._deepseekBalanceInterval = setInterval(() => {
+                this.health.fetchDeepSeekBalance(dsKey).catch(() => {});
+            }, 300000);
         }
     }
 
