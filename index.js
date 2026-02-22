@@ -1,5 +1,5 @@
 /**
- * 🦞 Forked-Golem v9.7.1 (Modularized Edition)
+ * 🦞 Forked-Golem v9.8.0 (Composition Architecture)
  * ---------------------------------------------------
  * 基於 Arvincreator/project-golem 分支，重構為 API 直連 + 輕量 headless 架構
  * 目標硬體：ThinkPad X200, 4-8GB RAM, Arch Linux headless (TTY + SSH)
