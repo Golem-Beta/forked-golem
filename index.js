@@ -1,5 +1,5 @@
 /**
- * 🦞 Forked-Golem v9.7.0 (ModelRouter Edition)
+ * 🦞 Forked-Golem v9.7.1 (Modularized Edition)
  * ---------------------------------------------------
  * 基於 Arvincreator/project-golem 分支，重構為 API 直連 + 輕量 headless 架構
  * 目標硬體：ThinkPad X200, 4-8GB RAM, Arch Linux headless (TTY + SSH)
@@ -36,15 +36,10 @@ const GOLEM_VERSION = require('./package.json').version;
 require('dotenv').config();
 const { Bot, InputFile } = require('grammy');
 const { autoRetry } = require('@grammyjs/auto-retry');
-const { Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-// [已移除] puppeteer / puppeteer-extra / stealth — API 直連模式不需要瀏覽器
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { exec, execSync, spawn } = require('child_process');
-const { v4: uuidv4 } = require('uuid');
-const os = require('os');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
 const skills = require('./src/skills');
 const SecurityManager = require('./src/security');
 const { TriStreamParser, ResponseParser, dbg } = require('./src/parsers');
@@ -52,10 +47,6 @@ const { loadPrompt, loadFeedbackPrompt } = require('./src/prompt-loader');
 
 // --- ⚙️ 全域配置 (已搬至 src/config.js) ---
 const CONFIG = require("./src/config");
-const { cleanEnv, isPlaceholder } = CONFIG;
-
-// --- 初始化組件 ---
-// [已移除] puppeteer.use(StealthPlugin());
 
 // 🛡️ [Flood Guard] 啟動時間戳，用於過濾離線期間堆積的訊息
 const BOOT_TIME = Date.now();
