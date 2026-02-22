@@ -32,6 +32,7 @@ class DashboardPlugin {
         this.cpuLine = null;
         this.logBox = null;
         this.statusBox = null;
+        this.providerBox = null;
         this.radarLog = null;
         this.chatBox = null;
         this.radarLog = null;
@@ -86,8 +87,16 @@ class DashboardPlugin {
             style: { border: { fg: 'cyan' } }
         });
 
+        // [右中上] API Provider 狀態
+        this.providerBox = this.grid.set(2, 6, 1, 6, contrib.log, {
+            fg: 'cyan',
+            selectedFg: 'white',
+            label: '🚀 API Providers',
+            tags: true
+        });
+
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(2, 6, 3, 6, contrib.log, {
+        this.radarLog = this.grid.set(3, 6, 2, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
@@ -141,6 +150,7 @@ class DashboardPlugin {
         this.cpuLine = null;
         this.logBox = null;
         this.statusBox = null;
+        this.providerBox = null;
         this.chatBox = null;
         this.footer = null;
     }
@@ -431,22 +441,7 @@ class DashboardPlugin {
             const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
             const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
 
-            // 取得 ModelRouter 狀態
-            let routerInfo = 'N/A';
-            try {
-                const mr = this._modelRouter;
-                if (mr) {
-                    const lines = [];
-                    for (const [name, h] of mr.health.providers) {
-                        if (!h.hasKey) continue;
-                        const cool = h.coolUntil > Date.now();
-                        const icon = cool ? '🧊' : (h.reliability >= 0.8 ? '🟢' : '🟡');
-                        lines.push(`  ${icon} ${name}: ${h.rpd.used}/${h.rpd.limit === Infinity ? '∞' : h.rpd.limit}`);
-                    }
-                    routerInfo = lines.join('\n');
-                }
-            } catch(e) { routerInfo = '❌ error'; }
-
+            // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
                 this.statusBox.setMarkdown(`
 # ${dateStr} ${timeStr}
@@ -454,9 +449,31 @@ class DashboardPlugin {
 - **RAM**: ${memUsage.toFixed(0)} MB
 - **Uptime**: ${hours}h ${minutes}m
 - **Queue**: ${this.queueCount || 0} 等待中
-## API Providers
-${routerInfo}
 `);
+            }
+
+            // providerBox：API Provider 即時狀態（獨立面板）
+            if (this.providerBox && this._modelRouter) {
+                try {
+                    const mr = this._modelRouter;
+                    const pLines = [];
+                    for (const [name, h] of mr.health.providers) {
+                        if (!h.hasKey) continue;
+                        const cool = h.coolUntil > Date.now();
+                        const rel = h.reliability;
+                        let icon = "🟢";
+                        if (cool && rel === 0) icon = "💀";
+                        else if (cool) icon = "🧊";
+                        else if (rel < 0.8) icon = "🟡";
+                        const rpdStr = h.rpd.limit === Infinity ? "∞" : `${h.rpd.used}/${h.rpd.limit}`;
+                        pLines.push(`${icon} ${name} ${rpdStr}`);
+                    }
+                    const snap = pLines.join(" | ");
+                    if (snap !== this._lastProviderSnap) {
+                        this._lastProviderSnap = snap;
+                        this.providerBox.log(snap);
+                    }
+                } catch(e) {}
             }
             this.screen.render();
         }, 1000);
