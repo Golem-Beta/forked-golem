@@ -21,9 +21,10 @@
 // 用法：npm start dashboard (開啟)
 //       npm start           (關閉)
 // ==========================================
+let dashboard = null;
 if (process.argv.includes('dashboard')) {
     try {
-        require('./src/dashboard');
+        dashboard = require('./src/dashboard');
         console.log("✅ 戰術控制台已啟動 (繁體中文版)");
     } catch (e) {
         console.error("❌ 無法載入 Dashboard:", e.message);
@@ -94,7 +95,7 @@ const ModelRouter = require('./src/model-router');
 const modelRouter = new ModelRouter();
 
 // 📟 Dashboard 注入 ModelRouter
-dashboard.inject({ modelRouter });
+if (dashboard) dashboard.inject({ modelRouter });
 const brain = new GolemBrain(modelRouter);
 const chronos = new ChronosManager({ tgBot, adminChatId: CONFIG.ADMIN_IDS[0] });
 const controller = new TaskController({ chronos, brain, skills, pendingTasks });
@@ -105,7 +106,7 @@ const autonomy = new AutonomyManager({
 });
 
 // 📟 Dashboard 注入 Autonomy
-dashboard.inject({ autonomy });
+if (dashboard) dashboard.inject({ autonomy });
 
 (async () => {
     // 測試模式攔截器：防止在 CI/CD 或純邏輯測試時啟動瀏覽器
