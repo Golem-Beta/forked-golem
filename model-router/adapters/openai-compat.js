@@ -1,6 +1,7 @@
 /**
  * OpenAICompatAdapter — OpenAI-compatible API 的通用 adapter
  * 適用於 Groq, DeepSeek, Mistral, OpenRouter
+ * 支援多 key 輪轉（multiKey: true 時逗號分隔）
  */
 const https = require('https');
 const ProviderAdapter = require('./base');
@@ -9,15 +10,52 @@ class OpenAICompatAdapter extends ProviderAdapter {
     constructor(name, config) {
         super(name, config);
         this.baseUrl = config.baseUrl;
-        this.apiKey = (process.env[config.envKey] || '').trim();
 
-        if (this.apiKey) {
-            console.log(`🔑 [${name}] API key loaded`);
+        // 多 key 支援
+        const rawKeys = (process.env[config.envKey] || '').trim();
+        if (config.multiKey) {
+            this.keys = rawKeys.split(',').map(k => k.trim()).filter(k => k.length > 10);
+        } else {
+            this.keys = rawKeys.length > 10 ? [rawKeys] : [];
+        }
+        this.currentIndex = 0;
+        this._cooldownUntil = new Map();  // key → timestamp
+
+        if (this.keys.length > 0) {
+            console.log(`🔑 [${name}] ${this.keys.length} key(s) loaded`);
         }
     }
 
     isAvailable() {
-        return !!this.apiKey;
+        return this.keys.length > 0 && this._getAvailableKey() !== null;
+    }
+
+    _getAvailableKey() {
+        if (this.keys.length === 0) return null;
+        const startIdx = this.currentIndex;
+        for (let i = 0; i < this.keys.length; i++) {
+            const idx = (startIdx + i) % this.keys.length;
+            const key = this.keys[idx];
+            const until = this._cooldownUntil.get(key);
+            if (!until || Date.now() >= until) {
+                if (until) this._cooldownUntil.delete(key);
+                this.currentIndex = (idx + 1) % this.keys.length;
+                return key;
+            }
+        }
+        // 全部冷卻：回傳最快解除的那把
+        let earliest = null, earliestTime = Infinity;
+        for (const [k, t] of this._cooldownUntil) {
+            if (t < earliestTime) { earliest = k; earliestTime = t; }
+        }
+        if (earliest) this._cooldownUntil.delete(earliest);
+        return earliest || this.keys[0];
+    }
+
+    _markCooldown(key, durationMs = 90000) {
+        this._cooldownUntil.set(key, Date.now() + durationMs);
+        const idx = this.keys.indexOf(key);
+        console.log(`🧊 [${this.name}] Key #${idx} 冷卻 ${Math.round(durationMs / 1000)}s`);
     }
 
     async complete(params) {
@@ -30,7 +68,41 @@ class OpenAICompatAdapter extends ProviderAdapter {
             systemInstruction,
         } = params;
 
-        // 組裝 OpenAI 格式的 messages
+        const maxRetries = Math.min(this.keys.length + 1, 4);
+        let lastError = null;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            const apiKey = this._getAvailableKey();
+            if (!apiKey) throw new Error(`[${this.name}] 沒有可用的 API Key`);
+
+            try {
+                const result = await this._doRequest(apiKey, {
+                    model, messages, maxTokens, temperature, requireJson, systemInstruction,
+                });
+                return result;
+            } catch (e) {
+                lastError = e;
+                const errType = e.providerError || 'error';
+
+                if (errType === '429') {
+                    this._markCooldown(apiKey, e.retryAfterMs || 90000);
+                    // 多 key 時換 key 重試
+                    if (this.keys.length > 1 && attempt < this.keys.length - 1) {
+                        continue;
+                    }
+                }
+
+                // 非 429 或最後一次嘗試，拋出讓 router 決定 failover
+                throw e;
+            }
+        }
+
+        throw lastError || new Error(`[${this.name}] all retries exhausted`);
+    }
+
+    _doRequest(apiKey, params) {
+        const { model, messages, maxTokens, temperature, requireJson, systemInstruction } = params;
+
         const apiMessages = [];
         if (systemInstruction) {
             apiMessages.push({ role: 'system', content: systemInstruction });
@@ -61,7 +133,7 @@ class OpenAICompatAdapter extends ProviderAdapter {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Length': Buffer.byteLength(postData),
                 },
             };
@@ -130,6 +202,19 @@ class OpenAICompatAdapter extends ProviderAdapter {
             req.write(postData);
             req.end();
         });
+    }
+
+    /**
+     * 狀態摘要
+     */
+    getStatus() {
+        const cooling = [];
+        for (const [k, t] of this._cooldownUntil) {
+            const idx = this.keys.indexOf(k);
+            const remain = Math.max(0, Math.round((t - Date.now()) / 1000));
+            if (remain > 0) cooling.push(`#${idx}(${remain}s)`);
+        }
+        return cooling.length > 0 ? `冷卻中: ${cooling.join(', ')}` : `${this.keys.length} key(s) 全部可用`;
     }
 }
 

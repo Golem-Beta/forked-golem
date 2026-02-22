@@ -16,8 +16,8 @@ const PROVIDER_CONFIGS = {
     },
     groq: {
         baseUrl: 'https://api.groq.com/openai/v1',
-        envKey: 'GROQ_API_KEY',
-        multiKey: false,
+        envKey: 'GROQ_API_KEYS',
+        multiKey: true,
         rpdLimits: {
             'llama-3.3-70b-versatile': 1000,
             'moonshotai/kimi-k2-instruct': 1000,
