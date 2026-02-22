@@ -469,20 +469,25 @@ class DashboardPlugin {
                                 if (coolUntil && coolUntil > Date.now()) {
                                     const remain = coolUntil - Date.now();
                                     if (h.reliability === 0) {
-                                        parts.push(`#${i}x`);
+                                        parts.push(`{red-fg}#${i}✗{/}`);
                                     } else if (remain > 3600000) {
-                                        parts.push(`#${i}~${(remain/3600000).toFixed(1)}h`);
+                                        parts.push(`{cyan-fg}#${i}{/}~${(remain/3600000).toFixed(1)}h`);
                                     } else {
-                                        parts.push(`#${i}~${Math.ceil(remain/60000)}m`);
+                                        parts.push(`{cyan-fg}#${i}{/}~${Math.ceil(remain/60000)}m`);
                                     }
                                 } else {
-                                    parts.push(`#${i}ok`);
+                                    parts.push(`{green-fg}#${i}●{/}`);
                                 }
                             }
                             keyStatus = parts.join(' ');
                         }
                         const rpdStr = h.rpd.limit === Infinity ? '~' : `${h.rpd.used}/${h.rpd.limit}`;
-                        pLines.push(`${name}: ${keyStatus} | RPD ${rpdStr}`);
+                        // provider-level 燈號
+                        let pIcon = '{green-fg}●{/}';
+                        if (h.reliability === 0) pIcon = '{red-fg}✗{/}';
+                        else if (h.coolUntil > Date.now()) pIcon = '{cyan-fg}●{/}';
+                        else if (h.reliability < 0.8) pIcon = '{yellow-fg}●{/}';
+                        pLines.push(`${pIcon} ${name}: ${keyStatus} | RPD ${rpdStr}`);
                     }
                     const snap = pLines.join('\n');
                     if (snap !== this._lastProviderSnap) {
