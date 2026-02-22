@@ -96,7 +96,7 @@ class DashboardPlugin {
         });
 
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(3, 6, 2, 6, contrib.log, {
+        this.radarLog = this.grid.set(3, 6, 4, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
@@ -112,7 +112,7 @@ class DashboardPlugin {
         });
 
         // [右下] 三流協定 + Queue
-        this.chatBox = this.grid.set(5, 6, 7, 6, contrib.log, {
+        this.chatBox = this.grid.set(7, 6, 5, 6, contrib.log, {
             fg: "white",
             selectedFg: "cyan",
             label: '💬 三流協定 / Queue',
@@ -443,8 +443,7 @@ class DashboardPlugin {
 
             // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
-                this.statusBox.setMarkdown(`
-# ${dateStr} ${timeStr}
+                this.statusBox.setMarkdown(`# ${dateStr} ${timeStr}
 - **模式**: ${mode}
 - **RAM**: ${memUsage.toFixed(0)} MB
 - **Uptime**: ${hours}h ${minutes}m
