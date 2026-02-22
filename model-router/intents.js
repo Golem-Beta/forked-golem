@@ -3,6 +3,7 @@
  * 
  * Router 根據健康狀態從候選中主動選最佳的一個，
  * 不是 fallback chain。只有選中的 provider 呼叫失敗時才退到下一個。
+ * OpenRouter (:free) 作為所有 intent 的 ultimate fallback。
  */
 const INTENT_PREFERENCES = {
     decision: [
@@ -14,15 +15,19 @@ const INTENT_PREFERENCES = {
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
         { provider: 'deepseek',  model: 'deepseek-chat' },
+        { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     analysis: [
         { provider: 'gemini',    model: 'gemini-2.5-flash' },
         { provider: 'deepseek',  model: 'deepseek-chat' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     reflection: [
         { provider: 'deepseek',  model: 'deepseek-reasoner' },
         { provider: 'gemini',    model: 'gemini-2.5-flash' },
+        { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     utility: [
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
