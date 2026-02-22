@@ -88,11 +88,10 @@ class DashboardPlugin {
         });
 
         // [右中上] API Provider 狀態
-        this.providerBox = this.grid.set(2, 6, 3, 6, contrib.log, {
-            fg: 'cyan',
-            selectedFg: 'white',
+        this.providerBox = this.grid.set(2, 6, 3, 6, blessed.box, {
             label: '🚀 API Providers',
-            tags: true
+            tags: true,
+            style: { fg: 'cyan' }
         });
 
         // [右中] Autonomy / Chronos 雷達
@@ -498,11 +497,7 @@ class DashboardPlugin {
                     const snap = pLines.join('\n');
                     if (snap !== this._lastProviderSnap) {
                         this._lastProviderSnap = snap;
-                        // 清空再逐行寫入
-                        this.providerBox.setContent('');
-                        for (const line of pLines) {
-                            this.providerBox.log(line);
-                        }
+                        this.providerBox.setContent(snap);
                     }
                 } catch(e) {}
             }
