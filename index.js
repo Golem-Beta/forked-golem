@@ -1715,6 +1715,14 @@ const autonomy = new AutonomyManager({
     Introspection, PatchManager, TriStreamParser, ResponseParser, InputFile
 });
 
+// 📟 Dashboard 注入 Autonomy 參照（倒數計時用）
+try {
+    const dash = require.cache[require.resolve('./dashboard')];
+    if (dash && dash.exports && dash.exports._autonomy === undefined) {
+        dash.exports._autonomy = autonomy;
+    }
+} catch(e) { /* dashboard 未載入時靜默跳過 */ }
+
 (async () => {
     // 測試模式攔截器：防止在 CI/CD 或純邏輯測試時啟動瀏覽器
     if (process.env.GOLEM_TEST_MODE === 'true') {
@@ -2135,16 +2143,28 @@ if (dcClient) {
 // ============================================================
 // 🛡️ 全域異常守護 — 防止 crash 退出
 // ============================================================
+// crash_guard 節流：同一錯誤 60 秒內只寫一次 journal，EPIPE 完全忽略
+const _crashGuardSeen = new Map();
 process.on('uncaughtException', (err) => {
-    console.error('🛡️ [Guard] uncaughtException 已攔截（進程不會退出）:', err.message || err);
+    const msg = err.message || String(err);
+    console.error('🛡️ [Guard] uncaughtException 已攔截（進程不會退出）:', msg);
     console.error(err.stack || '');
-    // 寫入 journal 方便事後追蹤
+    // EPIPE / ECONNRESET 是 pipe 斷開，寫 journal 會再觸發 → 忽略
+    if (msg.includes('EPIPE') || msg.includes('ECONNRESET')) return;
+    // 節流：同一 error message 60 秒內只寫一次
+    const now = Date.now();
+    if (_crashGuardSeen.has(msg) && now - _crashGuardSeen.get(msg) < 60000) return;
+    _crashGuardSeen.set(msg, now);
+    // 清理舊紀錄防止 Map 無限增長
+    if (_crashGuardSeen.size > 50) {
+        for (const [k, t] of _crashGuardSeen) { if (now - t > 60000) _crashGuardSeen.delete(k); }
+    }
     try {
         const jp = require('path').join(process.cwd(), 'memory', 'journal.jsonl');
         require('fs').appendFileSync(jp, JSON.stringify({
             ts: new Date().toISOString(),
             action: 'crash_guard',
-            error: err.message,
+            error: msg,
             stack: (err.stack || '').split('\n').slice(0, 3).join(' | ')
         }) + '\n');
     } catch (_) {}

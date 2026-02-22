@@ -42,6 +42,14 @@ class DashboardPlugin {
         // 狀態追蹤
         this.queueCount = 0;
 
+        // HH:MM timestamp 產生器
+        this._ts = () => {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            return h + ':' + m;
+        };
+
         // stdin 按鍵監聯器（detach 狀態用）
         this._stdinListener = null;
 
@@ -82,13 +90,13 @@ class DashboardPlugin {
         });
 
         // [右上] 狀態面板（含日期時間）
-        this.statusBox = this.grid.set(0, 6, 2, 6, contrib.markdown, {
+        this.statusBox = this.grid.set(0, 6, 3, 6, contrib.markdown, {
             label: '🧠 引擎狀態',
             style: { border: { fg: 'cyan' } }
         });
 
         // [右中上] API Provider 狀態
-        this.providerBox = this.grid.set(2, 6, 3, 6, blessed.box, {
+        this.providerBox = this.grid.set(3, 6, 2, 6, blessed.box, {
             label: '🚀 API Providers',
             tags: true,
             style: { fg: 'cyan' }
@@ -312,18 +320,18 @@ class DashboardPlugin {
                 logMsg = `{blue-fg}${msg}{/blue-fg}`;
             }
 
-            // 寫入日誌面板
-            if (this.logBox) this.logBox.log(logMsg);
+            // 寫入日誌面板（加 HH:MM 時間戳）
+            if (this.logBox) this.logBox.log('{blue-fg}' + this._ts() + '{/}' + ' ' + logMsg);
 
             // 📝 同步寫入 log 檔
             this._writeLog('LOG', msg);
 
             // 分流邏輯：Autonomy / Chronos → radarLog
-            if (msg.includes('[Autonomy]') || msg.includes('[Decision]') || msg.includes('[GitHub]')) {
-                if (this.radarLog) this.radarLog.log(`{cyan-fg}${msg}{/cyan-fg}`);
+            if (msg.includes('[Autonomy]') || msg.includes('[Decision]') || msg.includes('[GitHub]') || msg.includes('[LifeCycle]')) {
+                if (this.radarLog) this.radarLog.log('{blue-fg}' + this._ts() + '{/}' + ' ' + `{cyan-fg}${msg}{/cyan-fg}`);
             }
             else if (msg.includes('[Chronos]') || msg.includes('排程')) {
-                if (this.radarLog) this.radarLog.log(`{yellow-fg}${msg}{/yellow-fg}`);
+                if (this.radarLog) this.radarLog.log('{blue-fg}' + this._ts() + '{/}' + ' ' + `{yellow-fg}${msg}{/yellow-fg}`);
             }
             // 分流邏輯：TitanQ / Queue → chatBox
             else if (msg.includes('[TitanQ]') || msg.includes('[Queue]')) {
@@ -351,7 +359,7 @@ class DashboardPlugin {
                 return;
             }
             const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-            if (this.logBox) this.logBox.log(`{red-fg}[錯誤] ${msg}{/red-fg}`);
+            if (this.logBox) this.logBox.log('{blue-fg}' + this._ts() + '{/}' + ' ' + `{red-fg}[錯誤] ${msg}{/red-fg}`);
 
             // 📝 同步寫入 log 檔
             this._writeLog('ERR', msg);
@@ -365,7 +373,7 @@ class DashboardPlugin {
                 return;
             }
             const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-            if (this.logBox) this.logBox.log(`{yellow-fg}⚠️ ${msg}{/yellow-fg}`);
+            if (this.logBox) this.logBox.log('{blue-fg}' + this._ts() + '{/}' + ' ' + `{yellow-fg}⚠️ ${msg}{/yellow-fg}`);
 
             // 分流：429 / KeyChain 相關 → radarLog
             if (msg.includes('[Brain]') || msg.includes('[KeyChain]') || msg.includes('429')) {
@@ -415,6 +423,26 @@ class DashboardPlugin {
         }
     }
 
+
+    // 倒數計時格式化（讀取 autonomy.nextWakeTime）
+    _formatCountdown() {
+        if (!this._autonomy || !this._autonomy.nextWakeTime) {
+            if (this._autonomy && this._autonomy.nextWakeTime === null) {
+                return '⏳ 行動中...';
+            }
+            return '--';
+        }
+        const remain = this._autonomy.nextWakeTime.getTime() - Date.now();
+        if (remain <= 0) return '⏳ 行動中...';
+        const m = Math.floor(remain / 60000);
+        const s = Math.floor((remain % 60000) / 1000);
+        if (m >= 60) {
+            const h = Math.floor(m / 60);
+            return h + 'h ' + (m % 60) + 'm';
+        }
+        return m + 'm ' + String(s).padStart(2, '0') + 's';
+    }
+
     // =========================================================
     // 系統監控
     // =========================================================
@@ -446,7 +474,7 @@ class DashboardPlugin {
 - **模式**: ${mode}
 - **RAM**: ${memUsage.toFixed(0)} MB
 - **Uptime**: ${hours}h ${minutes}m
-- **Queue**: ${this.queueCount || 0} 等待中
+- **⏰ 醒來**: ${this._formatCountdown()}
 `);
             }
 

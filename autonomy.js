@@ -52,6 +52,7 @@ class AutonomyManager {
         this.ResponseParser = deps.ResponseParser;
         this.InputFile = deps.InputFile;
         this._timer = null;
+        this.nextWakeTime = null; // Dashboard 倒數用
         this.journalPath = path.join(process.cwd(), 'memory', 'journal.jsonl');
     }
 
@@ -78,6 +79,7 @@ class AutonomyManager {
         const range = cfg.maxHours - cfg.minHours;
         const waitMs = (cfg.minHours + Math.random() * range) * 3600000;
         const nextWakeTime = new Date(Date.now() + waitMs);
+        this.nextWakeTime = nextWakeTime; // Dashboard 倒數用
         const hour = nextWakeTime.getHours();
         const quietHours = cfg.quietHours || cfg.sleepHours || [];
         const isQuiet = quietHours.includes(hour);
@@ -251,6 +253,7 @@ class AutonomyManager {
     // 🎲 自由意志
     // =========================================================
     async manifestFreeWill() {
+        this.nextWakeTime = null; // 行動中，Dashboard 顯示「行動中」
         try {
             // Phase 3: Gemini 決策引擎（有意圖的行動）
             let decision = await this._makeDecision();
@@ -1497,3 +1500,5 @@ class AutonomyManager {
     }
 
 }
+
+module.exports = AutonomyManager;
