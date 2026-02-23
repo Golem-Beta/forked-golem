@@ -179,11 +179,21 @@ class OpenAICompatAdapter extends ProviderAdapter {
                         }
 
                         const choice = json.choices?.[0];
-                        const text = choice?.message?.content || '';
+                        const rawText = choice?.message?.content
+                            || choice?.message?.reasoning_content
+                            || '';
                         const usage = json.usage || {};
 
+                        // 空字串視為失敗，讓 router failover 到下一個 provider
+                        if (!rawText.trim()) {
+                            const err = new Error(`[${this.name}] empty response from ${model}`);
+                            err.providerError = 'error';
+                            reject(err);
+                            return;
+                        }
+
                         resolve({
-                            text: text.trim(),
+                            text: rawText.trim(),
                             usage: {
                                 inputTokens: usage.prompt_tokens || 0,
                                 outputTokens: usage.completion_tokens || 0,

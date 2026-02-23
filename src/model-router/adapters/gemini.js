@@ -38,6 +38,7 @@ class GeminiAdapter extends ProviderAdapter {
             messages = [],
             maxTokens = 4096,
             temperature = 0.7,
+            requireJson = false,
             systemInstruction,
             tools,
             inlineData,
@@ -53,9 +54,13 @@ class GeminiAdapter extends ProviderAdapter {
 
             try {
                 const genAI = new GoogleGenerativeAI(apiKey);
+                const generationConfig = { maxOutputTokens: maxTokens, temperature };
+                if (requireJson) {
+                    generationConfig.responseMimeType = 'application/json';
+                }
                 const modelConfig = {
                     model,
-                    generationConfig: { maxOutputTokens: maxTokens, temperature },
+                    generationConfig,
                 };
                 if (systemInstruction) modelConfig.systemInstruction = systemInstruction;
                 if (tools) modelConfig.tools = tools;
@@ -86,6 +91,14 @@ class GeminiAdapter extends ProviderAdapter {
 
                 const text = result.response.text().trim();
                 const usage = result.response.usageMetadata || {};
+
+                // 空字串視為失敗，讓 router failover
+                if (!text) {
+                    throw Object.assign(
+                        new Error(`[Gemini] empty response from ${model}`),
+                        { providerError: 'error' }
+                    );
+                }
 
                 return {
                     text,
