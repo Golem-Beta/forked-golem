@@ -56,6 +56,16 @@ class PatchManager {
             if (filePath.includes('index.test.js')) {
                 execSync(`node "${filePath}"`, { env: { ...process.env, GOLEM_TEST_MODE: 'true' }, timeout: 5000, stdio: 'pipe' });
             }
+            // OCR 靜態檢查：任何 patch 若呼叫 sendToAdmin/sendNotification 必須接回傳值
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const sendCalls = content.match(/await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || [];
+            const capturedCalls = content.match(/(?:const|let|var)\s+\w+\s*=\s*await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || [];
+            if (sendCalls.length > capturedCalls.length) {
+                const uncaptured = sendCalls.length - capturedCalls.length;
+                console.error(`❌ [PatchManager] OCR 違規：${uncaptured} 個 sendToAdmin/sendNotification 呼叫未接回傳值。所有發送操作必須用 const sent = await ... 接回傳值，並依結果記錄 journal outcome。`);
+                try { fs.unlinkSync(filePath); } catch (_) {}
+                return false;
+            }
             console.log(`✅ [PatchManager] ${filePath} 驗證通過`);
             return true;
         } catch (e) {

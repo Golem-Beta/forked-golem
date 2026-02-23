@@ -179,13 +179,14 @@ class ActionRunner {
                 '💡 目的: ' + purpose,
                 '', text
             ].filter(Boolean).join('\n');
-            await this.notifier.sendToAdmin(parts);
+            const sentWR = await this.notifier.sendToAdmin(parts);
+            console.log('[WebResearch] sendToAdmin:', sentWR ? '✅ OK' : '❌ FAILED');
 
             this.journal.append({
                 action: 'web_research', topic: query, purpose: purpose,
-                outcome: 'shared', reflection_file: reflectionFile
+                outcome: sentWR ? 'shared' : 'send_failed', reflection_file: reflectionFile
             });
-            console.log('✅ [WebResearch] 研究報告已發送: ' + query);
+            if (sentWR) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
         } catch (e) {
             console.error('❌ [WebResearch] 研究失敗:', e.message);
             this.journal.append({ action: 'web_research', outcome: 'error', error: e.message });
@@ -301,14 +302,15 @@ class ActionRunner {
                 `🔗 https://github.com/${newRepo.full_name}`,
                 '', analysis
             ].join('\n');
-            await this.notifier.sendToAdmin(parts);
+            const sentGH = await this.notifier.sendToAdmin(parts);
+            console.log('[GitHub] sendToAdmin:', sentGH ? '✅ OK' : '❌ FAILED');
 
             this.journal.append({
                 action: 'github_explore', topic, repo: newRepo.full_name,
                 stars: newRepo.stargazers_count, language: newRepo.language,
-                outcome: 'shared', reflection_file: reflectionFile
+                outcome: sentGH ? 'shared' : 'send_failed', reflection_file: reflectionFile
             });
-            console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
+            if (sentGH) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
         } catch (e) {
             console.error('❌ [GitHub] 探索失敗:', e.message);
             this.journal.append({ action: 'github_explore', outcome: 'error', error: e.message });
@@ -430,11 +432,13 @@ class ActionRunner {
                 }
                 fs.writeFileSync(skillPath, content);
                 const msgText = '🧩 **新技能已建立**: ' + skillName + '\n' + (proposal.description || '') + '\n原因: ' + (proposal.reason || '');
-                await this.notifier.sendToAdmin(msgText);
+                const sentSC = await this.notifier.sendToAdmin(msgText);
+                console.log('[SelfReflection/skill_create] sendToAdmin:', sentSC ? '✅ OK' : '❌ FAILED');
                 this.journal.append({
                     action: 'self_reflection', mode: 'skill_create',
                     skill_name: skillName, description: proposal.description,
-                    outcome: 'skill_created', reflection_file: reflectionFile
+                    outcome: sentSC ? 'skill_created' : 'skill_created_send_failed',
+                    reflection_file: reflectionFile
                 });
                 return;
             }
@@ -477,20 +481,29 @@ class ActionRunner {
                     global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
                     const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '');
                     const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
-                    if (triggerCtx) {
-                        await triggerCtx.reply(msgText, options);
-                        await triggerCtx.sendDocument(testFile);
-                    } else if (this.config.ADMIN_IDS && this.config.ADMIN_IDS[0]) {
-                        const { tgBot } = this.notifier;
-                        if (tgBot) {
-                            await tgBot.api.sendMessage(this.config.ADMIN_IDS[0], msgText, options);
-                            await tgBot.api.sendDocument(this.config.ADMIN_IDS[0], new this.InputFile(testFile));
+                    let sentCP = false;
+                    try {
+                        if (triggerCtx) {
+                            await triggerCtx.reply(msgText, options);
+                            await triggerCtx.sendDocument(testFile);
+                            sentCP = true;
+                        } else if (this.config.ADMIN_IDS && this.config.ADMIN_IDS[0]) {
+                            const { tgBot } = this.notifier;
+                            if (tgBot) {
+                                await tgBot.api.sendMessage(this.config.ADMIN_IDS[0], msgText, options);
+                                await tgBot.api.sendDocument(this.config.ADMIN_IDS[0], new this.InputFile(testFile));
+                                sentCP = true;
+                            }
                         }
+                    } catch (sendErr) {
+                        console.error('[SelfReflection/core_patch] send FAILED:', sendErr.message);
                     }
+                    console.log('[SelfReflection/core_patch] send:', sentCP ? '✅ OK' : '❌ FAILED');
                     this.journal.append({
                         action: 'self_reflection', mode: 'core_patch',
                         proposal: proposalType, target: targetName,
-                        description: proposal.description, outcome: 'proposed',
+                        description: proposal.description,
+                        outcome: sentCP ? 'proposed' : 'proposed_send_failed',
                         reflection_file: reflectionFile
                     });
                 } else {
@@ -603,15 +616,17 @@ class ActionRunner {
             if (summaryMatch) { summary = summaryMatch[1].trim(); }
             else { summary = result.substring(0, 200).trim() + '...'; }
 
-            await this.notifier.sendToAdmin(
+            const sentDG = await this.notifier.sendToAdmin(
                 '📝 消化歸納完成\n\n' + summary + '\n\n📄 完整文件: memory/synthesis/' + filename
             );
+            console.log('[Digest] sendToAdmin:', sentDG ? '✅ OK' : '❌ FAILED');
 
             this.journal.append({
-                action: 'digest', topic: firstLine, outcome: 'completed',
+                action: 'digest', topic: firstLine,
+                outcome: sentDG ? 'completed' : 'completed_send_failed',
                 file: 'synthesis/' + filename, summary_preview: summary.substring(0, 100)
             });
-            console.log('📝 [Digest] 消化歸納完成。');
+            if (sentDG) console.log('[Digest] 消化歸納完成。');
         } catch (e) {
             console.error('❌ [Digest] 失敗:', e.message);
             this.journal.append({ action: 'digest', outcome: 'error', error: e.message });
@@ -658,14 +673,15 @@ class ActionRunner {
                 this.journal.append({ action: 'morning_digest', outcome: 'llm_empty' });
                 return;
             }
-            await this.notifier.sendToAdmin('🌅 晨間摘要' + NL + NL + summary);
+            const sentMD = await this.notifier.sendToAdmin('\uD83C\uDF05 \u6668\u9593\u6458\u8981' + NL + NL + summary);
+            console.log('[MorningDigest] sendToAdmin:', sentMD ? '\u2705 OK' : '\u274C FAILED');
             this.journal.append({
                 action: 'morning_digest',
-                outcome: 'sent',
+                outcome: sentMD ? 'sent' : 'send_failed',
                 item_count: items.length,
                 summary_preview: summary.substring(0, 100)
             });
-            console.log('[MorningDigest] 晨間摘要已發送。');
+            if (sentMD) console.log('[MorningDigest] \u6668\u9593\u6458\u8981\u5df2\u767c\u9001\u3002');
         } catch (e) {
             console.error('[MorningDigest] 失敗:', e.message);
             this.journal.append({ action: 'morning_digest', outcome: 'error', error: e.message });

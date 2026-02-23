@@ -87,9 +87,9 @@ class Notifier {
                     for (const chunk of finalChunks) {
                         await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], chunk);
                     }
+                    console.log('[Notifier] TG sent OK (' + text.length + ' chars, chunked)');
+                    return true;
                 }
-                console.log('[Notifier] TG sent OK (' + text.length + ' chars, chunked)');
-                return true;
             } else if (this.dcClient && this.config.DISCORD_ADMIN_ID) {
                 const user = await this.dcClient.users.fetch(this.config.DISCORD_ADMIN_ID);
                 await user.send(text.slice(0, 2000));
@@ -111,11 +111,11 @@ class Notifier {
                 await this.brain.memorize(parsed.memory, { type: 'autonomy', timestamp: Date.now() });
             }
             const replyText = parsed.reply;
-            if (!replyText) return;
-            await this.sendToAdmin(replyText);
+            if (!replyText) return false;
+            return await this.sendToAdmin(replyText);
         } catch (e) {
             console.warn('[Notifier] 分流失敗，使用原始文字:', e.message);
-            await this.sendToAdmin(msgText);
+            return await this.sendToAdmin(msgText);
         }
     }
 }

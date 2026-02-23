@@ -75,9 +75,26 @@ keywords: [evolve, patch, optimize, source, self, refactor, skill, improve]
 
 **重要**：不要為了產出而產出。如果你讀完程式碼覺得沒什麼好改的，輸出 `[]` 是正確答案。
 
+## OCR 強制規則（Observe-Confirm-Record）
+
+任何 patch 若包含 sendToAdmin 或 sendNotification 的呼叫，**必須**遵守以下格式：
+
+```javascript
+// ✅ 正確：接回傳值，outcome 依結果決定
+const sent = await this.notifier.sendToAdmin(msg);
+this.journal.append({ ..., outcome: sent ? 'done' : 'send_failed' });
+
+// ❌ 錯誤：丟掉回傳值，outcome 寫死
+await this.notifier.sendToAdmin(msg);
+this.journal.append({ ..., outcome: 'done' });
+```
+
+違反此規則的 patch 會被 PatchManager 自動拒絕。
+
 ## 禁止事項
 
 - 不要輸出 markdown 文章或解釋，只輸出 JSON Array
 - 不要用 rm、mv、eval、exec 或 shell 指令
 - 不要把 JSON 包在 ```json ``` 裡，直接輸出裸 JSON
 - 不要在 content 欄位裡放 JSON 或 code block（技能內容是 markdown 純文字）
+- sendToAdmin/sendNotification 呼叫必須接回傳值（OCR 規則）
