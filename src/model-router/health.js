@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 /**
  * ProviderHealth — 追蹤每個 provider 的即時健康狀態
  */
