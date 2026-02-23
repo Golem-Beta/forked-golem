@@ -653,3 +653,20 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
     console.error('🛡️ [Guard] unhandledRejection 已攔截:', reason);
 });
+
+// Graceful shutdown — 確保 Telegram 長輪詢正常關閉再退出
+let _isShuttingDown = false;
+async function gracefulShutdown(signal) {
+    if (_isShuttingDown) return;
+    _isShuttingDown = true;
+    console.log(`\n🛑 [Shutdown] 收到 ${signal}，正在關閉...`);
+    try {
+        if (tgBot) await tgBot.stop();
+        console.log('✅ [Shutdown] Telegram 長輪詢已關閉');
+    } catch (e) {
+        console.warn('⚠️ [Shutdown] tgBot.stop() 失敗:', e.message);
+    }
+    process.exit(0);
+}
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
