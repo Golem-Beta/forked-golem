@@ -6,6 +6,8 @@ class ProviderHealth {
         this.providers = new Map();  // provider name → health state
         this._deepseekBalance = null; // { total, granted, topped_up }
         this._deepseekBalanceTs = 0;  // 上次查詢時間
+        this._diskPath = path.join(process.cwd(), 'memory', 'rpd-state.json');
+        this._savePending = false;
     }
 
     register(name, config) {
@@ -70,6 +72,7 @@ class ProviderHealth {
         h.lastSuccess = Date.now();
         // reliability 緩慢恢復（指數移動平均）
         h.reliability = Math.min(1.0, h.reliability * 0.9 + 0.1);
+        this._debounceSave();
     }
 
     on429(provider, retryAfterMs) {
@@ -116,6 +119,7 @@ class ProviderHealth {
             h.reliability = Math.min(1.0, h.reliability * 0.8 + 0.2);  // 緩慢恢復
         }
         console.log('🔄 [Health] RPD 已重置（太平洋時間午夜）');
+        this.saveToDisk();
     }
 
     /**
@@ -172,6 +176,56 @@ class ProviderHealth {
             lines.push(`  ${name}: RPD limit ${rpdStr}${keyInfo}`);
         }
         return lines.join('\n');
+    }
+
+    /**
+     * 防抖寫磁碟（1 秒內多次 onSuccess 只寫一次）
+     */
+    _debounceSave() {
+        if (this._savePending) return;
+        this._savePending = true;
+        setTimeout(() => {
+            this._savePending = false;
+            this.saveToDisk();
+        }, 1000);
+    }
+
+    /**
+     * 將各 provider 的 rpd.used 寫入磁碟
+     */
+    saveToDisk() {
+        try {
+            const state = {};
+            for (const [name, h] of this.providers) {
+                state[name] = { used: h.rpd.used, date: new Date().toDateString() };
+            }
+            fs.mkdirSync(path.dirname(this._diskPath), { recursive: true });
+            fs.writeFileSync(this._diskPath, JSON.stringify(state, null, 2));
+        } catch (e) {
+            console.warn('⚠️ [Health] RPD 狀態寫入失敗:', e.message);
+        }
+    }
+
+    /**
+     * 從磁碟讀回 rpd.used（只恢復當天的數據）
+     */
+    loadFromDisk() {
+        try {
+            if (!fs.existsSync(this._diskPath)) return;
+            const state = JSON.parse(fs.readFileSync(this._diskPath, 'utf-8'));
+            const today = new Date().toDateString();
+            let restored = 0;
+            for (const [name, saved] of Object.entries(state)) {
+                if (saved.date !== today) continue;  // 非當天，跳過（已過午夜重置）
+                const h = this.providers.get(name);
+                if (!h) continue;
+                h.rpd.used = saved.used || 0;
+                restored++;
+            }
+            if (restored > 0) console.log(`♻️ [Health] RPD 狀態已恢復（${restored} provider(s)）`);
+        } catch (e) {
+            console.warn('⚠️ [Health] RPD 狀態讀取失敗:', e.message);
+        }
     }
 }
 

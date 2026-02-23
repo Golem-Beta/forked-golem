@@ -23,6 +23,7 @@ class ModelRouter {
         this._rpdResetTimer = null;
 
         this._initAdapters();
+        this.health.loadFromDisk();  // 恢復重啟前的 RPD 計數
         this._scheduleRpdReset();
 
         if (this.adapters.size === 0) {
