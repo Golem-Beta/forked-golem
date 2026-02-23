@@ -450,7 +450,7 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
                     "Reply ONLY a JSON object: {\"keep\":[indices],\"drop\":[indices]}",
                     "Example: {\"keep\":[0],\"drop\":[1,2]}"
                 ].join("\n");
-                const guardResult = await modelRouter.route(guardPrompt, { intent: "chat", maxOutputTokens: 100, temperature: 0 });
+                const guardResult = await modelRouter.complete({ intent: "utility", messages: [{ role: "user", content: guardPrompt }], maxTokens: 100, temperature: 0 });
                 const guardJson = (guardResult || "").replace(/```json|```/g, "").trim();
                 try {
                     const verdict = JSON.parse(guardJson);
