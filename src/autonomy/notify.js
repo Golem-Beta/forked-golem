@@ -19,18 +19,48 @@ class Notifier {
         this.config = config;
         this.brain = brain;
         this.TriStreamParser = TriStreamParser;
+        // 靜默時段暫存 queue（{ text, ts }[]）
+        this._quietQueue = [];
+        this.quietMode = false;
+    }
+
+    /**
+     * 由 AutonomyManager 控制靜默模式
+     */
+    setQuietMode(val) {
+        this.quietMode = !!val;
+    }
+
+    /**
+     * 取出並清空靜默 queue
+     */
+    drainQuietQueue() {
+        const items = this._quietQueue.slice();
+        this._quietQueue = [];
+        return items;
     }
 
     /**
      * 發送純文字到管理員（自動分段）
      */
     async sendToAdmin(text) {
-        if (!text) return;
+        if (!text) {
+            console.warn('[Notifier] sendToAdmin received empty text, skip');
+            return false;
+        }
+        // 靜默時段：暫存，不發送
+        if (this.quietMode) {
+            this._quietQueue.push({ text, ts: new Date().toISOString() });
+            console.log('[Notifier] 靜默時段，訊息暫存 (queue=' + this._quietQueue.length + ')');
+            return false;
+        }
         const TG_MAX = 4000;
         try {
             if (this.tgBot && this.config.ADMIN_IDS[0]) {
                 if (text.length <= TG_MAX) {
                     await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], text);
+                    console.log('[Notifier] TG sent OK (' + text.length + ' chars)');
+                    return true;
                 } else {
                     const chunks = [];
                     let current = '';
@@ -58,13 +88,17 @@ class Notifier {
                         await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], chunk);
                     }
                 }
+                console.log('[Notifier] TG sent OK (' + text.length + ' chars, chunked)');
+                return true;
             } else if (this.dcClient && this.config.DISCORD_ADMIN_ID) {
                 const user = await this.dcClient.users.fetch(this.config.DISCORD_ADMIN_ID);
                 await user.send(text.slice(0, 2000));
             }
         } catch (e) {
-            console.error('[Notifier] 發送失敗:', e.message);
+            console.error('[Notifier] send FAILED:', e.message);
+            return false;
         }
+        return false;
     }
 
     /**

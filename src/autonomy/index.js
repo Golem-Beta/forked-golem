@@ -35,6 +35,7 @@ class AutonomyManager {
             brain: deps.brain,
             config: deps.CONFIG,
             loadPrompt: deps.loadPrompt,
+            notifier: this.notifier,  // 讓 decision 能讀 quietQueue
         });
 
         this.actions = new ActionRunner({
@@ -89,6 +90,7 @@ class AutonomyManager {
             console.log('♻️ [LifeCycle] 下次醒來: ' + (waitMs / 60000).toFixed(1) + ' 分鐘後' + (isQuiet ? ' (靜音模式)' : ''));
             this._timer = setTimeout(() => {
                 this.quietMode = isQuiet;
+                this.notifier.setQuietMode(isQuiet);  // 同步到 Notifier
                 this.manifestFreeWill();
                 this.scheduleNextAwakening();
             }, waitMs);
@@ -141,6 +143,9 @@ class AutonomyManager {
                     break;
                 case 'web_research':
                     await this.actions.performWebResearch(decision.reason);
+                    break;
+                case 'morning_digest':
+                    await this.actions.performMorningDigest();
                     break;
                 case 'digest':
                     await this.actions.performDigest();

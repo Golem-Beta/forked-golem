@@ -67,13 +67,27 @@ class ActionRunner {
             RECENT_SOCIAL: recentSocial || '（無）'
         }) || `${soul}\n主動社交，時間：${timeStr}，簡短跟老哥打招呼。`;
         const msg = await this.decision.callLLM(prompt, { maxOutputTokens: 256, temperature: 0.9, intent: 'chat' });
-        await this.notifier.sendToAdmin(msg);
+        
+        if (!msg || msg.trim().length === 0) {
+            console.warn('[Social] LLM returned empty, skip send');
+            this.journal.append({ action: 'spontaneous_chat', context: contextNote, outcome: 'empty_llm_response' });
+            return;
+        }
+        
+        console.log('[Social] LLM generated ' + msg.length + ' chars, sending...');
+        const sent = await this.notifier.sendToAdmin(msg);
 
         this.journal.append({
             action: 'spontaneous_chat',
             context: contextNote,
-            outcome: 'sent'
+            outcome: sent ? 'sent' : 'send_failed',
+            msg_length: msg.length
         });
+        
+        if (!sent) {
+            console.error('[Social] SEND FAILED! preview:', msg.substring(0, 80));
+            return;
+        }
 
         // 30 分鐘回應追蹤
         if (this._pendingSocialChat && this._pendingSocialChat.timer) {
@@ -601,6 +615,60 @@ class ActionRunner {
         } catch (e) {
             console.error('❌ [Digest] 失敗:', e.message);
             this.journal.append({ action: 'digest', outcome: 'error', error: e.message });
+        }
+    }
+    /**
+     * 晨間摘要：取出靜默 queue，讓 LLM 消化成人話後發給主人
+     */
+    async performMorningDigest() {
+        try {
+            const items = this.notifier.drainQuietQueue();
+            if (items.length === 0) {
+                console.log('[MorningDigest] 無暫存訊息，跳過');
+                this.journal.append({ action: 'morning_digest', outcome: 'skipped_empty' });
+                return;
+            }
+            console.log('[MorningDigest] 整理 ' + items.length + ' 則...');
+            const NL = '\n';
+            const SEP = '\n\n---\n\n';
+            const itemText = items.map((item, i) => {
+                const t = new Date(item.ts).toLocaleString('zh-TW', { hour12: false });
+                return '[' + (i + 1) + '] ' + t + NL + item.text;
+            }).join(SEP);
+            const promptLines = [
+                '你是 Golem。以下是你在靜默時段（深夜/凌晨）完成的行動紀錄，現在請整理成一則給主人的晨間摘要。',
+                '',
+                '要求：',
+                '- 用輕鬆、自然的語氣，像朋友一樣告訴主人你昨晚做了什麼',
+                '- 重點是「發現了什麼」「學到了什麼」，而不是流水帳',
+                '- 如果有你認為主人可能感興趣的發現，特別點出來',
+                '- 結尾說：如果你對某個部分有興趣，可以回覆我詳細說說',
+                '- 控制在 300 字以內，不要太長',
+                '',
+                '【靜默時段行動紀錄】',
+                itemText
+            ];
+            const prompt = promptLines.join(NL);
+            const summary = await this.decision.callLLM(prompt, {
+                intent: 'chat',
+                maxOutputTokens: 512,
+                temperature: 0.7
+            });
+            if (!summary) {
+                this.journal.append({ action: 'morning_digest', outcome: 'llm_empty' });
+                return;
+            }
+            await this.notifier.sendToAdmin('🌅 晨間摘要' + NL + NL + summary);
+            this.journal.append({
+                action: 'morning_digest',
+                outcome: 'sent',
+                item_count: items.length,
+                summary_preview: summary.substring(0, 100)
+            });
+            console.log('[MorningDigest] 晨間摘要已發送。');
+        } catch (e) {
+            console.error('[MorningDigest] 失敗:', e.message);
+            this.journal.append({ action: 'morning_digest', outcome: 'error', error: e.message });
         }
     }
 }

@@ -15,11 +15,12 @@ class DecisionEngine {
      * @param {object} deps.config - CONFIG 物件
      * @param {Function} deps.loadPrompt - prompt 載入函式
      */
-    constructor({ journal, brain, config, loadPrompt }) {
+    constructor({ journal, brain, config, loadPrompt, notifier }) {
         this.journal = journal;
         this.brain = brain;
         this.config = config;
         this.loadPrompt = loadPrompt;
+        this.notifier = notifier;  // 用於讀取 quietQueue
     }
 
     // === 設定 ===
@@ -223,6 +224,20 @@ class DecisionEngine {
             ? '距離上次行動僅 ' + Math.round(minutesSinceLast) + ' 分鐘'
             : '';
 
+        // morning_digest：有靜默 queue 且今天尚未執行才加入可選
+        if (cfg.actions.morning_digest) {
+            const queueLen = this.notifier ? this.notifier._quietQueue.length : 0;
+            const digestToday = journal.filter(j => j.action === 'morning_digest' && j.ts && j.ts.startsWith(today)).length;
+            const digestLimit = cfg.actions.morning_digest.dailyLimit || 1;
+            if (queueLen > 0 && digestToday < digestLimit) {
+                available.unshift({
+                    id: 'morning_digest',
+                    desc: cfg.actions.morning_digest.desc,
+                    note: '有 ' + queueLen + ' 則未匯報的靜默時段訊息'
+                });
+            }
+        }
+
         available.push({ id: 'rest', desc: cfg.actions.rest.desc, note: restNote });
         return available;
     }
@@ -321,6 +336,12 @@ class DecisionEngine {
             }
         } catch (e) { /* 搜尋失敗不影響決策 */ }
 
+        const quietQueue = this.notifier ? this.notifier._quietQueue : [];
+        const quietQueueSection = quietQueue.length > 0
+            ? '【靜默時段暫存】（靜默時段完成但尚未匯報給主人的行動）\n' +
+              quietQueue.map(q => '[' + q.ts + '] ' + q.text.substring(0, 200)).join('\n')
+            : '';
+
         const decisionPrompt = this.loadPrompt('decision.md', {
             SOUL: soul,
             JOURNAL_SUMMARY: journalSummary,
@@ -330,7 +351,8 @@ class DecisionEngine {
             MEMORY_SECTION: memorySection,
             TIME_STR: timeStr,
             ACTION_LIST: actionList,
-            VALID_ACTIONS: validActionStr
+            VALID_ACTIONS: validActionStr,
+            QUIET_QUEUE_SECTION: quietQueueSection
         }) || '選擇一個行動，用 JSON 回覆 {"action":"rest","reason":"fallback"}';
 
         try {

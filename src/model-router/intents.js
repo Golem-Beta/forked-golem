@@ -10,6 +10,8 @@ const INTENT_PREFERENCES = {
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
         { provider: 'mistral',   model: 'mistral-small-latest' },
+        { provider: 'cerebras',  model: 'llama-3.3-70b' },
+        { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     chat: [
@@ -17,6 +19,8 @@ const INTENT_PREFERENCES = {
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
         { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'deepseek',  model: 'deepseek-chat' },
+        { provider: 'cerebras',  model: 'llama-3.3-70b' },
+        { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     analysis: [
@@ -24,6 +28,8 @@ const INTENT_PREFERENCES = {
         { provider: 'deepseek',  model: 'deepseek-chat' },
         { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'cerebras',  model: 'llama-3.3-70b' },
+        { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     reflection: [
@@ -31,12 +37,16 @@ const INTENT_PREFERENCES = {
         { provider: 'gemini',    model: 'gemini-2.5-flash' },
         { provider: 'mistral',   model: 'mistral-small-latest' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
+        { provider: 'cerebras',  model: 'llama-3.3-70b' },
+        { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     utility: [
         { provider: 'gemini',    model: 'gemini-2.5-flash-lite' },
         { provider: 'groq',      model: 'llama-3.3-70b-versatile' },
         { provider: 'mistral',   model: 'mistral-small-latest' },
+        { provider: 'cerebras',  model: 'llama-3.3-70b' },
+        { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     vision: [

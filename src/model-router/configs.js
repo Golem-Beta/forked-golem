@@ -53,6 +53,24 @@ const PROVIDER_CONFIGS = {
         },
         defaultRpm: 20,
     },
+    cerebras: {
+        baseUrl: 'https://api.cerebras.ai/v1',
+        envKey: 'CEREBRAS_API_KEY',
+        multiKey: false,
+        rpdLimits: {
+            'llama-3.3-70b': 1000,
+        },
+        defaultRpm: 30,
+    },
+    sambanova: {
+        baseUrl: 'https://api.sambanova.ai/v1',
+        envKey: 'SAMBANOVA_API_KEY',
+        multiKey: false,
+        rpdLimits: {
+            'Meta-Llama-3.3-70B-Instruct': 1000,
+        },
+        defaultRpm: 30,
+    },
 };
 
 module.exports = PROVIDER_CONFIGS;
