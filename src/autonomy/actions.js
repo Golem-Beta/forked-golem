@@ -338,15 +338,27 @@ class ActionRunner {
             // Phase 1: 診斷
             const soul = this.decision.readSoul();
             const fileList = this.decision.getProjectFileList();
+
+            // 加入歷史 reflection 記錄，讓 Golem 知道上次診斷了什麼、成功還是失敗
+            const recentReflections = this.journal.readRecent(50)
+                .filter(j => j.action === 'self_reflection')
+                .slice(-5)
+                .map(j => {
+                    const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
+                    const detail = [j.outcome, j.diagnosis, j.description, j.reason].filter(Boolean).join(' / ');
+                    return '[' + time + '] ' + (j.mode || 'phase1') + ' outcome=' + detail;
+                }).join('\n') || '(無歷史記錄)';
+
             const diagPrompt = [
                 '你是 Golem，一個自律型 AI Agent。你正在做自我反省。',
                 '', '【靈魂文件】', soul,
                 '', '【最近經驗】', journalContext,
+                '', '【歷史 reflection 結果（最近 5 次）】', recentReflections,
                 '', '【老哥的建議】', advice || '(無)',
                 '', '【專案檔案清單（含行數）】', fileList,
                 '', '【要求】',
                 '根據你最近的經驗（特別是失敗、錯誤、或可改進的地方），判斷：',
-                '1. 你想改進什麼？（具體描述問題）',
+                '1. 你想改進什麼？（具體描述問題，避免與歷史 reflection 重複診斷同樣問題）',
                 '2. 需要看哪個檔案的哪個函式或區段？',
                 '3. 改進方案的大致方向（不需要寫程式碼）',
                 '', '用 JSON 回覆：',
@@ -367,6 +379,10 @@ class ActionRunner {
             } catch (e) {
                 console.warn('🧬 [Reflection] 診斷 JSON 解析失敗:', e.message);
                 this.journal.append({ action: 'self_reflection', phase: 'diagnosis', outcome: 'parse_failed', reflection_file: diagFile });
+                if (!triggerCtx) {
+                    const errMsg = '🧬 [self_reflection] Phase 1 診斷解析失敗: ' + e.message + '\n(輸出已存至 ' + diagFile + ')';
+                    await this.notifier.sendToAdmin(errMsg);
+                }
                 return;
             }
 
@@ -391,6 +407,11 @@ class ActionRunner {
 
             const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array.";
             const patchPrompt = [
+                '【輸出格式強制規則】你的輸出將被程式直接 JSON.parse()。',
+                '第一個字元必須是 [，最後一個字元必須是 ]。',
+                '不要輸出任何說明文字或 markdown 格式符號。',
+                '違反此規則會導致 patch 被完全丟棄，等同於這次 reflection 白做。',
+                '',
                 evolutionSkill,
                 '', '## DIAGNOSIS（Phase 1 的分析結果）',
                 '問題：' + diag.diagnosis,
@@ -402,6 +423,7 @@ class ActionRunner {
                 'Include "file" field with the target file path (e.g. "src/brain.js").',
                 'Include "affected_files" listing other src/ files that call the modified function/method.',
                 'Keep the patch small and focused. ONE change only.',
+                'If you have no confident patch to propose, output exactly: []',
             ].join('\n');
 
             console.log('🧬 [Reflection] Phase 2: 生成 patch（' + codeSnippet.length + ' chars context）...');
@@ -411,6 +433,11 @@ class ActionRunner {
             let proposals = this.ResponseParser.extractJson(raw);
             if (!Array.isArray(proposals) || proposals.length === 0) {
                 this.journal.append({ action: 'self_reflection', outcome: 'no_proposals', reflection_file: reflectionFile });
+                if (!triggerCtx) {
+                    const failMsg = '🧬 [self_reflection] Phase 2 無法產出有效 patch\n診斷: ' + diag.diagnosis + '\n目標: ' + targetFile + '\n(LLM 輸出已存至 ' + reflectionFile + ')';
+                    const sent = await this.notifier.sendToAdmin(failMsg);
+                    console.log('[Reflection] no_proposals 通知:', sent ? 'OK' : 'FAILED');
+                }
                 return;
             }
 
