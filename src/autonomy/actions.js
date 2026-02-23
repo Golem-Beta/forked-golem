@@ -66,7 +66,7 @@ class ActionRunner {
             CONTEXT_NOTE: contextNote,
             RECENT_SOCIAL: recentSocial || '（無）'
         }) || `${soul}\n主動社交，時間：${timeStr}，簡短跟老哥打招呼。`;
-        const msg = await this.decision.callLLM(prompt, { maxOutputTokens: 256, temperature: 0.9, intent: 'chat' });
+        const msg = await this.decision.callLLM(prompt, { maxOutputTokens: 256, temperature: 0.9, intent: 'creative' });
         
         if (!msg || msg.trim().length === 0) {
             console.warn('[Social] LLM returned empty, skip send');
@@ -405,7 +405,7 @@ class ActionRunner {
             ].join('\n');
 
             console.log('🧬 [Reflection] Phase 2: 生成 patch（' + codeSnippet.length + ' chars context）...');
-            const raw = await this.decision.callLLM(patchPrompt, { intent: 'reflection', maxOutputTokens: 2048, temperature: 0.2 });
+            const raw = await this.decision.callLLM(patchPrompt, { intent: 'code_edit', maxOutputTokens: 2048, temperature: 0.2 });
             const reflectionFile = this.decision.saveReflection('self_reflection', raw);
 
             let proposals = this.ResponseParser.extractJson(raw);
