@@ -138,6 +138,102 @@ const titanQueue = new MessageBuffer({
     }
 });
 
+// ============================================================
+// ReAct Loop helpers
+// ============================================================
+
+function buildStepSummary(stepLog) {
+    if (!stepLog || stepLog.length === 0) return "(no steps yet)";
+    return stepLog.map(function(s, i) {
+        var sm = s.outputSummary ? " (" + s.outputSummary.replace(/\n/g, " ").substring(0, 60) + ")" : "";
+        return "Step " + (i + 1) + ": " + s.cmd + " -> " + (s.ok ? "OK" : "FAILED") + sm;
+    }).join("\n");
+}
+
+function buildObservation(outputs, stepLog, OBS_FULL_WINDOW) {
+    var lines = [];
+    var oldSteps = stepLog.slice(0, -OBS_FULL_WINDOW);
+    if (oldSteps.length > 0) {
+        lines.push("[History]");
+        for (var si = 0; si < oldSteps.length; si++) {
+            var s = oldSteps[si];
+            lines.push("- " + s.cmd + " -> " + (s.ok ? "OK" : "FAILED") + (s.outputSummary ? " (" + s.outputSummary + ")" : ""));
+        }
+    }
+    lines.push("[Latest]");
+    for (var oi = 0; oi < outputs.length; oi++) {
+        var o = outputs[oi];
+        lines.push("$ " + o.cmd);
+        lines.push(o.output + (o.truncated ? "...(truncated)" : ""));
+        lines.push("---");
+    }
+    return lines.join("\n");
+}
+
+function writeLoopJournal(loopState, autonomy) {
+    if (!autonomy) return;
+    var successSteps = loopState.stepLog.filter(function(s){return s.ok;}).length;
+    var failedSteps = loopState.stepLog.filter(function(s){return !s.ok;}).length;
+    var summary = loopState.stepLog.slice(0, 10).map(function(s){return s.cmd.substring(0,30)+(s.ok?"":" [F]");}).join(" | ");
+    autonomy.appendJournal({
+        action: "conversation",
+        loop_steps: loopState.stepCount,
+        loop_success: successSteps,
+        loop_failed: failedSteps,
+        step_summary: summary || undefined,
+        skipped_cmds: loopState.skippedCmds.length > 0 ? loopState.skippedCmds : undefined,
+        outcome: loopState.stepCount > 0 ? "loop_completed" : "done",
+        duration_ms: Date.now() - loopState.startTs
+    });
+}
+
+async function runReActLoop(ctx, initialSteps, tainted, _autonomy, loopState) {
+    var MAX_AUTO_STEPS = 10;
+    var OBS_FULL_WINDOW = 3;
+    if (!loopState) {
+        loopState = { stepCount: 0, consecutiveFails: 0, executedCmds: new Set(), stepLog: [], skippedCmds: [], startTs: Date.now() };
+    }
+    var steps = initialSteps;
+    while (true) {
+        var batchResult = await controller.runStepBatch(ctx, steps, loopState, tainted);
+        if (batchResult.halted) break;
+        if (batchResult.paused) return;
+        if (batchResult.failedTooMuch) {
+            await ctx.reply("⚠️ 3 consecutive failures, pausing. Steps done: " + loopState.stepCount);
+            break;
+        }
+        if (loopState.stepCount >= MAX_AUTO_STEPS) {
+            var taskId = require("crypto").randomUUID();
+            pendingTasks.set(taskId, { type: "REACT_CONTINUE", steps: [], loopState: loopState, tainted: tainted, expireAt: Date.now() + 30 * 60 * 1000 });
+            await ctx.reply("⏸️ " + loopState.stepCount + " steps done, continue?",
+                { reply_markup: { inline_keyboard: [[
+                    { text: "▶️ Continue", callback_data: "REACT_CONTINUE:" + taskId },
+                    { text: "⏹️ Stop", callback_data: "REACT_STOP:" + taskId }
+                ]]}});
+            return;
+        }
+        var observation = buildObservation(batchResult.outputs, loopState.stepLog, OBS_FULL_WINDOW);
+        var stepSummary = buildStepSummary(loopState.stepLog);
+        var reactPrompt = loadFeedbackPrompt("REACT_STEP", { STEP_COUNT: String(loopState.stepCount), OBSERVATION: observation, STEP_SUMMARY: stepSummary });
+        if (!reactPrompt) reactPrompt = "[Observation] " + observation + " Reply in Traditional Chinese.";
+        var response = await brain.sendMessage(reactPrompt);
+        var parsed = TriStreamParser.parse(response);
+        if (parsed.memory) await brain.memorize(parsed.memory, { type: "fact", timestamp: Date.now() });
+        var replyText = parsed.reply || (parsed.hasStructuredTags ? null : response);
+        if (replyText) await ctx.reply(replyText);
+        if (!parsed.actions || parsed.actions.length === 0) break;
+        var newSteps = parsed.actions.filter(function(s){ return s && s.cmd && !loopState.executedCmds.has(s.cmd); });
+        if (newSteps.length === 0) break;
+        steps = newSteps;
+        await ctx.sendTyping();
+    }
+    writeLoopJournal(loopState, _autonomy);
+    if (loopState.skippedCmds.length > 0) {
+        var skippedList = loopState.skippedCmds.map(function(c){ return "- " + c; }).join("\n");
+        await ctx.reply("⚠️ WARNING cmds skipped (manual confirm needed):\n" + skippedList);
+    }
+}
+
 async function handleUnifiedMessage(ctx) {
     // 🛡️ [Flood Guard] 第一層防線：丟棄啟動前的離線堆積訊息
     if (isStaleMessage(ctx)) {
@@ -373,60 +469,26 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
         }
 
         if (steps.length > 0) {
-            // [Action: 汙染感知執行]
-            const observation = await controller.runSequence(ctx, steps, 0, tainted);
-            // [Round 2: 感知回饋 (Observation Loop)]
-            if (observation) {
-                await ctx.sendTyping();
-                const feedbackPrompt = loadFeedbackPrompt('ROUND2_FEEDBACK', { OBSERVATION: observation })
-                    || `[Observation Report]\n${observation}\nReply in Traditional Chinese.`;
-                const finalResponse = await brain.sendMessage(feedbackPrompt);
-                const r2 = TriStreamParser.parse(finalResponse);
-                if (r2.memory) await brain.memorize(r2.memory, { type: 'fact', timestamp: Date.now() });
-                const r2Reply = r2.reply || finalResponse;
-
-                // Round 2 action 解析：允許新指令，阻止重複（防迴圈）
-                const r2Steps = r2.actions || [];
-                const r1Cmds = new Set(steps.map(s => s.cmd));
-                const newR2Steps = r2Steps.filter(s => s && s.cmd && !r1Cmds.has(s.cmd));
-
-                if (newR2Steps.length > 0) {
-                    dbg('Round2', `New actions: ${JSON.stringify(newR2Steps)} (R1 had: ${JSON.stringify([...r1Cmds])})`);
-                    await ctx.reply(r2Reply);
-                    // 執行 Round 2 的新指令
-                    const r2Observation = await controller.runSequence(ctx, newR2Steps, 0, tainted);
-                    // Round 3: 只回覆，絕不再解析 action（硬上限 2 輪）
-                    if (r2Observation) {
-                        await ctx.sendTyping();
-                        const r3Prompt = loadFeedbackPrompt('ROUND3_FINAL', { OBSERVATION: r2Observation }) || `[Final Report]\n${r2Observation}\nSummarize in Traditional Chinese.`;
-                        const r3Response = await brain.sendMessage(r3Prompt);
-                        const r3 = TriStreamParser.parse(r3Response);
-                        if (r3.memory) await brain.memorize(r3.memory, { type: 'fact', timestamp: Date.now() });
-                        dbg('Round3', `Final reply: ${(r3.reply || r3Response).substring(0, 80)}`);
-                        await ctx.reply(r3.reply || r3Response);
-                    }
-                } else {
-                    if (r2Steps.length > 0) {
-                        dbg('Round2', `Blocked duplicate actions: ${JSON.stringify(r2Steps.map(s=>s.cmd))}`);
-                    } else {
-                        dbg('Round2', `Reply only: ${r2Reply.substring(0, 80)}`);
-                    }
-                    await ctx.reply(r2Reply);
-                }
-            }
+            // [ReAct Loop] 取代原本硬編碼的 R1→R2→R3
+            await runReActLoop(ctx, steps, tainted, autonomy);
         } else if (!chatPart) {
-            // 如果既沒有 Action 也沒有 chatPart (極端狀況)，回傳原始訊息避免空窗
+            // 既沒有 Action 也沒有 chatPart，回傳原始訊息避免空窗
             await ctx.reply(raw);
         }
     } catch (e) { console.error(e); await ctx.reply(`❌ 錯誤: ${e.message}`); }
 
-    // === 閉環：對話摘要寫入 journal，讓 Autonomy 感知互動 ===
+    // === 閉環：對話摘要寫入 journal ===
+    // 有 loop 的情況由 runReActLoop → writeLoopJournal 負責
+    // 純對話（無 action）才在這裡記錄
     try {
         if (ctx.isAdmin && ctx.text && autonomy) {
-            autonomy.appendJournal({
-                action: 'conversation',
-                preview: ctx.text.substring(0, 80)
-            });
+            // 只記錄純對話（steps=0），有 loop 已由 writeLoopJournal 寫入
+            if (steps.length === 0) {
+                autonomy.appendJournal({
+                    action: 'conversation',
+                    preview: ctx.text.substring(0, 80)
+                });
+            }
         }
     } catch (_) { /* 靜默失敗 */ }
 }
@@ -453,28 +515,54 @@ async function handleUnifiedCallback(ctx, actionData) {
             if (ctx.platform === 'telegram') await ctx.instance.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: ctx.chatId, message_id: ctx.event.message.message_id });
             else await ctx.event.update({ components: [] });
         } catch (e) { }
+
+        // ReAct Loop — 繼續執行
+        if (action === 'REACT_CONTINUE') {
+            if (!task || task.type !== 'REACT_CONTINUE') return ctx.reply('⚠️ 任務已失效');
+            pendingTasks.delete(taskId);
+            task.loopState.stepCount = 0; // 重置計數，再跑 MAX_AUTO_STEPS 步
+            await ctx.reply('▶️ 繼續執行中...');
+            await runReActLoop(ctx, task.steps || [], task.tainted, autonomy, task.loopState);
+            return;
+        }
+
+        // ReAct Loop — 停止並彙整
+        if (action === 'REACT_STOP') {
+            if (!task) return ctx.reply('⚠️ 任務已失效');
+            pendingTasks.delete(taskId);
+            writeLoopJournal(task.loopState, autonomy);
+            const summary = (task.loopState.stepLog || []).map(s => (s.ok ? '✅' : '❌') + ' ' + s.cmd).join('\n') || '(無執行記錄)';
+            await ctx.reply('⏹️ 已停止。執行摘要：\n' + summary);
+            return;
+        }
+
+        // ReAct Loop — DANGER 審批後繼續
+        if (action === 'APPROVE' && task && task.type === 'REACT_DANGER_RESUME') {
+            pendingTasks.delete(taskId);
+            await ctx.reply('✅ 授權通過，繼續執行...');
+            await ctx.sendTyping();
+            await runReActLoop(ctx, task.steps, task.tainted, autonomy, task.loopState);
+            return;
+        }
+
         if (!task) return ctx.reply('⚠️ 任務已失效');
         if (action === 'DENY') {
             pendingTasks.delete(taskId);
             await ctx.reply('🛡️ 操作駁回');
         } else if (action === 'APPROVE') {
+            // 舊式單步審批（非 ReAct）
             const { steps, nextIndex, tainted } = task;
             pendingTasks.delete(taskId);
-            await ctx.reply("✅ 授權通過，執行中...");
+            await ctx.reply('✅ 授權通過，執行中...');
             await ctx.sendTyping();
-
-            // 從被批准的步驟開始繼續執行（security assess 會對 whitelist 指令直接放行）
             const observation = await controller.runSequence(ctx, steps, nextIndex, tainted || false, nextIndex);
-
             if (observation) {
                 const feedbackPrompt = loadFeedbackPrompt('APPROVED_FEEDBACK', { OBSERVATION: observation }) || `[Approved]\n${observation}\nReport in Traditional Chinese.`;
                 const finalResponse = await brain.sendMessage(feedbackPrompt);
-                // Round 2 只取回覆，不再解析 action（防止迴圈）
                 const r2 = TriStreamParser.parse(finalResponse);
                 if (r2.memory) await brain.memorize(r2.memory, { type: 'fact', timestamp: Date.now() });
-                const r2Reply = r2.reply || finalResponse;
-                dbg('Round2-CB', `Reply only: ${r2Reply.substring(0, 80)}`);
-                await ctx.reply(r2Reply);
+                const r2Reply = r2.reply || (r2.hasStructuredTags ? null : finalResponse);
+                if (r2Reply) await ctx.reply(r2Reply);
             }
         }
     }

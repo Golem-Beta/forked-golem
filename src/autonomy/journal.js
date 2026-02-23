@@ -92,6 +92,14 @@ class JournalManager {
         }
     }
 
+    /**
+     * ReAct Loop 結束時，寫入 loop-level 執行摘要
+     * entry: { action, loop_steps, loop_success, loop_failed, step_summary, skipped_cmds, outcome, duration_ms }
+     */
+    appendLoopResult(entry) {
+        this.append(entry);
+    }
+
     append(entry) {
         try {
             const memDir = path.dirname(this.journalPath);
