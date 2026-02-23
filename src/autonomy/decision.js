@@ -164,6 +164,7 @@ class DecisionEngine {
             maxTokens: opts.maxOutputTokens || 1024,
             temperature: opts.temperature || 0.8,
             tools: opts.tools,
+            requireJson: opts.requireJson || false,
         });
         return result.text;
     }
