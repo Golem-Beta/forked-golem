@@ -99,7 +99,7 @@ class ModelRouter {
      * @param {number} [opts.temperature]
      * @param {boolean} [opts.requireJson]
      * @param {string} [opts.systemInstruction]
-     * @param {Array}  [opts.tools] - Gemini tools（如 google_search）
+     * @param {Array}  [opts.tools] - Gemini tools（如 googleSearch）
      * @param {object} [opts.inlineData] - 多模態資料
      * @param {Array}  [opts.chatHistory] - Gemini 對話歷史（contents 格式）
      */

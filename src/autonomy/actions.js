@@ -155,7 +155,7 @@ class ActionRunner {
 
             const text = await this.decision.callLLM(searchPrompt, {
                 maxOutputTokens: 1024, temperature: 0.5, intent: 'analysis',
-                tools: [{ google_search: {} }]
+                tools: [{ googleSearch: {} }]
             });
 
             const reflectionFile = this.decision.saveReflection('web_research', text);

@@ -98,7 +98,7 @@ class GolemBrain {
             maxTokens: 8192,
             temperature: 0.7,
             systemInstruction: this.systemInstruction,
-            tools: [{ google_search: {} }],
+            tools: [{ googleSearch: {} }],
             chatHistory: this.chatHistory,
         });
 

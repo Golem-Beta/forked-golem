@@ -16,7 +16,7 @@ class ProviderAdapter {
      * @param {number} [params.temperature=0.7]
      * @param {boolean} [params.requireJson=false]
      * @param {string} [params.systemInstruction] - system prompt（獨立傳遞）
-     * @param {Array}  [params.tools] - tool definitions（如 google_search）
+     * @param {Array}  [params.tools] - tool definitions（如 googleSearch）
      * @param {Array}  [params.inlineData] - multimodal data（圖片等）
      * @returns {Promise<{ text: string, usage: { inputTokens: number, outputTokens: number } }>}
      */
