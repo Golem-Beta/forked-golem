@@ -12,7 +12,7 @@ const path = require('path');
 const JournalManager = require('./journal');
 const Notifier = require('./notify');
 const DecisionEngine = require('./decision');
-const ActionRunner = require('./actions');
+const ActionRunner = require('./actions/index');
 
 class AutonomyManager {
     /**

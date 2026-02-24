@@ -1,0 +1,41 @@
+/**
+ * @module reflect
+ * @role Self-reflection 協調層 — 串連 Phase 1（診斷）和 Phase 2（patch）
+ * @when-to-modify 調整 heap 監控、journalContext 建構方式、或兩階段之間的協調邏輯時
+ */
+const ReflectDiag = require('./reflect-diag');
+const ReflectPatch = require('./reflect-patch');
+
+class ReflectAction {
+    constructor(deps) {
+        this.journal = deps.journal;
+        this.diag = new ReflectDiag(deps);
+        this.patch = new ReflectPatch(deps);
+    }
+
+    async performSelfReflection(triggerCtx = null) {
+        const _heapReflect = process.memoryUsage();
+        console.log(`🧠 [Heap] self_reflection 開始: RSS=${(_heapReflect.rss/1024/1024).toFixed(0)}MB, Heap=${(_heapReflect.heapUsed/1024/1024).toFixed(0)}MB`);
+        try {
+            // 建構共用 journalContext（phase1 + phase2 都需要）
+            const recentJournal = this.journal.readRecent(10);
+            let journalContext = '(無)';
+            if (recentJournal.length > 0) {
+                journalContext = recentJournal.map(j => {
+                    const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
+                    return '[' + time + '] ' + j.action + ': ' + (j.outcome || j.description || j.topic || '');
+                }).join('\n');
+            }
+
+            const result = await this.diag.run(journalContext, triggerCtx);
+            if (!result) return;
+
+            await this.patch.run(result.diag, result.diagFile, journalContext, triggerCtx);
+        } catch (e) {
+            console.error('[錯誤] 自主進化失敗:', e.message || e);
+            this.journal.append({ action: 'self_reflection', outcome: 'error', error: e.message });
+        }
+    }
+}
+
+module.exports = ReflectAction;
