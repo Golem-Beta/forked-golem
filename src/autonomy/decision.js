@@ -87,6 +87,13 @@ class DecisionEngine {
         };
     }
 
+    _parseJSDocHeader(content) {
+        const lines = content.split('\n').slice(0, 20).join('\n');
+        const role = (lines.match(/@role\s+(.+)/) || [])[1]?.trim() || null;
+        const whenToModify = (lines.match(/@when-to-modify\s+(.+)/) || [])[1]?.trim() || null;
+        return { role, whenToModify };
+    }
+
     getProjectFileList() {
         try {
             const cwd = process.cwd();
@@ -103,7 +110,13 @@ class DecisionEngine {
                         try {
                             const content = fs.readFileSync(path.join(dir, e.name), 'utf-8');
                             const lines = content.split('\n').length;
-                            files.push(rel + ' (' + lines + ' lines)');
+                            const entry = [rel + ' (' + lines + ' lines)'];
+                            if (e.name.endsWith('.js')) {
+                                const { role, whenToModify } = this._parseJSDocHeader(content);
+                                if (role) entry.push('  @role: ' + role);
+                                if (whenToModify) entry.push('  @when-to-modify: ' + whenToModify);
+                            }
+                            files.push(entry.join('\n'));
                         } catch { files.push(rel + ' (unreadable)'); }
                     }
                 }
