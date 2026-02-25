@@ -89,6 +89,14 @@ class GeminiAdapter extends ProviderAdapter {
                     result = await geminiModel.generateContent(prompt);
                 }
 
+                const finishReason = result.response.candidates?.[0]?.finishReason;
+                if (finishReason === 'MAX_TOKENS') {
+                    throw Object.assign(
+                        new Error(`[Gemini] MAX_TOKENS: response truncated by ${model}`),
+                        { providerError: 'error' }
+                    );
+                }
+
                 const text = result.response.text().trim();
                 const usage = result.response.usageMetadata || {};
 
