@@ -98,6 +98,8 @@ class Notifier {
             console.error('[Notifier] send FAILED:', e); // Log full error object for better diagnosis
             return false;
         }
+        // If we reach here, it means no valid notification channel (TG or Discord) was configured or had an admin ID.
+        console.error('[Notifier] send FAILED: No valid notification channel (Telegram or Discord) with admin ID configured.');
         return false;
     }
 

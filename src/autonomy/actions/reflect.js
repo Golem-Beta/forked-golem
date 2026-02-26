@@ -35,7 +35,7 @@ class ReflectAction {
             console.error('[錯誤] 自主進化失敗:', e.message || e, e.stack);
             this.journal.append({
                 action: 'self_reflection',
-                outcome: 'error',
+                outcome: e.message && e.message.includes('parse_failed') ? 'parse_failed' : 'error',
                 error: e.message,
                 details: {
                     stack: e.stack,
