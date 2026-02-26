@@ -579,10 +579,32 @@ async function executeDeploy(ctx) {
         global.pendingPatch = null;
         memory.recordSuccess();
         autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'deployed', target: targetName, description: patchDesc });
+        // git add → commit → push (GIT_MASTER SOP)
+        try {
+            execSync(`git -C "${process.cwd()}" add "${targetPath}"`);
+            execSync(`git -C "${process.cwd()}" commit -m "feat(self_reflection): ${patchDesc.substring(0, 60)}"`);
+            execSync(`git -C "${process.cwd()}" push`, { timeout: 15000 });
+            console.log('[Deploy] git commit+push OK');
+        } catch (gitErr) {
+            console.error('[Deploy] git failed:', gitErr.message);
+        }
+
         await ctx.reply(`🚀 ${targetName} 升級成功！正在重啟...`);
-        const subprocess = spawn(process.argv[0], process.argv.slice(1), { detached: true, stdio: 'ignore' });
-        subprocess.unref();
-        process.exit(0);
+
+        // kill fbterm → getty autologin → .zprofile → 回到 fb0
+        setTimeout(() => {
+            try {
+                const fbtermPid = execSync('pgrep -x fbterm').toString().trim();
+                if (fbtermPid) {
+                    console.log('[Deploy] killing fbterm PID:', fbtermPid);
+                    execSync(`kill ${fbtermPid}`);
+                } else {
+                    process.exit(0);
+                }
+            } catch (e) {
+                process.exit(0);
+            }
+        }, 1500);
     } catch (e) { await ctx.reply(`❌ 部署失敗: ${e.message}`); }
 }
 
