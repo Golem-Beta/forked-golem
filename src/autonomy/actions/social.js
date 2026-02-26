@@ -41,8 +41,17 @@ class SocialAction {
             return;
         }
 
-        console.log('[Social] LLM generated ' + msg.length + ' chars, sending...');
-        const sent = await this.notifier.sendToAdmin(msg);
+        // 過濾 TriStream 格式（LLM 偶爾輸出三流 tag，需取 reply 部分）
+        const TriStreamParser = require('../../parsers');
+        const parsed = TriStreamParser.parse(msg);
+        const finalMsg = parsed.hasStructuredTags ? parsed.reply : msg;
+        if (!finalMsg || finalMsg.trim().length === 0) {
+            console.warn('[Social] TriStream parsed but reply empty (raw tag only), skip send');
+            this.journal.append({ action: 'spontaneous_chat', context: contextNote, outcome: 'empty_llm_response' });
+            return;
+        }
+        console.log('[Social] LLM generated ' + finalMsg.length + ' chars, sending...');
+        const sent = await this.notifier.sendToAdmin(finalMsg);
 
         this.journal.append({
             action: 'spontaneous_chat',
