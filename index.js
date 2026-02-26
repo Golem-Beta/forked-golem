@@ -591,20 +591,9 @@ async function executeDeploy(ctx) {
 
         await ctx.reply(`🚀 ${targetName} 升級成功！正在重啟...`);
 
-        // kill fbterm → getty autologin → .zprofile → 回到 fb0
-        setTimeout(() => {
-            try {
-                const fbtermPid = execSync('pgrep -x fbterm').toString().trim();
-                if (fbtermPid) {
-                    console.log('[Deploy] killing fbterm PID:', fbtermPid);
-                    execSync(`kill ${fbtermPid}`);
-                } else {
-                    process.exit(0);
-                }
-            } catch (e) {
-                process.exit(0);
-            }
-        }, 1500);
+        // process.exit(0) → fbterm 內 npm start 返回 → fbterm 退出
+        // → getty tty1 autologin → .zprofile → fbterm → npm start dashboard
+        setTimeout(() => process.exit(0), 1500);
     } catch (e) { await ctx.reply(`❌ 部署失敗: ${e.message}`); }
 }
 
