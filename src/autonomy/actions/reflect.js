@@ -32,8 +32,17 @@ class ReflectAction {
 
             await this.patch.run(result.diag, result.diagFile, journalContext, triggerCtx);
         } catch (e) {
-            console.error('[錯誤] 自主進化失敗:', e.message || e);
-            this.journal.append({ action: 'self_reflection', outcome: 'error', error: e.message });
+            console.error('[錯誤] 自主進化失敗:', e.message || e, e.stack);
+            this.journal.append({
+                action: 'self_reflection',
+                outcome: 'error',
+                error: e.message,
+                details: {
+                    stack: e.stack,
+                    journalContext: journalContext,
+                    triggerContext: triggerCtx
+                }
+            });
         }
     }
 }

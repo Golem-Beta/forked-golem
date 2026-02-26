@@ -95,7 +95,7 @@ class Notifier {
                 await user.send(text.slice(0, 2000));
             }
         } catch (e) {
-            console.error('[Notifier] send FAILED:', e.message);
+            console.error('[Notifier] send FAILED:', e); // Log full error object for better diagnosis
             return false;
         }
         return false;
