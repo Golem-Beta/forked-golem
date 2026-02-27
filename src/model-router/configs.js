@@ -31,13 +31,13 @@ const PROVIDER_CONFIGS = {
         multiKey: true,
         rpdLimits: {
             'llama-3.3-70b-versatile':     1000,
-            'moonshotai/kimi-k2-instruct': 1000,
+            'moonshotai/kimi-k2-instruct-0905': 1000,
             'qwen/qwen3-32b':              1000,
         },
         defaultRpm: 30,
         modelCapabilities: {
             'llama-3.3-70b-versatile':     ['tristream'],  // benchmark 8/8 通過
-            'moonshotai/kimi-k2-instruct': ['long_context'],
+            'moonshotai/kimi-k2-instruct-0905': ['long_context'],
             'qwen/qwen3-32b':              [],
         },
     },

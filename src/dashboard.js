@@ -491,6 +491,19 @@ class DashboardPlugin {
             if (this.providerBox && this._modelRouter) {
                 try {
                     const mr = this._modelRouter;
+                    const abbreviateModel = (m) => {
+                        if (m === 'gemini-2.5-flash')           return 'flash';
+                        if (m === 'gemini-3-flash-preview')     return '3flash';
+                        if (m === 'gemini-2.5-flash-lite')      return 'lite';
+                        if (m === 'llama-3.3-70b-versatile')    return 'llama';
+                        if (m.includes('kimi-k2-instruct'))     return 'kimi';
+                        if (m === 'qwen/qwen3-32b')             return 'qwen32b';
+                        if (m.includes('llama-3.3-70b'))        return 'llama';
+                        if (m.includes('kimi-k2.5'))            return 'kimi';
+                        if (m.includes('minimax-m2.1'))         return 'm2.1';
+                        if (m.includes('qwen3-coder'))          return 'qwen3';
+                        return m.split('/').pop().split(':')[0].slice(-8);
+                    };
                     const pLines = [];
                     for (const [name, h] of mr.health.providers) {
                         if (!h.hasKey) continue;
@@ -517,7 +530,24 @@ class DashboardPlugin {
                             }
                             keyStatus = parts.join(' ');
                         }
-                        const rpdStr = h.rpd.limit === Infinity ? '~' : `${h.rpd.used}/${h.rpd.limit}`;
+                        // 多 model provider 展開 per-model RPD，單 model 用 aggregate
+                        const isMultiModel = Object.keys(h.rpdLimits || {}).length > 1;
+                        let rpdStr;
+                        if (isMultiModel) {
+                            const modelParts = Object.keys(h.rpdLimits).map(model => {
+                                const used     = h.modelUsed?.[model] ?? 0;
+                                const limit    = h.rpdLimits[model];
+                                const limitStr = limit === Infinity ? '∞' : String(limit);
+                                const abbr     = abbreviateModel(model);
+                                const pct      = limit === Infinity ? 0 : used / limit;
+                                const color    = pct >= 0.8 ? '{yellow-fg}' : '';
+                                const colorEnd = pct >= 0.8 ? '{/}' : '';
+                                return `${color}${abbr} ${used}/${limitStr}${colorEnd}`;
+                            });
+                            rpdStr = modelParts.join('  ');
+                        } else {
+                            rpdStr = h.rpd.limit === Infinity ? '~' : `${h.rpd.used}/${h.rpd.limit}`;
+                        }
                         // provider-level 燈號
                         let pIcon = '{green-fg}●{/}';
                         if (h.reliability === 0) pIcon = '{red-fg}✗{/}';
@@ -527,9 +557,10 @@ class DashboardPlugin {
                         let extraInfo = '';
                         if (name === 'deepseek') {
                             const bal = mr.health.getDeepSeekBalance();
-                            if (bal) extraInfo = ' | \x24' + bal.total.toFixed(2);
+                            if (bal) extraInfo = ' │ \x24' + bal.total.toFixed(2);
                         }
-                        pLines.push(`${pIcon} ${name}: ${keyStatus} | RPD ${rpdStr}${extraInfo}`);
+                        const rpdLabel = isMultiModel ? '' : 'RPD ';
+                        pLines.push(`${pIcon} ${name}: ${keyStatus} │ ${rpdLabel}${rpdStr}${extraInfo}`);
                     }
                     const snap = pLines.join('\n');
                     if (snap !== this._lastProviderSnap) {
