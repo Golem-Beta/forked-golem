@@ -1,7 +1,7 @@
 # Forked-Golem TODO 統整
 
 > 從過去所有對話中彙整，按優先級排序
-> 最後更新：2026-02-27（session 8）
+> 最後更新：2026-02-27（session 9）
 
 ---
 
@@ -62,6 +62,11 @@
   - ~~新增 failure-tracker.js：失敗 ≥3 次同 key → sendToAdmin 回報 + 24h 冷卻~~
   - ~~所有 perform*() 統一回傳 ActionResult~~
   - ~~FailureTracker.getSummary() 備妥，待注入 decision prompt~~
+- ~~三層記憶召回系統 v9.9.8 (2026-02-27, session 9)~~
+  - ~~新建 src/memory/index.js：hot(FlexSearch) + warm(synthesis衰減) + cold(reflections關鍵字索引)~~
+  - ~~decision/reflect-diag/explore/digest 全部接入 memory.recall()~~
+  - ~~self_reflection 部署後自動回寫 synthesis + 更新冷層索引（知-行閉環）~~
+  - ~~model-router cerebras/openrouter priority: 0.1（benchmark 失敗者降優先級）~~
 
 ---
 
@@ -144,6 +149,7 @@
 | v9.10.0 | self_reflection 強化 (Level 1) | 📋 規劃中 |
 | v9.10.x | Unified ActionResult + FailureTracker (#3+#4) | ✅ |
 | v9.9.4–v9.9.6 | Gemini SDK 遷移 + Grounding Pipeline 完整實作 | ✅ |
+| v9.9.8 | 三層記憶召回系統 + self_reflection 閉環回寫 | ✅ tagged |
 
 - ~~Gemini SDK 遷移 (@google/generative-ai EOL → @google/genai v1.43.0) (v9.9.4)~~
 - ~~Grounding Pipeline 修復 (v9.9.4–v9.9.6)~~
