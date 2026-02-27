@@ -1,6 +1,6 @@
 {
   "name": "project-golem",
-  "version": "9.9.8",
+  "version": "9.10.0",
   "description": "Project Golem v8.5 (Neuro-Link Edition) - CDP Dual-Track Monitoring & Auto-Discovery",
   "main": "index.js",
   "scripts": {
