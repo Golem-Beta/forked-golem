@@ -99,21 +99,21 @@ class DashboardPlugin {
         });
 
         // [右上] 狀態面板（含日期時間）
-        this.statusBox = this.grid.set(0, 6, 2, 6, blessed.box, {
+        this.statusBox = this.grid.set(0, 6, 3, 6, blessed.box, {
             label: '🧠 引擎狀態',
             tags: true,
             style: { border: { fg: 'cyan' } }
         });
 
         // [右中上] API Provider 狀態
-        this.providerBox = this.grid.set(2, 6, 3, 6, blessed.box, {
+        this.providerBox = this.grid.set(3, 6, 3, 6, blessed.box, {
             label: '🚀 API Providers',
             tags: true,
             style: { fg: 'cyan' }
         });
 
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(5, 6, 3, 6, contrib.log, {
+        this.radarLog = this.grid.set(6, 6, 2, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
@@ -480,7 +480,7 @@ class DashboardPlugin {
 
             // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
-                this.statusBox.setContent(`{bold}${dateStr}  ${timeStr}{/bold}\n模式: ${mode} | RAM: ${memUsage.toFixed(0)}MB | Up: ${hours}h ${minutes}m\n⏰ 醒來: ${this._formatCountdown()}`);
+                this.statusBox.setContent(`{bold}${dateStr}  ${timeStr}{/bold}\n模式: ${mode}\nRAM: ${memUsage.toFixed(0)}MB | Up: ${hours}h ${minutes}m\n⏰ 醒來: ${this._formatCountdown()}`);
             }
 
             // providerBox：API Provider 即時狀態（獨立面板）
