@@ -16,12 +16,13 @@ class DecisionEngine {
      * @param {object} deps.config - CONFIG 物件
      * @param {Function} deps.loadPrompt - prompt 載入函式
      */
-    constructor({ journal, brain, config, loadPrompt, notifier }) {
+    constructor({ journal, brain, config, loadPrompt, notifier, memory }) {
         this.journal = journal;
         this.brain = brain;
         this.config = config;
         this.loadPrompt = loadPrompt;
         this.notifier = notifier;  // 用於讀取 quietQueue
+        this.memory = memory || null;  // ExperienceMemoryLayer（三層記憶召回）
         this.utils = new DecisionUtils();
     }
 
@@ -212,6 +213,23 @@ class DecisionEngine {
         const statsSection = '【全量 Journal 統計】\n' + this.journal.buildStats();
         const memorySection = memorySummary ? '【老哥最近的互動記憶】\n' + memorySummary : '';
 
+        // 三層記憶召回（warm + cold）
+        let warmSection = '';
+        let coldSection = '';
+        try {
+            const recentTopics3 = journal.slice(-3)
+                .map(j => [j.topic, j.action, j.outcome].filter(Boolean).join(' '))
+                .join(' ');
+            const soulGoals3 = soul.match(/(?:目標|方向|當前|長期|終極|短期|下一階段|研究|探索|改進)[：:]\s*(.+)/g);
+            const soulKeywords3 = soulGoals3 ? soulGoals3.map(g => g.replace(/^[^：:]+[：:]\s*/, '')).join(' ') : '';
+            const memQuery = (recentTopics3 + ' ' + soulKeywords3).trim();
+            if (this.memory && memQuery) {
+                const { warm, cold } = this.memory.recall(memQuery, { hotLimit: 0, warmLimit: 2, coldLimit: 3 });
+                warmSection = warm ? '【近期歸納洞察】\n' + warm : '';
+                coldSection = cold ? '【相關探索分析】\n' + cold : '';
+            }
+        } catch (e) { /* 三層記憶召回失敗不影響決策 */ }
+
         // BM25 智慧召回
         let journalSearchSection = '';
         try {
@@ -246,6 +264,8 @@ class DecisionEngine {
             DIVERSITY_SECTION: diversitySection,
             STATS_SECTION: statsSection,
             JOURNAL_SEARCH_SECTION: journalSearchSection,
+            WARM_SECTION: warmSection,
+            COLD_SECTION: coldSection,
             MEMORY_SECTION: memorySection,
             TIME_STR: timeStr,
             ACTION_LIST: actionList,

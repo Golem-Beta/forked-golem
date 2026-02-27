@@ -6,6 +6,8 @@
 【最近經驗】
 {{RECENT_JOURNAL}}
 
+{{MEMORY_CONTEXT}}
+
 【決策理由】
 {{DECISION_REASON}}
 

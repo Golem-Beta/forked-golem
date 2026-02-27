@@ -8,12 +8,13 @@ const path = require('path');
 const https = require('https');
 
 class ExploreAction {
-    constructor({ journal, notifier, decision, config, loadPrompt }) {
+    constructor({ journal, notifier, decision, config, loadPrompt, memoryLayer }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
         this.config = config;
         this.loadPrompt = loadPrompt;
+        this.memory = memoryLayer || null; // 三層記憶召回
     }
 
     _getExploredRepos() {
@@ -36,10 +37,23 @@ class ExploreAction {
             const soul = this.decision.readSoul();
             const recentJournal = this.journal.readRecent(5);
 
+            // 三層記憶：避免重複研究已知主題
+            let memoryContextSection = '';
+            try {
+                if (this.memory) {
+                    const soulGoals = soul.substring(0, 200);
+                    const recentTopics = recentJournal.map(j => j.topic || j.action).filter(Boolean).join(' ');
+                    const { warm, cold } = this.memory.recall(soulGoals + ' ' + recentTopics, { hotLimit: 0, warmLimit: 1, coldLimit: 2 });
+                    const memCtx = [warm, cold].filter(Boolean).join('\n');
+                    memoryContextSection = memCtx ? '【已知相關知識（避免重複研究）】\n' + memCtx : '';
+                }
+            } catch (e) { /* 記憶召回失敗不影響主流程 */ }
+
             const topicPrompt = this.loadPrompt('web-research-topic.md', {
                 SOUL: soul,
                 RECENT_JOURNAL: JSON.stringify(recentJournal.slice(-5), null, 0),
-                DECISION_REASON: decisionReason
+                DECISION_REASON: decisionReason,
+                MEMORY_CONTEXT: memoryContextSection
             }) || `你是 Golem。根據你的目標和經驗，你決定要上網研究一個主題。
 決策理由：${decisionReason}
 用 JSON 回覆：{"query": "搜尋關鍵字（英文）", "purpose": "為什麼要研究這個"}`;
@@ -168,13 +182,25 @@ class ExploreAction {
             }
 
             const soul = this.decision.readSoul();
+
+            // 三層記憶：取相關已知知識供 LLM 參考
+            let knownSection = '';
+            try {
+                if (this.memory) {
+                    const repoQuery = [newRepo.description, newRepo.language, topic].filter(Boolean).join(' ');
+                    const { cold } = this.memory.recall(repoQuery, { hotLimit: 0, warmLimit: 0, coldLimit: 2 });
+                    knownSection = cold ? '【我已知的相關知識】\n' + cold : '';
+                }
+            } catch (e) { /* 記憶召回失敗不影響分析 */ }
+
             const analysisPrompt = this.loadPrompt('github-analysis.md', {
                 SOUL: soul,
                 REPO_FULLNAME: newRepo.full_name,
                 STARS: String(newRepo.stargazers_count),
                 DESCRIPTION: newRepo.description || '(無)',
                 LANGUAGE: newRepo.language || '(未標示)',
-                README_TEXT: readmeText
+                README_TEXT: readmeText,
+                KNOWN_INSIGHTS: knownSection
             }) || `${soul}\nGitHub 探索：${newRepo.full_name}，用繁體中文寫 200 字心得。`;
 
             const analysis = (await this.decision.callLLM(analysisPrompt, { temperature: 0.7, intent: 'analysis' })).text;

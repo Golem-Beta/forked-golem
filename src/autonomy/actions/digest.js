@@ -7,10 +7,11 @@ const fs = require('fs');
 const path = require('path');
 
 class DigestAction {
-    constructor({ journal, notifier, decision }) {
+    constructor({ journal, notifier, decision, memoryLayer }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
+        this.memory = memoryLayer || null; // 三層記憶召回
     }
 
     async performDigest() {
@@ -40,9 +41,23 @@ class DigestAction {
             } catch {}
 
             const synthDir = path.join(process.cwd(), 'memory', 'synthesis');
-            let pastSynthTitles = [];
-            if (fs.existsSync(synthDir)) {
-                pastSynthTitles = fs.readdirSync(synthDir).filter(f => f.endsWith('.md')).sort().slice(-10);
+            // 溫層：讀取過去 synthesis 摘要內容（而非只有標題）
+            let pastSynthContent = '';
+            try {
+                if (this.memory) {
+                    const { warm } = this.memory.recall('', { hotLimit: 0, warmLimit: 5, coldLimit: 0 });
+                    pastSynthContent = warm || '';
+                } else if (fs.existsSync(synthDir)) {
+                    // fallback：無 memoryLayer 時退回舊行為（只取標題）
+                    const titles = fs.readdirSync(synthDir).filter(f => f.endsWith('.md')).sort().slice(-10);
+                    pastSynthContent = titles.join('\n');
+                }
+            } catch (e) {
+                // fallback：失敗時退回舊行為
+                if (fs.existsSync(synthDir)) {
+                    const titles = fs.readdirSync(synthDir).filter(f => f.endsWith('.md')).sort().slice(-10);
+                    pastSynthContent = titles.join('\n');
+                }
             }
 
             const prompt = [
@@ -64,8 +79,8 @@ class DigestAction {
                 '', '【最近的反思報告摘要】',
                 recentReflections.map(r => '--- ' + r.file + ' ---\n' + r.preview).join('\n\n'),
                 '',
-                pastSynthTitles.length > 0
-                    ? '【已產出過的消化歸納】\n' + pastSynthTitles.join('\n') + '\n請避免重複這些主題，找新的角度。'
+                pastSynthContent
+                    ? '【過去歸納摘要（找新角度，不要重複核心主題）】\n' + pastSynthContent
                     : '這是你第一次做消化歸納。',
                 '', '【任務】',
                 '根據以上素材，產出一份「消化歸納」文件。你可以自由選擇主題和形式。',

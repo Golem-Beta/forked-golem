@@ -14,6 +14,7 @@ const Notifier = require('./notify');
 const DecisionEngine = require('./decision');
 const ActionRunner = require('./actions/index');
 const { FailureTracker } = require('./failure-tracker');
+const ExperienceMemoryLayer = require('../memory/index');
 
 class AutonomyManager {
     /**
@@ -22,6 +23,7 @@ class AutonomyManager {
     constructor(deps) {
         // 組裝子物件
         this.journal = new JournalManager();
+        this.memoryLayer = new ExperienceMemoryLayer({ journal: this.journal });
 
         this.notifier = new Notifier({
             tgBot: deps.tgBot,
@@ -37,6 +39,7 @@ class AutonomyManager {
             config: deps.CONFIG,
             loadPrompt: deps.loadPrompt,
             notifier: this.notifier,  // 讓 decision 能讀 quietQueue
+            memory: this.memoryLayer, // 三層記憶召回
         });
 
         this.actions = new ActionRunner({
@@ -45,7 +48,8 @@ class AutonomyManager {
             decision: this.decision,
             brain: deps.brain,
             config: deps.CONFIG,
-            memory: deps.memory,
+            memory: deps.memory,       // 舊 ExperienceMemory（供 reflect-patch 追蹤 proposal）
+            memoryLayer: this.memoryLayer, // 新三層記憶召回
             skills: deps.skills,
             loadPrompt: deps.loadPrompt,
             PatchManager: deps.PatchManager,

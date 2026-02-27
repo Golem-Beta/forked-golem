@@ -5,11 +5,12 @@
  */
 
 class ReflectDiag {
-    constructor({ journal, notifier, decision, memory }) {
+    constructor({ journal, notifier, decision, memory, memoryLayer }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
-        this.memory = memory;
+        this.memory = memory;              // 舊 ExperienceMemory（getAdvice 用）
+        this.memoryLayer = memoryLayer || null; // 新三層記憶召回
     }
 
     /**
@@ -19,7 +20,7 @@ class ReflectDiag {
      * @returns {{ diag: object, diagFile: string } | null} 解析成功返回診斷物件，否則 null
      */
     async run(journalContext, triggerCtx) {
-        const advice = this.memory.getAdvice();
+        const advice = this.memory ? this.memory.getAdvice() : '';
         const soul = this.decision.readSoul();
         const fileList = this.decision.getProjectFileList();
 
@@ -33,12 +34,26 @@ class ReflectDiag {
                 return '[' + time + '] ' + (j.mode || 'phase1') + ' outcome=' + detail;
             }).join('\n') || '(無歷史記錄)';
 
+        // 三層記憶：取過去 github/web 探索的相關洞察（Phase 1 尚無 diag，以 soul + 近期 journal 作查詢）
+        let coldInsights = '';
+        let warmInsights = '';
+        try {
+            const diagQuery = (soul.substring(0, 200) + ' ' + journalContext.substring(0, 200)).trim();
+            if (this.memoryLayer && diagQuery) {
+                const { warm, cold } = this.memoryLayer.recall(diagQuery, { hotLimit: 0, warmLimit: 2, coldLimit: 3 });
+                warmInsights = warm || '';
+                coldInsights = cold || '';
+            }
+        } catch (e) { /* 記憶召回失敗不影響診斷 */ }
+
         const diagPrompt = [
             '你是 Golem，一個自律型 AI Agent。你正在做自我反省。',
             '', '【靈魂文件】', soul,
             '', '【最近經驗】', journalContext,
             '', '【歷史 reflection 結果（最近 5 次）】', recentReflections,
             '', '【老哥的建議】', advice || '(無)',
+            '', '【過去探索的相關洞察（冷層召回）】', coldInsights || '(無)',
+            '', '【近期歸納文件摘要（溫層）】', warmInsights || '(無)',
             '', '【專案檔案清單（含行數）】', fileList,
             '', '【要求】',
             '根據你最近的經驗（特別是失敗、錯誤、或可改進的地方），判斷：',
