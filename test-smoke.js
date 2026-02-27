@@ -109,6 +109,128 @@ test('ResponseParser.extractJson (static)', () => assert(typeof m['parsers'].Res
 test('PatchManager.verify (static)', () => assert(typeof m['upgrader'].PatchManager.verify === 'function'));
 test('PatchManager.createTestClone (static)', () => assert(typeof m['upgrader'].PatchManager.createTestClone === 'function'));
 
+// === Phase 4: 子模組 require 可達性 ===
+console.log('\n[Phase 4] 子模組 require 可達性');
+const s = {};
+
+const autonomySubmodules = [
+    ['decision',               'src/autonomy/decision'],
+    ['decision-utils',         'src/autonomy/decision-utils'],
+    ['notify',                 'src/autonomy/notify'],
+    ['journal',                'src/autonomy/journal'],
+    ['pending-patches',        'src/autonomy/pending-patches'],
+    ['actions/index',          'src/autonomy/actions/index'],
+    ['actions/reflect',        'src/autonomy/actions/reflect'],
+    ['actions/reflect-diag',   'src/autonomy/actions/reflect-diag'],
+    ['actions/reflect-patch',  'src/autonomy/actions/reflect-patch'],
+    ['actions/explore',        'src/autonomy/actions/explore'],
+    ['actions/digest',         'src/autonomy/actions/digest'],
+    ['actions/social',         'src/autonomy/actions/social'],
+];
+for (const [key, modPath] of autonomySubmodules) {
+    test(`autonomy/${key} is a class`, () => {
+        s[key] = require(`./${modPath}`);
+        assert(typeof s[key] === 'function', `expected function, got ${typeof s[key]}`);
+    });
+}
+
+const routerSubmodules = [
+    ['router/health',            'src/model-router/health'],
+    ['router/configs',           'src/model-router/configs'],
+    ['router/intents',           'src/model-router/intents'],
+    ['router/adapters/base',     'src/model-router/adapters/base'],
+    ['router/adapters/openai-compat', 'src/model-router/adapters/openai-compat'],
+    ['router/adapters/gemini',   'src/model-router/adapters/gemini'],
+];
+for (const [key, modPath] of routerSubmodules) {
+    test(`model-router ${key} loadable`, () => {
+        s[key] = require(`./${modPath}`);
+        assert(s[key] !== undefined);
+    });
+}
+test('router/health is a class', () => assert(typeof s['router/health'] === 'function'));
+test('router/configs has gemini/groq/deepseek keys', () => {
+    const cfg = s['router/configs'];
+    assert(typeof cfg === 'object');
+    assert('gemini' in cfg, 'missing gemini');
+    assert('groq' in cfg, 'missing groq');
+    assert('deepseek' in cfg, 'missing deepseek');
+});
+test('router/intents has chat/decision/utility keys', () => {
+    const intents = s['router/intents'];
+    assert(typeof intents === 'object');
+    assert('chat' in intents, 'missing chat');
+    assert('decision' in intents, 'missing decision');
+    assert('utility' in intents, 'missing utility');
+});
+test('router/adapters/base is a class', () => assert(typeof s['router/adapters/base'] === 'function'));
+test('router/adapters/openai-compat is a class', () => assert(typeof s['router/adapters/openai-compat'] === 'function'));
+test('router/adapters/gemini is a class', () => assert(typeof s['router/adapters/gemini'] === 'function'));
+
+test('memory/index is a class', () => {
+    s['memory/index'] = require('./src/memory/index');
+    assert(typeof s['memory/index'] === 'function');
+});
+
+// === Phase 5: 子模組介面合約 ===
+console.log('\n[Phase 5] 子模組介面合約');
+const proto = (key) => s[key] && s[key].prototype;
+
+const methodTests = [
+    ['DecisionEngine', 'decision',        ['makeDecision', 'callLLM', 'getAvailableActions', 'readSoul', 'loadAutonomyConfig']],
+    ['Notifier',       'notify',          ['sendToAdmin', 'setQuietMode', 'drainQuietQueue']],
+    ['JournalManager', 'journal',         ['append', 'readRecent']],
+    ['ReflectAction',  'actions/reflect', ['performSelfReflection']],
+    ['ReflectDiag',    'actions/reflect-diag', ['run']],
+    ['ReflectPatch',   'actions/reflect-patch', ['run']],
+    ['ExploreAction',  'actions/explore', ['performGitHubExplore', 'performWebResearch']],
+    ['DigestAction',   'actions/digest',  ['performDigest', 'performMorningDigest']],
+    ['SocialAction',   'actions/social',  ['performSpontaneousChat']],
+    ['ProviderHealth', 'router/health',   ['register', 'isAvailable', 'score', 'onSuccess', 'on429', 'onError', 'getSummary']],
+    ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
+    ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],
+];
+for (const [className, key, methods] of methodTests) {
+    for (const method of methods) {
+        test(`${className}.prototype.${method}`, () => {
+            assert(typeof proto(key)[method] === 'function', `${className}.prototype.${method} not found`);
+        });
+    }
+}
+
+// === Phase 6: 模組大小健康檢查 ===
+console.log('\n[Phase 6] 模組大小健康檢查');
+const fs2 = require('fs');
+const path2 = require('path');
+const warns = [];
+
+function findJsFiles(dir) {
+    const results = [];
+    for (const entry of fs2.readdirSync(dir, { withFileTypes: true })) {
+        const full = path2.join(dir, entry.name);
+        if (entry.isDirectory()) results.push(...findJsFiles(full));
+        else if (entry.isFile() && entry.name.endsWith('.js')) results.push(full);
+    }
+    return results;
+}
+
+const jsFiles = findJsFiles(path2.join(process.cwd(), 'src'));
+for (const filePath of jsFiles.sort()) {
+    const rel = path2.relative(process.cwd(), filePath);
+    const lines = fs2.readFileSync(filePath, 'utf-8').split('\n').length;
+    if (lines > 400) {
+        test(`${rel} 不超過 400 行`, () => {
+            assert(false, `${rel} 超過 400 行（實際: ${lines} 行），必須拆分`);
+        });
+    } else if (lines > 300) {
+        warns.push(`⚠️  ${rel} 警戒區（${lines} 行），建議拆分`);
+    }
+}
+
 // === 結果 ===
 console.log(`\n🔬 結果: ${passed} passed, ${failed} failed`);
+if (warns.length > 0) {
+    console.log('\n⚠️  大小警告（不計入 failed）:');
+    for (const w of warns) console.warn(`  ${w}`);
+}
 process.exit(failed > 0 ? 1 : 0);
