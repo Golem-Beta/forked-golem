@@ -151,7 +151,11 @@ class ReflectPatch {
 
         if (isVerified) {
             global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
-            const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '');
+            const truncLine = s => s.length > 80 ? s.substring(0, 80) + '...' : s;
+            const searchPreview = proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
+            const replacePreview = proposal.replace.split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
+            const diffBlock = '```\n' + searchPreview + '\n' + replacePreview + '\n```';
+            const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock;
             const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
             let sentCP = false;
             try {

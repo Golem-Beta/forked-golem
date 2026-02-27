@@ -43,6 +43,9 @@ class PatchManager {
             let patchedCode = originalCode;
             const patches = Array.isArray(patchContent) ? patchContent : [patchContent];
             patches.forEach(p => { patchedCode = PatchManager.apply(patchedCode, p); });
+            if (patchedCode === originalCode) {
+                throw new Error('search string not found in target file');
+            }
             const ext = path.extname(originalPath);
             const name = path.basename(originalPath, ext);
             const testFile = `${name}.test${ext}`;
@@ -53,6 +56,7 @@ class PatchManager {
     static verify(filePath) {
         try {
             execSync(`node -c "${filePath}"`);
+            execSync(`node "${path.join(process.cwd(), 'test-smoke.js')}"`, { timeout: 15000, stdio: 'pipe' });
             if (filePath.includes('index.test.js')) {
                 execSync(`node "${filePath}"`, { env: { ...process.env, GOLEM_TEST_MODE: 'true' }, timeout: 5000, stdio: 'pipe' });
             }
