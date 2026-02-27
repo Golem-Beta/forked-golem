@@ -101,6 +101,11 @@ class JournalManager {
     }
 
     append(entry) {
+        // 防止記錄空錯誤條目
+        if (entry.action === 'error' && !entry.outcome && !entry.detail && !entry.error) {
+            console.warn('[Journal] 忽略空錯誤條目');
+            return;
+        }
         try {
             const memDir = path.dirname(this.journalPath);
             if (!fs.existsSync(memDir)) fs.mkdirSync(memDir, { recursive: true });
