@@ -127,7 +127,7 @@ class ModelRouter {
                 console.log(`✅ [ModelRouter] ${provider}/${model} (${latency}ms, intent=${intent})`);
 
                 // 更新健康狀態
-                this.health.onSuccess(provider);
+                this.health.onSuccess(provider, model);
 
                 return {
                     text: result.text,

@@ -18,6 +18,10 @@ class ProviderHealth {
         const rpdLimits = config.rpdLimits || {};
         const firstLimit = Object.values(rpdLimits)[0] || 1000;
 
+        // 初始化每個 model 的獨立 used 計數
+        const modelUsed = {};
+        for (const m of Object.keys(rpdLimits)) modelUsed[m] = 0;
+
         this.providers.set(name, {
             hasKey: true,
             rpd: { used: 0, limit: firstLimit },
@@ -25,7 +29,8 @@ class ProviderHealth {
             reliability: 1.0,
             coolUntil: 0,
             lastSuccess: 0,
-            rpdLimits: rpdLimits,  // 保留完整的 per-model limits
+            rpdLimits: rpdLimits,  // per-model limits
+            modelUsed,             // per-model 獨立 used 計數
         });
     }
 
@@ -49,10 +54,14 @@ class ProviderHealth {
      * 判斷某 provider 是否可用
      */
     isAvailable(provider, model) {
-        const h = this.get(provider, model);
+        const h = this.providers.get(provider);
         if (!h || !h.hasKey) return false;
         if (h.coolUntil > Date.now()) return false;
-        if (h.rpd.limit !== Infinity && h.rpd.used >= h.rpd.limit * 0.95) return false;
+        if (model && h.rpdLimits[model] !== undefined) {
+            const limit = h.rpdLimits[model];
+            const used = h.modelUsed[model] || 0;
+            if (limit !== Infinity && used >= limit * 0.95) return false;
+        }
         return true;
     }
 
@@ -60,18 +69,27 @@ class ProviderHealth {
      * 計算健康分數：RPD 餘量 × 可靠度
      */
     score(provider, model) {
-        const h = this.get(provider, model);
+        const h = this.providers.get(provider);
         if (!h) return 0;
-        if (h.rpd.limit === Infinity) return h.reliability;  // DeepSeek 等無 RPD 限制
+        if (model && h.rpdLimits[model] !== undefined) {
+            const limit = h.rpdLimits[model];
+            if (limit === Infinity) return h.reliability;
+            const used = h.modelUsed[model] || 0;
+            return (1 - used / limit) * h.reliability;
+        }
+        if (h.rpd.limit === Infinity) return h.reliability;
         return (1 - h.rpd.used / h.rpd.limit) * h.reliability;
     }
 
     // --- 狀態更新 ---
 
-    onSuccess(provider) {
+    onSuccess(provider, model) {
         const h = this.providers.get(provider);
         if (!h) return;
         h.rpd.used++;
+        if (model && h.modelUsed && h.modelUsed[model] !== undefined) {
+            h.modelUsed[model]++;
+        }
         h.lastSuccess = Date.now();
         // reliability 緩慢恢復（指數移動平均）
         h.reliability = Math.min(1.0, h.reliability * 0.9 + 0.1);
@@ -119,6 +137,9 @@ class ProviderHealth {
     resetAllRpd() {
         for (const [name, h] of this.providers) {
             h.rpd.used = 0;
+            if (h.modelUsed) {
+                for (const m of Object.keys(h.modelUsed)) h.modelUsed[m] = 0;
+            }
             h.reliability = Math.min(1.0, h.reliability * 0.8 + 0.2);  // 緩慢恢復
         }
         console.log('🔄 [Health] RPD 已重置（太平洋時間午夜）');
@@ -200,7 +221,7 @@ class ProviderHealth {
         try {
             const state = {};
             for (const [name, h] of this.providers) {
-                state[name] = { used: h.rpd.used, date: new Date().toDateString() };
+                state[name] = { used: h.rpd.used, modelUsed: h.modelUsed || {}, date: new Date().toDateString() };
             }
             fs.mkdirSync(path.dirname(this._diskPath), { recursive: true });
             fs.writeFileSync(this._diskPath, JSON.stringify(state, null, 2));
@@ -223,6 +244,11 @@ class ProviderHealth {
                 const h = this.providers.get(name);
                 if (!h) continue;
                 h.rpd.used = saved.used || 0;
+                if (saved.modelUsed && h.modelUsed) {
+                    for (const [m, v] of Object.entries(saved.modelUsed)) {
+                        if (h.modelUsed[m] !== undefined) h.modelUsed[m] = v || 0;
+                    }
+                }
                 restored++;
             }
             if (restored > 0) console.log(`♻️ [Health] RPD 狀態已恢復（${restored} provider(s)）`);

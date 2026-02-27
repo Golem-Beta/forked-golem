@@ -8,9 +8,9 @@ const PROVIDER_CONFIGS = {
         envKey: 'GEMINI_API_KEYS',
         multiKey: true,
         rpdLimits: {
-            'gemini-2.5-flash-lite': 1000,
-            'gemini-2.5-flash': 250,
-            'gemini-2.5-pro': 100,
+            'gemini-2.5-flash-lite': 20,
+            'gemini-2.5-flash': 20,
+            'gemini-3-flash': 20,
         },
         defaultRpm: 15,
     },
