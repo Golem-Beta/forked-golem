@@ -97,6 +97,9 @@ class Notifier {
                 if (text.length <= TG_MAX) {
                     await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], text);
                     console.log('[Notifier] TG sent OK (' + text.length + ' chars)');
+                    if (this.brain) {
+                        this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
+                    }
                     return true;
                 } else {
                     const chunks = [];
@@ -125,6 +128,9 @@ class Notifier {
                         await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], chunk);
                     }
                     console.log('[Notifier] TG sent OK (' + text.length + ' chars, chunked)');
+                    if (this.brain) {
+                        this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
+                    }
                     return true;
                 }
             } else if (this.dcClient && this.config.DISCORD_ADMIN_ID) {
