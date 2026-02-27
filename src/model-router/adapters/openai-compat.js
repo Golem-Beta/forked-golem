@@ -4,6 +4,7 @@
  * 支援多 key 輪轉（multiKey: true 時逗號分隔）
  */
 const https = require('https');
+const path = require('path');
 const ProviderAdapter = require('./base');
 
 class OpenAICompatAdapter extends ProviderAdapter {
@@ -20,6 +21,8 @@ class OpenAICompatAdapter extends ProviderAdapter {
         }
         this.currentIndex = 0;
         this._cooldownUntil = new Map();  // key → timestamp
+        this._cooldownFile = path.join(process.cwd(), 'memory', 'cooldown-state.json');
+        this._loadCooldownFromDisk();
 
         if (this.keys.length > 0) {
             console.log(`🔑 [${name}] ${this.keys.length} key(s) loaded`);
@@ -56,6 +59,7 @@ class OpenAICompatAdapter extends ProviderAdapter {
         this._cooldownUntil.set(key, Date.now() + durationMs);
         const idx = this.keys.indexOf(key);
         console.log(`🧊 [${this.name}] Key #${idx} 冷卻 ${Math.round(durationMs / 1000)}s`);
+        this._saveCooldownToDisk();
     }
 
     async complete(params) {
@@ -85,7 +89,25 @@ class OpenAICompatAdapter extends ProviderAdapter {
                 const errType = e.providerError || 'error';
 
                 if (errType === '429') {
-                    this._markCooldown(apiKey, e.retryAfterMs || 90000);
+                    let cooldownMs;
+                    const providerName = this.name;
+                    if (providerName === 'mistral' || e.isRpmLimit) {
+                        // Mistral 永遠是 RPM，固定 65 秒
+                        cooldownMs = 65000;
+                    } else if (providerName === 'openrouter') {
+                        // OpenRouter header 完全空，upstream 限制，固定 120 秒
+                        cooldownMs = 120000;
+                    } else if (e.retryAfterMs && e.retryAfterMs > 3600000) {
+                        // retry-after > 1 小時 → RPD 耗盡，冷卻到太平洋午夜
+                        cooldownMs = this._msUntilPacificMidnight();
+                    } else if (e.retryAfterMs) {
+                        // 有 retry-after 且合理 → RPM，加 20% buffer
+                        cooldownMs = Math.ceil(e.retryAfterMs * 1.2);
+                    } else {
+                        // 沒有任何 header → 90 秒 fallback
+                        cooldownMs = 90000;
+                    }
+                    this._markCooldown(apiKey, cooldownMs);
                     // 多 key 時換 key 重試
                     if (this.keys.length > 1 && attempt < this.keys.length - 1) {
                         continue;
@@ -146,10 +168,13 @@ class OpenAICompatAdapter extends ProviderAdapter {
                         const json = JSON.parse(data);
 
                         if (res.statusCode === 429) {
-                            const retryAfter = res.headers['retry-after'];
+                            const retryAfterRaw = res.headers['retry-after'];
+                            const retryAfterMs = retryAfterRaw ? parseInt(retryAfterRaw) * 1000 : null;
+                            const remainingRpm = res.headers['x-ratelimit-remaining-req-minute'];
                             const err = new Error(`[${this.name}] 429 Too Many Requests`);
                             err.providerError = '429';
-                            err.retryAfterMs = retryAfter ? parseInt(retryAfter) * 1000 : 90000;
+                            err.retryAfterMs = retryAfterMs;
+                            err.isRpmLimit = (remainingRpm !== undefined && parseInt(remainingRpm) === 0);
                             reject(err);
                             return;
                         }
@@ -221,6 +246,57 @@ class OpenAICompatAdapter extends ProviderAdapter {
             req.write(postData);
             req.end();
         });
+    }
+
+    _msUntilPacificMidnight() {
+        const now = new Date();
+        const laNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const tomorrow = new Date(laNow);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow.getTime() - laNow.getTime();
+    }
+
+    // key 識別用後 8 碼
+    _keyId(key) {
+        return '...' + key.slice(-8);
+    }
+
+    _loadCooldownFromDisk() {
+        try {
+            const fs = require('fs');
+            if (!fs.existsSync(this._cooldownFile)) return;
+            const all = JSON.parse(fs.readFileSync(this._cooldownFile, 'utf-8'));
+            const providerData = all[this.name] || {};
+            const now = Date.now();
+            for (const [keyId, until] of Object.entries(providerData)) {
+                if (until > now) {
+                    const fullKey = this.keys.find(k => this._keyId(k) === keyId);
+                    if (fullKey) {
+                        this._cooldownUntil.set(fullKey, until);
+                        console.log(`🧊 [${this.name}] 從磁碟恢復冷卻 ${keyId}，剩餘 ${Math.ceil((until - now) / 60000)}m`);
+                    }
+                }
+            }
+        } catch (e) {
+            // 靜默失敗，不影響主流程
+        }
+    }
+
+    _saveCooldownToDisk() {
+        try {
+            const fs = require('fs');
+            let all = {};
+            try { all = JSON.parse(fs.readFileSync(this._cooldownFile, 'utf-8')); } catch (_) {}
+            all[this.name] = {};
+            for (const [key, until] of this._cooldownUntil) {
+                all[this.name][this._keyId(key)] = until;
+            }
+            fs.mkdirSync(require('path').dirname(this._cooldownFile), { recursive: true });
+            fs.writeFileSync(this._cooldownFile, JSON.stringify(all, null, 2));
+        } catch (e) {
+            console.warn(`[${this.name}] 無法寫入 cooldown-state.json:`, e.message);
+        }
     }
 
     /**
