@@ -479,7 +479,7 @@ class DashboardPlugin {
 
             // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
-                this.statusBox.setMarkdown(`${dateStr} ${timeStr}
+                this.statusBox.setMarkdown(`# ${dateStr} ${timeStr}
 - **模式**: ${mode}
 - **RAM**: ${memUsage.toFixed(0)} MB
 - **Uptime**: ${hours}h ${minutes}m
