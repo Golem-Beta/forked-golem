@@ -110,7 +110,8 @@ class ReflectPatch {
             action: 'self_reflection', mode: 'skill_create',
             skill_name: skillName, description: proposal.description,
             outcome: sentSC ? 'skill_created' : 'skill_created_send_failed',
-            reflection_file: reflectionFile
+            reflection_file: reflectionFile,
+            model: this.decision.lastModel
         });
     }
 
@@ -174,7 +175,8 @@ class ReflectPatch {
                 proposal: proposalType, target: targetName,
                 description: proposal.description,
                 outcome: sentCP ? 'proposed' : 'proposed_send_failed',
-                reflection_file: reflectionFile
+                reflection_file: reflectionFile,
+                model: this.decision.lastModel
             });
         } else {
             this.journal.append({

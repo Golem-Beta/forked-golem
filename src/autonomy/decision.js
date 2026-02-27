@@ -178,7 +178,13 @@ class DecisionEngine {
             temperature: opts.temperature || 0.8,
             tools: opts.tools,
         });
+        this._lastLLMMeta = result.meta;
         return result.text;
+    }
+
+    get lastModel() {
+        if (!this._lastLLMMeta) return undefined;
+        return this._lastLLMMeta.provider + '/' + this._lastLLMMeta.model;
     }
 
     // === 核心決策 ===

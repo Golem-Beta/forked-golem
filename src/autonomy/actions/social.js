@@ -57,7 +57,8 @@ class SocialAction {
             action: 'spontaneous_chat',
             context: contextNote,
             outcome: sent ? 'sent' : 'send_failed',
-            msg_length: msg.length
+            msg_length: msg.length,
+            model: this.decision.lastModel
         });
 
         if (!sent) {
