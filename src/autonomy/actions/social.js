@@ -33,7 +33,7 @@ class SocialAction {
             CONTEXT_NOTE: contextNote,
             RECENT_SOCIAL: recentSocial || '（無）'
         }) || `${soul}\n主動社交，時間：${timeStr}，簡短跟老哥打招呼。`;
-        const msg = await this.decision.callLLM(prompt, { maxOutputTokens: 256, temperature: 0.9, intent: 'creative' });
+        const msg = await this.decision.callLLM(prompt, { temperature: 0.9, intent: 'creative' });
 
         if (!msg || msg.trim().length === 0) {
             console.warn('[Social] LLM returned empty, skip send');

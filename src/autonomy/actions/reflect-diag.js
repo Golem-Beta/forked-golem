@@ -53,7 +53,7 @@ class ReflectDiag {
         ].join('\n');
 
         console.log('🧬 [Reflection] Phase 1: 診斷...');
-        const diagRaw = await this.decision.callLLM(diagPrompt, { maxOutputTokens: 768, temperature: 0.5, intent: 'analysis' });
+        const diagRaw = await this.decision.callLLM(diagPrompt, { temperature: 0.5, intent: 'analysis' });
         const diagFile = this.decision.saveReflection('self_reflection_diag', diagRaw);
 
         let diag;

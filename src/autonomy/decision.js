@@ -6,6 +6,7 @@
  * 輔助工具方法（設定讀取、靈魂文件、時間脈絡、檔案工具）委派至 DecisionUtils。
  */
 const DecisionUtils = require('./decision-utils');
+const INTENT_REQUIREMENTS = require('../model-router/intents');
 
 class DecisionEngine {
     /**
@@ -37,10 +38,13 @@ class DecisionEngine {
      * Autonomy 專用 LLM 呼叫（不帶 chatHistory / skills）
      */
     async callLLM(prompt, opts = {}) {
+        const intent = opts.intent || 'utility';
+        const intentDef = INTENT_REQUIREMENTS[intent];
+        const defaultMaxTokens = intentDef ? intentDef.defaultMaxTokens : 1024;
         const result = await this.brain.router.complete({
-            intent: opts.intent || 'utility',
+            intent,
             messages: [{ role: 'user', content: prompt }],
-            maxTokens: opts.maxOutputTokens || 1024,
+            maxTokens: opts.maxOutputTokens || defaultMaxTokens,
             temperature: opts.temperature || 0.8,
             tools: opts.tools,
         });

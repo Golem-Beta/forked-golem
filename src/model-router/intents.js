@@ -25,25 +25,25 @@
 const INTENT_REQUIREMENTS = {
     // ── 三流 intent（需要 tristream 能力）────────────────────────
     // 主對話：用戶互動，需要記憶寫入和行動執行
-    chat:       { requires: ['tristream'], priority: 'quality' },
+    chat:       { requires: ['tristream'], priority: 'quality', defaultMaxTokens: 2048 },
     // 自我反思：proposals 需記入記憶，必須三流
-    reflection: { requires: ['tristream'], priority: 'quality' },
+    reflection: { requires: ['tristream'], priority: 'quality', defaultMaxTokens: 1024 },
     // 程式碼編輯：patch 生成，最高 instruction following 要求
-    code_edit:  { requires: ['tristream'], priority: 'quality' },
+    code_edit:  { requires: ['tristream'], priority: 'quality', defaultMaxTokens: 4096 },
 
     // ── 非三流 intent（不需 tristream，節省 Gemini quota）─────────
     // 自主社交/摘要：spontaneous_chat、digest，純文字輸出即可
-    creative:   { requires: [],           priority: 'quality' },
+    creative:   { requires: [],           priority: 'quality', defaultMaxTokens: 512  },
     // 深度分析：github/web 研究，長 context 優先
-    analysis:   { requires: [],           priority: 'speed'   },
+    analysis:   { requires: [],           priority: 'speed',   defaultMaxTokens: 1024 },
     // 快速決策：autonomy 選擇下一個行動，JSON 輸出
-    decision:   { requires: [],           priority: 'speed'   },
+    decision:   { requires: [],           priority: 'speed',   defaultMaxTokens: 512  },
     // 工具任務：HallucinationGuard、格式判斷等單句任務
-    utility:    { requires: [],           priority: 'speed'   },
+    utility:    { requires: [],           priority: 'speed',   defaultMaxTokens: 256  },
 
     // ── 特殊能力 intent ───────────────────────────────────────────
     // 視覺：圖片分析，需要 vision 能力
-    vision:     { requires: ['vision'],   priority: 'quality' },
+    vision:     { requires: ['vision'],   priority: 'quality', defaultMaxTokens: 1024 },
 };
 
 module.exports = INTENT_REQUIREMENTS;

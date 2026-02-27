@@ -44,7 +44,7 @@ class ExploreAction {
 決策理由：${decisionReason}
 用 JSON 回覆：{"query": "搜尋關鍵字（英文）", "purpose": "為什麼要研究這個"}`;
 
-            const topicRaw = await this.decision.callLLM(topicPrompt, { maxOutputTokens: 256, temperature: 0.7, intent: 'decision' });
+            const topicRaw = await this.decision.callLLM(topicPrompt, { temperature: 0.7, intent: 'decision' });
             const topicCleaned = topicRaw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
             let topicData;
             try {
@@ -65,7 +65,7 @@ class ExploreAction {
                 '請包含具體的數據、版本號、日期等事實性資訊。如果找到相關的工具或專案，列出名稱和網址。';
 
             const text = await this.decision.callLLM(searchPrompt, {
-                maxOutputTokens: 1024, temperature: 0.5, intent: 'analysis',
+                temperature: 0.5, intent: 'analysis',
                 tools: [{ googleSearch: {} }]
             });
 
@@ -170,7 +170,7 @@ class ExploreAction {
                 README_TEXT: readmeText
             }) || `${soul}\nGitHub 探索：${newRepo.full_name}，用繁體中文寫 200 字心得。`;
 
-            const analysis = await this.decision.callLLM(analysisPrompt, { maxOutputTokens: 512, temperature: 0.7, intent: 'analysis' });
+            const analysis = await this.decision.callLLM(analysisPrompt, { temperature: 0.7, intent: 'analysis' });
             const reflectionFile = this.decision.saveReflection('github_explore', analysis);
             this._saveExploredRepo(newRepo);
 

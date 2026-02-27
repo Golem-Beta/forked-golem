@@ -154,7 +154,6 @@ class DigestAction {
             const prompt = promptLines.join(NL);
             const summary = await this.decision.callLLM(prompt, {
                 intent: 'chat',
-                maxOutputTokens: 512,
                 temperature: 0.7
             });
             if (!summary) {
