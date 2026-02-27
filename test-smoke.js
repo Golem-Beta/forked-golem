@@ -30,8 +30,9 @@ for (const name of moduleList) {
         assert(m[name] !== undefined);
     });
 }
-test('src/dashboard.js syntax', () => {
-    require('child_process').execSync('node -c src/dashboard.js', { cwd: process.cwd(), stdio: 'pipe' });
+test('require src/dashboard', () => {
+    m['dashboard'] = require('./src/dashboard');
+    assert(typeof m['dashboard'] === 'function');
 });
 
 // === Phase 2: export 合約驗證 ===
@@ -171,6 +172,14 @@ test('memory/index is a class', () => {
     s['memory/index'] = require('./src/memory/index');
     assert(typeof s['memory/index'] === 'function');
 });
+test('require src/dashboard-log', () => {
+    s['dashboard-log'] = require('./src/dashboard-log');
+    assert(typeof s['dashboard-log'] === 'function');
+});
+test('require src/dashboard-monitor', () => {
+    s['dashboard-monitor'] = require('./src/dashboard-monitor');
+    assert(typeof s['dashboard-monitor'] === 'function');
+});
 
 // === Phase 5: 子模組介面合約 ===
 console.log('\n[Phase 5] 子模組介面合約');
@@ -189,6 +198,8 @@ const methodTests = [
     ['ProviderHealth', 'router/health',   ['register', 'isAvailable', 'score', 'onSuccess', 'on429', 'onError', 'getSummary']],
     ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
     ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],
+    ['DashboardLog',          'dashboard-log',     ['setupOverride']],
+    ['DashboardMonitor',      'dashboard-monitor', ['startMonitoring']],
 ];
 for (const [className, key, methods] of methodTests) {
     for (const method of methods) {
@@ -214,15 +225,22 @@ function findJsFiles(dir) {
     return results;
 }
 
+const WARN_THRESHOLD = {
+    'src/dashboard.js': 350,   // UI 骨架，blessed widget 宣告較多
+    _default: 300,
+};
+const FAIL_THRESHOLD = 400;  // 所有檔案統一硬限制不變
+
 const jsFiles = findJsFiles(path2.join(process.cwd(), 'src'));
 for (const filePath of jsFiles.sort()) {
     const rel = path2.relative(process.cwd(), filePath);
     const lines = fs2.readFileSync(filePath, 'utf-8').split('\n').length;
-    if (lines > 400) {
-        test(`${rel} 不超過 400 行`, () => {
-            assert(false, `${rel} 超過 400 行（實際: ${lines} 行），必須拆分`);
+    const warnLimit = WARN_THRESHOLD[rel] ?? WARN_THRESHOLD._default;
+    if (lines > FAIL_THRESHOLD) {
+        test(`${rel} 不超過 ${FAIL_THRESHOLD} 行`, () => {
+            assert(false, `${rel} 超過 ${FAIL_THRESHOLD} 行（實際: ${lines} 行），必須拆分`);
         });
-    } else if (lines > 300) {
+    } else if (lines > warnLimit) {
         warns.push(`⚠️  ${rel} 警戒區（${lines} 行），建議拆分`);
     }
 }
