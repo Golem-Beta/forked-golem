@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const QUIET_QUEUE_PATH = path.join(process.cwd(), 'memory', 'quiet-queue.json');
+
 /**
  * 📨 Notifier — Telegram/Discord 訊息發送 + tri-stream 解析
  *
@@ -20,7 +24,7 @@ class Notifier {
         this.brain = brain;
         this.TriStreamParser = TriStreamParser;
         // 靜默時段暫存 queue（{ text, ts }[]）
-        this._quietQueue = [];
+        this._quietQueue = this._loadQuietQueueFromDisk();
         this.quietMode = false;
     }
 
@@ -37,7 +41,39 @@ class Notifier {
     drainQuietQueue() {
         const items = this._quietQueue.slice();
         this._quietQueue = [];
+        try { fs.unlinkSync(QUIET_QUEUE_PATH); } catch (_) {}
         return items;
+    }
+
+    /**
+     * 從磁碟載入 quietQueue（重啟恢復）
+     */
+    _loadQuietQueueFromDisk() {
+        try {
+            if (fs.existsSync(QUIET_QUEUE_PATH)) {
+                const raw = fs.readFileSync(QUIET_QUEUE_PATH, 'utf-8');
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) {
+                    console.log('[Notifier] 從磁碟恢復 quietQueue，共 ' + arr.length + ' 則');
+                    return arr;
+                }
+            }
+        } catch (e) {
+            console.warn('[Notifier] 無法讀取 quiet-queue.json:', e.message);
+        }
+        return [];
+    }
+
+    /**
+     * 同步寫入 quietQueue 至磁碟
+     */
+    _saveQuietQueue() {
+        try {
+            fs.mkdirSync(path.dirname(QUIET_QUEUE_PATH), { recursive: true });
+            fs.writeFileSync(QUIET_QUEUE_PATH, JSON.stringify(this._quietQueue));
+        } catch (e) {
+            console.warn('[Notifier] 無法寫入 quiet-queue.json:', e.message);
+        }
     }
 
     /**
@@ -51,6 +87,7 @@ class Notifier {
         // 靜默時段：暫存，不發送
         if (this.quietMode) {
             this._quietQueue.push({ text, ts: new Date().toISOString() });
+            this._saveQuietQueue();
             console.log('[Notifier] 靜默時段，訊息暫存 (queue=' + this._quietQueue.length + ')');
             return false;
         }
