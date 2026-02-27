@@ -480,7 +480,7 @@ class DashboardPlugin {
 
             // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
-                this.statusBox.setContent(`{bold}${dateStr} ${timeStr}{/bold} 模式: ${mode} | RAM: ${memUsage.toFixed(0)}MB | Up: ${hours}h ${minutes}m ⏰ 醒來: ${this._formatCountdown()}`);
+                this.statusBox.setContent(`{bold}${dateStr}  ${timeStr}{/bold}\n模式: ${mode} | RAM: ${memUsage.toFixed(0)}MB | Up: ${hours}h ${minutes}m\n⏰ 醒來: ${this._formatCountdown()}`);
             }
 
             // providerBox：API Provider 即時狀態（獨立面板）
