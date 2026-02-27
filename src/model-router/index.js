@@ -11,7 +11,7 @@
  *   - 選中的 provider 呼叫失敗時才退到下一個候選
  */
 const PROVIDER_CONFIGS = require('./configs');
-const INTENT_PREFERENCES = require('./intents');
+const INTENT_REQUIREMENTS = require('./intents');
 const ProviderHealth = require('./health');
 const GeminiAdapter = require('./adapters/gemini');
 const OpenAICompatAdapter = require('./adapters/openai-compat');
@@ -169,37 +169,64 @@ class ModelRouter {
     }
 
     /**
-     * 從偏好矩陣中選出可用的候選，按健康分數排序
+     * 動態比對能力需求，選出可用的候選並按健康分數排序
+     *
+     * 非三流 intent（requires 不含 tristream）對 tristream 模型降分 0.3×，
+     * 優先消耗非 Gemini 供應商，保留 Gemini quota 給三流 intent 使用。
      */
     _selectCandidates(intent) {
-        const preferences = INTENT_PREFERENCES[intent];
-        if (!preferences) {
+        const req = INTENT_REQUIREMENTS[intent];
+        if (!req) {
             console.warn(`[ModelRouter] Unknown intent "${intent}", falling back to "chat"`);
             return this._selectCandidates('chat');
         }
 
-        // 過濾出可用的候選
-        const available = preferences.filter(c => {
-            if (!this.adapters.has(c.provider)) return false;
-            return this.health.isAvailable(c.provider, c.model);
-        });
+        const requires = req.requires || [];
+        // 不需要 tristream 的 intent → 對 tristream 模型降分，節省 Gemini quota
+        const savePremium = !requires.includes('tristream');
 
-        if (available.length > 0) {
-            // 按健康分數排序
-            available.sort((a, b) => {
-                return this.health.score(b.provider, b.model) - this.health.score(a.provider, a.model);
+        const buildCandidates = (strict) => {
+            const candidates = [];
+
+            for (const [providerName, config] of Object.entries(PROVIDER_CONFIGS)) {
+                if (!this.adapters.has(providerName)) continue;
+                const caps = config.modelCapabilities || {};
+
+                for (const [model, modelCaps] of Object.entries(caps)) {
+                    // 能力比對：intent 所需的每個 tag 都必須在 model 能力中
+                    if (!requires.every(r => modelCaps.includes(r))) continue;
+
+                    if (strict) {
+                        if (!this.health.isAvailable(providerName, model)) continue;
+                    } else {
+                        // 放寬：只要 provider 有 key 就納入
+                        const h = this.health.get(providerName, model);
+                        if (!h || !h.hasKey) continue;
+                    }
+
+                    candidates.push({ provider: providerName, model, caps: modelCaps });
+                }
+            }
+
+            candidates.sort((a, b) => {
+                let scoreA = this.health.score(a.provider, a.model);
+                let scoreB = this.health.score(b.provider, b.model);
+                // tristream 模型降分：讓非 Gemini 優先服務非三流 intent
+                if (savePremium) {
+                    if (a.caps.includes('tristream')) scoreA *= 0.3;
+                    if (b.caps.includes('tristream')) scoreB *= 0.3;
+                }
+                return scoreB - scoreA;
             });
-            return available;
-        }
+
+            return candidates.map(c => ({ provider: c.provider, model: c.model }));
+        };
+
+        const strict = buildCandidates(true);
+        if (strict.length > 0) return strict;
 
         // 放寬條件：允許冷卻即將結束的 provider
-        const relaxed = preferences.filter(c => {
-            if (!this.adapters.has(c.provider)) return false;
-            const h = this.health.get(c.provider, c.model);
-            return h && h.hasKey;
-        });
-
-        return relaxed;
+        return buildCandidates(false);
     }
 
     // --- 相容性介面 ---
