@@ -64,24 +64,31 @@ class ExploreAction {
                 '重點：' + purpose + '\n' +
                 '請包含具體的數據、版本號、日期等事實性資訊。如果找到相關的工具或專案，列出名稱和網址。';
 
-            const text = await this.decision.callLLM(searchPrompt, {
+            const searchResult = await this.decision.callLLM(searchPrompt, {
                 temperature: 0.5, intent: 'analysis',
-                tools: [{ googleSearch: {} }]
+                tools: [{ googleSearch: {} }],
+                returnFull: true,
             });
+            const text = searchResult.text || searchResult;
+            const grounding = searchResult.grounding || null;
 
             const reflectionFile = this.decision.saveReflection('web_research', text);
+            const sourcesBlock = (grounding && grounding.sources && grounding.sources.length > 0)
+                ? '\n\n---\n📎 來源：\n' + grounding.sources.slice(0, 5).map(s => `• ${s.title || s.url}`).join('\n')
+                : '';
             const parts = [
                 '🌐 網路研究報告',
                 '🔎 主題: ' + query,
                 '💡 目的: ' + purpose,
-                '', text
+                '', text + sourcesBlock
             ].filter(Boolean).join('\n');
             const sentWR = await this.notifier.sendToAdmin(parts);
             console.log('[WebResearch] sendToAdmin:', sentWR ? '✅ OK' : '❌ FAILED');
 
             this.journal.append({
                 action: 'web_research', topic: query, purpose: purpose,
-                outcome: sentWR ? 'shared' : 'send_failed', reflection_file: reflectionFile
+                outcome: sentWR ? 'shared' : 'send_failed', reflection_file: reflectionFile,
+                grounded: grounding !== null, sources: grounding ? grounding.sources.length : 0
             });
             if (sentWR) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
             return { success: sentWR, action: 'web_research', outcome: sentWR ? 'shared' : 'send_failed' };

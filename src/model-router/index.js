@@ -132,6 +132,8 @@ class ModelRouter {
                 return {
                     text: result.text,
                     usage: result.usage,
+                    grounding: result.grounding || null,
+                    rawParts: result.rawParts || null,
                     meta: {
                         provider,
                         model,

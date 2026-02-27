@@ -50,7 +50,7 @@ class DecisionEngine {
         });
         this._lastLLMMeta = result.meta;
         this._lastTokens = result.usage;
-        return result.text;
+        return opts.returnFull ? result : result.text;
     }
 
     get lastModel() {
