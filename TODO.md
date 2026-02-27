@@ -1,7 +1,7 @@
 # Forked-Golem TODO 統整
 
 > 從過去所有對話中彙整，按優先級排序
-> 最後更新：2026-02-27（session 4）
+> 最後更新：2026-02-27（session 8）
 
 ---
 
@@ -143,6 +143,15 @@
 | v9.9.x | Dashboard 修復 + Autonomy chatHistory 注入 + Runtime Token Metrics | ✅ 已 commit，待 tag |
 | v9.10.0 | self_reflection 強化 (Level 1) | 📋 規劃中 |
 | v9.10.x | Unified ActionResult + FailureTracker (#3+#4) | ✅ |
+| v9.9.4–v9.9.6 | Gemini SDK 遷移 + Grounding Pipeline 完整實作 | ✅ |
+
+- ~~Gemini SDK 遷移 (@google/generative-ai EOL → @google/genai v1.43.0) (v9.9.4)~~
+- ~~Grounding Pipeline 修復 (v9.9.4–v9.9.6)~~
+  - ~~gemini.js groundingMetadata 讀取，回傳 grounding + rawParts~~
+  - ~~model-router/index.js 透傳 grounding~~
+  - ~~explore.js web_research 報告附來源清單~~
+  - ~~callLLM 回傳結構化 { text, grounding }，移除 returnFull workaround~~
+  - ~~brain.js chatHistory 保留 thought signature (rawParts)~~
 
 ### 20. Telegram 部署按鈕 60 秒過期問題
 - **問題**: inline keyboard callback query 有 60 秒有效期，超時按鈕失效
