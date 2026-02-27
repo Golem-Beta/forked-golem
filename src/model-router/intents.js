@@ -33,12 +33,12 @@ const INTENT_PREFERENCES = {
     // 自我反思：閱讀程式碼、提出改進，需要三流（proposals 要記入記憶）
     reflection: [
         { provider: 'gemini', model: 'gemini-2.5-flash' },
-        { provider: 'gemini', model: 'gemini-2.5-flash-lite' },  // pro 額度留給 code_edit
+        { provider: 'gemini', model: 'gemini-2.5-pro' },
     ],
-    // 程式碼編輯：self_reflection patch 生成，flash 優先（pro 100 RPD 易耗盡）
+    // 程式碼編輯：self_reflection patch 生成，最高 instruction following 要求
     code_edit: [
+        { provider: 'gemini', model: 'gemini-2.5-pro' },
         { provider: 'gemini', model: 'gemini-2.5-flash' },
-        { provider: 'gemini', model: 'gemini-2.5-pro' },  // flash 耗盡時升級
     ],
 
     // ── 非三流 intent（全 provider 可用）─────────────────────────
