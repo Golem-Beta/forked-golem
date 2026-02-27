@@ -58,7 +58,7 @@ class ReflectPatch {
         ].join('\n');
 
         console.log('🧬 [Reflection] Phase 2: 生成 patch（' + codeSnippet.length + ' chars context）...');
-        const raw = await this.decision.callLLM(patchPrompt, { intent: 'code_edit', temperature: 0.2 });
+        const raw = (await this.decision.callLLM(patchPrompt, { intent: 'code_edit', temperature: 0.2 })).text;
         const reflectionFile = this.decision.saveReflection('self_reflection', raw);
 
         let proposals = this.ResponseParser.extractJson(raw);

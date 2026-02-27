@@ -75,7 +75,7 @@ class DigestAction {
                 '最後加一個 ## 摘要 段落（2-3 句話濃縮核心發現）。',
             ].join('\n');
 
-            const result = await this.decision.callLLM(prompt, { maxOutputTokens: 2048, temperature: 0.7, intent: 'analysis' });
+            const result = (await this.decision.callLLM(prompt, { maxOutputTokens: 2048, temperature: 0.7, intent: 'analysis' })).text;
 
             if (!result) {
                 console.warn('📝 [Digest] LLM 回傳空白');
@@ -152,10 +152,10 @@ class DigestAction {
                 itemText
             ];
             const prompt = promptLines.join(NL);
-            const summary = await this.decision.callLLM(prompt, {
+            const summary = (await this.decision.callLLM(prompt, {
                 intent: 'chat',
                 temperature: 0.7
-            });
+            })).text;
             if (!summary) {
                 this.journal.append({ action: 'morning_digest', outcome: 'llm_empty' });
                 return;

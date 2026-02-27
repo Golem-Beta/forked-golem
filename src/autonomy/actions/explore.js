@@ -44,7 +44,7 @@ class ExploreAction {
 決策理由：${decisionReason}
 用 JSON 回覆：{"query": "搜尋關鍵字（英文）", "purpose": "為什麼要研究這個"}`;
 
-            const topicRaw = await this.decision.callLLM(topicPrompt, { temperature: 0.7, intent: 'decision' });
+            const topicRaw = (await this.decision.callLLM(topicPrompt, { temperature: 0.7, intent: 'decision' })).text;
             const topicCleaned = topicRaw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
             let topicData;
             try {
@@ -67,10 +67,9 @@ class ExploreAction {
             const searchResult = await this.decision.callLLM(searchPrompt, {
                 temperature: 0.5, intent: 'analysis',
                 tools: [{ googleSearch: {} }],
-                returnFull: true,
             });
-            const text = searchResult.text || searchResult;
-            const grounding = searchResult.grounding || null;
+            const text = searchResult.text;
+            const grounding = searchResult.grounding;
 
             const reflectionFile = this.decision.saveReflection('web_research', text);
             const sourcesBlock = (grounding && grounding.sources && grounding.sources.length > 0)
@@ -178,7 +177,7 @@ class ExploreAction {
                 README_TEXT: readmeText
             }) || `${soul}\nGitHub 探索：${newRepo.full_name}，用繁體中文寫 200 字心得。`;
 
-            const analysis = await this.decision.callLLM(analysisPrompt, { temperature: 0.7, intent: 'analysis' });
+            const analysis = (await this.decision.callLLM(analysisPrompt, { temperature: 0.7, intent: 'analysis' })).text;
             const reflectionFile = this.decision.saveReflection('github_explore', analysis);
             this._saveExploredRepo(newRepo);
 
