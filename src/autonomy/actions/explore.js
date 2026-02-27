@@ -120,7 +120,24 @@ class ExploreAction {
                 'vector memory AI', 'telegram bot AI agent', 'lightweight LLM inference',
                 'AI agent planning', 'code generation agent', 'multi-agent system'
             ];
-            const topic = topics[Math.floor(Math.random() * topics.length)];
+            // LLM 動態生成探索主題
+            let topic = topics[Math.floor(Math.random() * topics.length)];
+            let topicPurpose = '';
+            try {
+                const soulText = this.decision.readSoul();
+                const recentJ = this.journal.readRecent(3);
+                const topicPromptText = `你是 Golem，一個自主 AI Agent。根據以下靈魂文件和最近日誌，決定本次 GitHub 探索的主題。\n\n靈魂文件（前 500 字）：${soulText.substring(0, 500)}\n\n最近 3 條日誌：${JSON.stringify(recentJ, null, 0)}\n\n選擇一個具體有意義的 GitHub 搜尋主題。用 JSON 回覆：{"query": "英文搜尋詞", "purpose": "為什麼探索這個"}`;
+                const topicRaw = (await this.decision.callLLM(topicPromptText, { temperature: 0.7, intent: 'decision' })).text;
+                const topicCleaned = topicRaw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+                const topicData = JSON.parse(topicCleaned);
+                if (topicData.query) {
+                    topic = topicData.query;
+                    topicPurpose = topicData.purpose || '';
+                    console.log(`🔍 [GitHub] LLM 動態主題: ${topic} | ${topicPurpose}`);
+                }
+            } catch (e) {
+                console.warn('🔍 [GitHub] 動態主題生成失敗，使用隨機 fallback:', e.message);
+            }
             const explored = this._getExploredRepos();
             const exploredNames = new Set(explored.map(r => r.full_name));
 
@@ -176,7 +193,28 @@ class ExploreAction {
                         res.on('error', reject);
                     }).on('error', reject);
                 });
-                readmeText = readmeRes.substring(0, 3000);
+                // 嘗試提取包含關鍵字的段落
+                const sectionKeywords = ['features', 'architecture', 'how it works', 'design', 'overview', 'concepts', 'usage'];
+                const readmeLines = readmeRes.split('\n');
+                let secStart = -1, secEnd = -1;
+                for (let i = 0; i < readmeLines.length; i++) {
+                    const hm = readmeLines[i].match(/^#{1,3}\s+(.+)$/);
+                    if (hm) {
+                        const ht = hm[1].trim().toLowerCase();
+                        if (secStart === -1 && sectionKeywords.some(kw => ht.includes(kw))) {
+                            secStart = i;
+                        } else if (secStart !== -1) {
+                            secEnd = i;
+                            break;
+                        }
+                    }
+                }
+                if (secStart !== -1) {
+                    const secLines = secEnd !== -1 ? readmeLines.slice(secStart, secEnd) : readmeLines.slice(secStart);
+                    readmeText = secLines.join('\n').substring(0, 3000);
+                } else {
+                    readmeText = readmeRes.substring(0, 3000);
+                }
             } catch (e) {
                 console.warn('[GitHub] README 讀取失敗:', e.message);
             }
