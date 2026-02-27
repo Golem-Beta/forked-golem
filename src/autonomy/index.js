@@ -75,6 +75,15 @@ class AutonomyManager {
         if (!fs.existsSync(memDir)) fs.mkdirSync(memDir, { recursive: true });
         this.chronos.rebuild();
         this.scheduleNextAwakening();
+        // 啟動時若不在靜默時段且 queue 有內容，10 秒後 drain（等 bot 就緒）
+        try {
+            const nowHour = new Date().getHours();
+            const _cfg = this.decision.loadAutonomyConfig().awakening || {};
+            const _quietHours = _cfg.quietHours || _cfg.sleepHours || [];
+            if (!_quietHours.includes(nowHour)) {
+                setTimeout(() => this._drainAndSend(), 10000);
+            }
+        } catch (_) {}
     }
 
     scheduleNextAwakening() {
@@ -95,9 +104,16 @@ class AutonomyManager {
                 console.log('🌙 [LifeCycle] 下次醒來在靜音時段 (' + hour + ':00)，不發社交訊息');
             }
             console.log('♻️ [LifeCycle] 下次醒來: ' + (waitMs / 60000).toFixed(1) + ' 分鐘後' + (isQuiet ? ' (靜音模式)' : ''));
-            this._timer = setTimeout(() => {
+            this._timer = setTimeout(async () => {
+                const wasQuiet = this.quietMode;
                 this.quietMode = isQuiet;
-                this.notifier.setQuietMode(isQuiet);  // 同步到 Notifier
+                this.notifier.setQuietMode(isQuiet);
+
+                // 靜默結束 → 立即 drain queue
+                if (wasQuiet && !isQuiet) {
+                    await this._drainAndSend();
+                }
+
                 this.manifestFreeWill();
                 this.scheduleNextAwakening();
             }, waitMs);
@@ -188,6 +204,20 @@ class AutonomyManager {
     buildJournalStats() { return this.journal.buildStats(); }
     /** @deprecated 用 this.notifier.sendNotification() */
     sendNotification(msg) { return this.notifier.sendNotification(msg); }
+
+    async _drainAndSend() {
+        const items = this.notifier.drainQuietQueue();
+        if (items.length === 0) return;
+        console.log(`📬 [LifeCycle] 靜默結束，發送暫存訊息共 ${items.length} 則`);
+        for (const item of items) {
+            try {
+                await this.notifier.sendToAdmin(item.text);
+                await new Promise(r => setTimeout(r, 1500));
+            } catch (e) {
+                console.error('[LifeCycle] drain 發送失敗:', e.message);
+            }
+        }
+    }
 
     /** 老哥回應回流 — 轉發給 ActionRunner */
     onAdminReply(text) { return this.actions.onAdminReply(text); }

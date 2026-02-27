@@ -148,9 +148,8 @@ class DigestAction {
         try {
             const items = this.notifier.drainQuietQueue();
             if (items.length === 0) {
-                console.log('[MorningDigest] 無暫存訊息，跳過');
-                this.journal.append({ action: 'morning_digest', outcome: 'skipped_empty' });
-                return;
+                console.log('[MorningDigest] queue 已空（已由 LifeCycle drain），改做一般摘要');
+                return this.performDigest();
             }
             console.log('[MorningDigest] 整理 ' + items.length + ' 則...');
             const NL = '\n';
