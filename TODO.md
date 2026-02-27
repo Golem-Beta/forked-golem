@@ -143,3 +143,8 @@
 | v9.9.x | Dashboard 修復 + Autonomy chatHistory 注入 + Runtime Token Metrics | ✅ 已 commit，待 tag |
 | v9.10.0 | self_reflection 強化 (Level 1) | 📋 規劃中 |
 | v9.10.x | Unified ActionResult + FailureTracker (#3+#4) | ✅ |
+
+### 20. Telegram 部署按鈕 60 秒過期問題
+- **問題**: inline keyboard callback query 有 60 秒有效期，超時按鈕失效
+- **根本解法**: 按鈕只確認意圖，實際部署透過新 message 觸發（/deploy 指令或 bot 重新發新 callback）
+- **影響**: 目前每次 self_reflection 提案若沒及時按，只能等下次重新提案
