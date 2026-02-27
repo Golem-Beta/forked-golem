@@ -54,6 +54,9 @@ class ReflectPatch {
             'The "search" field must EXACTLY match a substring in the target code above.',
             'Include "file" field with the target file path (e.g. "src/brain.js").',
             'Include "affected_files" listing other src/ files that call the modified function/method.',
+            'Include "confidence": 0.0-1.0，你對這個 patch 正確性的信心。',
+            'Include "risk_level": "low" | "medium" | "high"，改動風險評估。',
+            'Include "expected_outcome": 改完後預期行為變化（一句話）。',
             'Keep the patch small and focused. ONE change only.',
             'If you have no confident patch to propose, output exactly: []',
         ].join('\n');
@@ -153,6 +156,33 @@ class ReflectPatch {
         }
 
         if (isVerified) {
+            const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
+            const riskLevel = proposal.risk_level || 'medium';
+            const expectedOutcome = proposal.expected_outcome || '';
+            // 高信心低風險：自動部署
+            if (confidence >= 0.85 && riskLevel === 'low') {
+                try {
+                    fs.copyFileSync(targetPath, targetPath + '.bak-' + Date.now());
+                    fs.writeFileSync(targetPath, fs.readFileSync(testFile));
+                    fs.unlinkSync(testFile);
+                    const autoMsg = '🤖 **核心進化已自動部署** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n信心: ' + (confidence * 100).toFixed(0) + '% | 風險: ' + riskLevel + '\n預期: ' + expectedOutcome;
+                    const sentAuto = await this.notifier.sendToAdmin(autoMsg);
+                    console.log('[SelfReflection/auto_deploy] sendToAdmin:', sentAuto ? '✅ OK' : '❌ FAILED');
+                    this.journal.append({
+                        action: 'self_reflection', mode: 'core_patch',
+                        proposal: proposalType, target: targetName,
+                        description: proposal.description,
+                        outcome: 'auto_deployed',
+                        confidence, risk_level: riskLevel, expected_outcome: expectedOutcome,
+                        reflection_file: reflectionFile,
+                        model: this.decision.lastModel,
+                        tokens: this.decision.lastTokens
+                    });
+                    return { success: true, action: 'self_reflection', outcome: 'auto_deployed', target: targetName };
+                } catch (autoErr) {
+                    console.error('[SelfReflection/auto_deploy] 自動部署失敗，降級為送審:', autoErr.message);
+                }
+            }
             const truncLine = s => s.length > 80 ? s.substring(0, 80) + '...' : s;
             const searchPreview = proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
             const replacePreview = proposal.replace.split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
@@ -170,7 +200,12 @@ class ReflectPatch {
                 global.pendingPatch.pendingId = pendingId;
             }
             const diffBlock = '```\n' + searchPreview + '\n' + replacePreview + '\n```';
-            const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock;
+            const infoParts = [];
+            if (proposal.risk_level) infoParts.push('風險: ' + proposal.risk_level);
+            if (typeof proposal.confidence === 'number') infoParts.push('信心: ' + (proposal.confidence * 100).toFixed(0) + '%');
+            if (proposal.expected_outcome) infoParts.push('預期: ' + proposal.expected_outcome);
+            const infoLine = infoParts.length > 0 ? '\n' + infoParts.join(' | ') : '';
+            const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine;
             const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
             let sentCP = false;
             try {
@@ -190,11 +225,16 @@ class ReflectPatch {
                 console.error('[SelfReflection/core_patch] send FAILED:', sendErr.message);
             }
             console.log('[SelfReflection/core_patch] send:', sentCP ? '✅ OK' : '❌ FAILED');
+            const metaFields = {};
+            if (typeof proposal.confidence === 'number') metaFields.confidence = proposal.confidence;
+            if (proposal.risk_level) metaFields.risk_level = proposal.risk_level;
+            if (proposal.expected_outcome) metaFields.expected_outcome = proposal.expected_outcome;
             this.journal.append({
                 action: 'self_reflection', mode: 'core_patch',
                 proposal: proposalType, target: targetName,
                 description: proposal.description,
                 outcome: sentCP ? 'proposed' : 'proposed_send_failed',
+                ...metaFields,
                 reflection_file: reflectionFile,
                 model: this.decision.lastModel,
                 tokens: this.decision.lastTokens
