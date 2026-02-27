@@ -58,7 +58,8 @@ class SocialAction {
             context: contextNote,
             outcome: sent ? 'sent' : 'send_failed',
             msg_length: msg.length,
-            model: this.decision.lastModel
+            model: this.decision.lastModel,
+            tokens: this.decision.lastTokens
         });
 
         if (!sent) {

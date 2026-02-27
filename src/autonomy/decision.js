@@ -179,12 +179,17 @@ class DecisionEngine {
             tools: opts.tools,
         });
         this._lastLLMMeta = result.meta;
+        this._lastTokens = result.usage;
         return result.text;
     }
 
     get lastModel() {
         if (!this._lastLLMMeta) return undefined;
         return this._lastLLMMeta.provider + '/' + this._lastLLMMeta.model;
+    }
+
+    get lastTokens() {
+        return this._lastTokens || null;
     }
 
     // === 核心決策 ===

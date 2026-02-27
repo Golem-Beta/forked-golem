@@ -167,7 +167,8 @@ class DigestAction {
                 outcome: sentMD ? 'sent' : 'send_failed',
                 item_count: items.length,
                 summary_preview: summary.substring(0, 100),
-                model: this.decision.lastModel
+                model: this.decision.lastModel,
+                tokens: this.decision.lastTokens
             });
             if (sentMD) console.log('[MorningDigest] 晨間摘要已發送。');
         } catch (e) {

@@ -187,7 +187,8 @@ class ExploreAction {
                 action: 'github_explore', topic, repo: newRepo.full_name,
                 stars: newRepo.stargazers_count, language: newRepo.language,
                 outcome: sentGH ? 'shared' : 'send_failed', reflection_file: reflectionFile,
-                model: this.decision.lastModel
+                model: this.decision.lastModel,
+                tokens: this.decision.lastTokens
             });
             if (sentGH) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
         } catch (e) {
