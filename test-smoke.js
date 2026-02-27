@@ -200,6 +200,7 @@ const methodTests = [
     ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],
     ['DashboardLog',          'dashboard-log',     ['setupOverride']],
     ['DashboardMonitor',      'dashboard-monitor', ['startMonitoring']],
+    ['DecisionUtils',         'decision-utils',    ['getAvailableActions']],
 ];
 for (const [className, key, methods] of methodTests) {
     for (const method of methods) {

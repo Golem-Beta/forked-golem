@@ -150,6 +150,81 @@ class DecisionUtils {
             return null;
         }
     }
+
+    // === 行動過濾 ===
+
+    getAvailableActions({ journal, notifier }) {
+        const cfg = this.loadAutonomyConfig();
+        const now = new Date();
+        const hour = now.getHours();
+        const today = now.toISOString().slice(0, 10);
+        const entries = journal.readRecent(cfg.journal.decisionReadCount);
+
+        const lastAction = entries.filter(j => j.action !== 'error').slice(-1)[0];
+        const minutesSinceLast = lastAction && lastAction.ts
+            ? (now.getTime() - new Date(lastAction.ts).getTime()) / 60000
+            : Infinity;
+
+        const available = [];
+
+        for (const [id, actionCfg] of Object.entries(cfg.actions)) {
+            if (id === 'rest') continue;
+
+            let blocked = false;
+            let note = '';
+
+            if (actionCfg.dailyLimit) {
+                const todayCount = entries.filter(
+                    j => j.action === id && j.ts && j.ts.startsWith(today)
+                ).length;
+                if (todayCount >= actionCfg.dailyLimit) {
+                    blocked = true;
+                    note = '今天已達上限 (' + todayCount + '/' + actionCfg.dailyLimit + ')';
+                }
+            }
+
+            if (!blocked && actionCfg.blockedHours && actionCfg.blockedHours.includes(hour)) {
+                blocked = true;
+                note = '目前時段不適合';
+            }
+
+            if (!blocked) {
+                const lastOfType = entries.filter(j => j.action === id).slice(-1)[0];
+                if (lastOfType) {
+                    const ago = lastOfType.ts
+                        ? Math.round((now.getTime() - new Date(lastOfType.ts).getTime()) / 60000)
+                        : null;
+                    note = '上次 ' + (ago !== null ? ago + ' 分鐘前' : '時間不明');
+                    if (lastOfType.outcome) note += '，結果: ' + lastOfType.outcome;
+                } else {
+                    note = '從未執行過';
+                }
+                available.push({ id, desc: actionCfg.desc, note });
+            }
+        }
+
+        const restNote = minutesSinceLast < cfg.cooldown.minActionGapMinutes
+            ? '距離上次行動僅 ' + Math.round(minutesSinceLast) + ' 分鐘'
+            : '';
+
+        // morning_digest：有靜默 queue 且今天尚未執行才加入可選
+        if (cfg.actions.morning_digest) {
+            const queueLen = notifier ? notifier._quietQueue.length : 0;
+            const digestToday = entries.filter(j => j.action === 'morning_digest' && j.ts && j.ts.startsWith(today)).length;
+            const digestLimit = cfg.actions.morning_digest.dailyLimit || 1;
+            const digestBlocked = cfg.actions.morning_digest.blockedHours && cfg.actions.morning_digest.blockedHours.includes(hour);
+            if (!digestBlocked && queueLen > 0 && digestToday < digestLimit) {
+                available.unshift({
+                    id: 'morning_digest',
+                    desc: cfg.actions.morning_digest.desc,
+                    note: '有 ' + queueLen + ' 則未匯報的靜默時段訊息'
+                });
+            }
+        }
+
+        available.push({ id: 'rest', desc: cfg.actions.rest.desc, note: restNote });
+        return available;
+    }
 }
 
 module.exports = DecisionUtils;
