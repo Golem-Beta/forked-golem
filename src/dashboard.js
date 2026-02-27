@@ -499,6 +499,8 @@ class DashboardPlugin {
                         if (m.includes('kimi-k2-instruct'))     return 'kimi';
                         if (m === 'qwen/qwen3-32b')             return 'qwen32b';
                         if (m.includes('llama-3.3-70b'))        return 'llama';
+                        if (m === 'deepseek-chat')              return 'chat';
+                        if (m === 'deepseek-reasoner')          return 'reasoner';
                         if (m.includes('kimi-k2.5'))            return 'kimi';
                         if (m.includes('minimax-m2.1'))         return 'm2.1';
                         if (m.includes('qwen3-coder'))          return 'qwen3';
