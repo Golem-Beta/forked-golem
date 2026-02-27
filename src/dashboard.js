@@ -113,7 +113,7 @@ class DashboardPlugin {
         });
 
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(5, 6, 2, 6, contrib.log, {
+        this.radarLog = this.grid.set(5, 6, 3, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
