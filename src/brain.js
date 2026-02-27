@@ -105,7 +105,9 @@ class GolemBrain {
         const response = result.text;
 
         this.chatHistory.push({ role: 'user', parts: [{ text }] });
-        this.chatHistory.push({ role: 'model', parts: [{ text: response }] });
+        // rawParts 保留 Gemini 3 thought signature，避免後續 sendMessage 產生 4xx
+        const modelParts = result.rawParts || [{ text: response }];
+        this.chatHistory.push({ role: 'model', parts: modelParts });
         if (this.chatHistory.length > 40) {
             this.chatHistory = this.chatHistory.slice(-40);
         }

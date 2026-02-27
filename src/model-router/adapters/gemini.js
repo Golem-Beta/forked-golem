@@ -1,8 +1,9 @@
 /**
  * GeminiAdapter — Google Gemini API 的 ProviderAdapter
+ * 使用 @google/genai SDK（@google/generative-ai 已於 2025-11-30 EOL）
  * 內部整合 KeyChain 邏輯（多 key 輪轉 + 429 冷卻）
  */
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const ProviderAdapter = require('./base');
 
 class GeminiAdapter extends ProviderAdapter {
@@ -53,48 +54,47 @@ class GeminiAdapter extends ProviderAdapter {
             if (!apiKey) throw new Error('[Gemini] 沒有可用的 API Key');
 
             try {
-                const genAI = new GoogleGenerativeAI(apiKey);
+                const client = new GoogleGenAI({ apiKey });
                 const isGemini3 = model.startsWith('gemini-3');
-                const generationConfig = { maxOutputTokens: maxTokens, temperature };
-                if (requireJson) {
-                    generationConfig.responseMimeType = 'application/json';
-                }
-                // Gemini 3 引入 thinking mode，thinkingBudget: 0 關閉推理節省延遲
-                if (isGemini3) {
-                    generationConfig.thinkingConfig = { thinkingBudget: 0 };
-                }
-                const modelConfig = {
-                    model,
-                    generationConfig,
+
+                const config = {
+                    maxOutputTokens: maxTokens,
+                    temperature,
                 };
-                if (systemInstruction) modelConfig.systemInstruction = systemInstruction;
-                if (tools) modelConfig.tools = tools;
+                if (systemInstruction) config.systemInstruction = systemInstruction;
+                if (requireJson) config.responseMimeType = 'application/json';
+                // Gemini 3 引入 thinking mode，thinkingBudget: 0 關閉推理節省延遲
+                if (isGemini3) config.thinkingConfig = { thinkingBudget: 0 };
+                if (tools) config.tools = tools;
 
-                const geminiModel = genAI.getGenerativeModel(modelConfig);
-
-                let result;
+                let response;
 
                 if (chatHistory) {
-                    // 對話模式：使用 startChat + sendMessage
-                    const chat = geminiModel.startChat({ history: chatHistory });
+                    // 對話模式：使用 chat API
+                    const chat = client.chats.create({ model, history: chatHistory, config });
                     const lastMsg = messages[messages.length - 1];
-                    const content = lastMsg ? lastMsg.content : '';
-                    result = await chat.sendMessage(content);
+                    const userMessage = lastMsg ? lastMsg.content : '';
+                    response = await chat.sendMessage({ message: userMessage });
                 } else if (inlineData) {
-                    // 多模態模式：直接 generateContent
-                    const parts = [];
-                    if (messages.length > 0) {
-                        parts.push(messages[messages.length - 1].content);
-                    }
-                    parts.push({ inlineData });
-                    result = await geminiModel.generateContent(parts);
+                    // 多模態模式：contents 包含 text + inlineData parts
+                    const lastMsg = messages[messages.length - 1];
+                    const contents = [{
+                        role: 'user',
+                        parts: [
+                            { text: lastMsg ? lastMsg.content : '' },
+                            { inlineData },
+                        ],
+                    }];
+                    response = await client.models.generateContent({ model, contents, config });
                 } else {
-                    // 簡單模式：messages 轉 Gemini contents
+                    // 簡單模式：messages 合併為 prompt
                     const prompt = messages.map(m => m.content).join('\n');
-                    result = await geminiModel.generateContent(prompt);
+                    response = await client.models.generateContent({ model, contents: prompt, config });
                 }
 
-                const finishReason = result.response.candidates?.[0]?.finishReason;
+                // 檢查 MAX_TOKENS
+                const candidate = response.candidates?.[0];
+                const finishReason = candidate?.finishReason;
                 if (finishReason === 'MAX_TOKENS') {
                     throw Object.assign(
                         new Error(`[Gemini] MAX_TOKENS: response truncated by ${model}`),
@@ -102,13 +102,8 @@ class GeminiAdapter extends ProviderAdapter {
                     );
                 }
 
-                // Gemini 3 回應以 parts 陣列回傳（含 thoughtSignature），需手動組合
-                const candidate = result.response.candidates?.[0];
-                const responseParts = candidate?.content?.parts || [];
-                const text = responseParts.map(p => p.text || '').join('').trim()
-                    || result.response.text?.()?.trim()
-                    || '';
-                const usage = result.response.usageMetadata || {};
+                // 讀取文字回應（新 SDK 有 .text getter）
+                const text = (response.text || '').trim();
 
                 // 空字串視為失敗，讓 router failover
                 if (!text) {
@@ -118,12 +113,27 @@ class GeminiAdapter extends ProviderAdapter {
                     );
                 }
 
+                // 讀取 grounding metadata
+                const gm = candidate?.groundingMetadata;
+                const grounding = gm ? {
+                    webSearchQueries: gm.webSearchQueries || [],
+                    sources: (gm.groundingChunks || []).map(c => ({
+                        title: c.web?.title || '',
+                        url: c.web?.uri || '',
+                    })),
+                } : null;
+
+                // rawParts 供 brain.js 保留 thought signature
+                const rawParts = candidate?.content?.parts || [{ text }];
+
                 return {
                     text,
                     usage: {
-                        inputTokens: usage.promptTokenCount || 0,
-                        outputTokens: usage.candidatesTokenCount || 0,
+                        inputTokens: response.usageMetadata?.promptTokenCount || 0,
+                        outputTokens: response.usageMetadata?.candidatesTokenCount || 0,
                     },
+                    grounding,
+                    rawParts,
                 };
 
             } catch (e) {

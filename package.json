@@ -22,7 +22,7 @@
   "author": "Arvincreator",
   "license": "MIT",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/genai": "^1.43.0",
     "@grammyjs/auto-retry": "^2.0.2",
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.11.0",
