@@ -242,7 +242,8 @@ class DecisionEngine {
             const queueLen = this.notifier ? this.notifier._quietQueue.length : 0;
             const digestToday = journal.filter(j => j.action === 'morning_digest' && j.ts && j.ts.startsWith(today)).length;
             const digestLimit = cfg.actions.morning_digest.dailyLimit || 1;
-            if (queueLen > 0 && digestToday < digestLimit) {
+            const digestBlocked = cfg.actions.morning_digest.blockedHours && cfg.actions.morning_digest.blockedHours.includes(hour);
+            if (!digestBlocked && queueLen > 0 && digestToday < digestLimit) {
                 available.unshift({
                     id: 'morning_digest',
                     desc: cfg.actions.morning_digest.desc,
@@ -372,7 +373,7 @@ class DecisionEngine {
             const result = await this.brain.router.complete({
                 intent: 'decision',
                 messages: [{ role: 'user', content: decisionPrompt }],
-                maxTokens: 256,
+                maxTokens: 512,
                 temperature: 0.8,
                 requireJson: true,
             });
@@ -392,7 +393,7 @@ class DecisionEngine {
             return decision;
         } catch (e) {
             console.warn('⚠️ [Decision] 決策失敗:', e.message);
-            return null;
+            return { action: 'rest', reason: 'JSON parse failed: ' + e.message };
         }
     }
 }
