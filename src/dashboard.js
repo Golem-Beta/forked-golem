@@ -105,14 +105,14 @@ class DashboardPlugin {
         });
 
         // [右中上] API Provider 狀態
-        this.providerBox = this.grid.set(3, 6, 2, 6, blessed.box, {
+        this.providerBox = this.grid.set(3, 6, 3, 6, blessed.box, {
             label: '🚀 API Providers',
             tags: true,
             style: { fg: 'cyan' }
         });
 
         // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(5, 6, 3, 6, contrib.log, {
+        this.radarLog = this.grid.set(6, 6, 2, 6, contrib.log, {
             fg: "yellow",
             selectedFg: "yellow",
             label: '⏰ Autonomy / Chronos',
@@ -479,7 +479,7 @@ class DashboardPlugin {
 
             // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
-                this.statusBox.setMarkdown(`# ${dateStr} ${timeStr}
+                this.statusBox.setMarkdown(`${dateStr} ${timeStr}
 - **模式**: ${mode}
 - **RAM**: ${memUsage.toFixed(0)} MB
 - **Uptime**: ${hours}h ${minutes}m
