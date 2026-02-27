@@ -28,19 +28,19 @@ const INTENT_PREFERENCES = {
     // 深度分析：github/web 研究，需要長 context + 三流
     analysis: [
         { provider: 'gemini', model: 'gemini-2.5-flash' },
-        { provider: 'gemini', model: 'gemini-3-flash' },
+        { provider: 'gemini', model: 'gemini-3-flash-preview' },
         { provider: 'deepseek', model: 'deepseek-chat' },  // 無三流，analysis 不需要行動
         { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
     ],
     // 自我反思：閱讀程式碼、提出改進，需要三流（proposals 要記入記憶）
     reflection: [
         { provider: 'gemini', model: 'gemini-2.5-flash' },
-        { provider: 'gemini', model: 'gemini-3-flash' },
+        { provider: 'gemini', model: 'gemini-3-flash-preview' },
         { provider: 'gemini', model: 'gemini-2.5-flash-lite' },
     ],
     // 程式碼編輯：self_reflection patch 生成，最高 instruction following 要求
     code_edit: [
-        { provider: 'gemini', model: 'gemini-3-flash' },
+        { provider: 'gemini', model: 'gemini-3-flash-preview' },
         { provider: 'gemini', model: 'gemini-2.5-flash' },
         { provider: 'gemini', model: 'gemini-2.5-flash-lite' },
     ],

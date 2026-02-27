@@ -10,7 +10,7 @@ const PROVIDER_CONFIGS = {
         rpdLimits: {
             'gemini-2.5-flash-lite': 20,
             'gemini-2.5-flash': 20,
-            'gemini-3-flash': 20,
+            'gemini-3-flash-preview': 20,
         },
         defaultRpm: 15,
     },
