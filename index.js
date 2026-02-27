@@ -38,7 +38,7 @@ require('dotenv').config();
 const { Bot, InputFile } = require('grammy');
 const { autoRetry } = require('@grammyjs/auto-retry');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const skills = require('./src/skills');
@@ -598,6 +598,7 @@ async function executeDeploy(ctx) {
         if (global.pendingPatch.pendingId) {
             pendingPatches.resolve(global.pendingPatch.pendingId, 'deployed');
         }
+        const patchSnapshot = { ...global.pendingPatch }; // 保存 snapshot，null 前
         global.pendingPatch = null;
         memory.recordSuccess();
         autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'deployed', target: targetName, description: patchDesc });
@@ -611,12 +612,59 @@ async function executeDeploy(ctx) {
             console.error('[Deploy] git failed:', gitErr.message);
         }
 
+        // synthesis 回寫：記錄這次 self_reflection 的成果
+        try {
+            const synthResult = await generateDeploySynthesis(patchSnapshot);
+            if (synthResult) {
+                const synthDir = path.join(process.cwd(), 'memory', 'synthesis');
+                if (!fs.existsSync(synthDir)) fs.mkdirSync(synthDir, { recursive: true });
+                const synthFilename = 'self-reflection-' + new Date().toISOString().replace(/[:.]/g, '-') + '.md';
+                fs.writeFileSync(path.join(synthDir, synthFilename), synthResult);
+                // 冷層：存到 reflections/ 再更新索引
+                const reflPath = autonomy.decision.saveReflection('self-reflection-deploy', synthResult);
+                if (reflPath) {
+                    autonomy.memoryLayer.addReflection(path.basename(reflPath));
+                }
+                console.log('[Deploy] synthesis 已存入 memory/synthesis/' + synthFilename);
+            }
+        } catch (synthErr) {
+            console.error('[Deploy] synthesis 回寫失敗（不影響部署）:', synthErr.message);
+        }
+
         await ctx.reply(`🚀 ${targetName} 升級成功！正在重啟...`);
 
         // process.exit(0) → fbterm 內 npm start 返回 → fbterm 退出
         // → getty tty1 autologin → .zprofile → fbterm → npm start dashboard
         setTimeout(() => process.exit(0), 1500);
     } catch (e) { await ctx.reply(`❌ 部署失敗: ${e.message}`); }
+}
+
+async function generateDeploySynthesis(patch) {
+    if (!patch) return null;
+    let soul = '';
+    try { soul = fs.readFileSync(path.join(process.cwd(), 'soul.md'), 'utf-8'); } catch (e) { }
+    const prompt = [
+        '你是 Golem，剛剛成功部署了一個自我改進的 patch。',
+        '請用 Markdown 寫一份簡短的「成果歸納」文件，記錄這次改進的本質。',
+        '',
+        '【部署描述】', patch.description || '(無描述)',
+        '【修改目標】', patch.name || patch.target || '(未知)',
+        '',
+        '【靈魂文件摘要】', soul.substring(0, 300),
+        '',
+        '【要求】',
+        '- 第一行是 # 標題（簡述這次改進的核心）',
+        '- 說明：改了什麼、為什麼、解決了什麼問題',
+        '- 最後加 ## 摘要 段落（2-3 句話）',
+        '- 用繁體中文，200 字以內，不要廢話',
+    ].join('\n');
+    const result = await brain.router.complete({
+        intent: 'utility',
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 512,
+        temperature: 0.7,
+    });
+    return result && result.text ? result.text : null;
 }
 
 async function executeDrop(ctx) {
