@@ -178,7 +178,7 @@ const proto = (key) => s[key] && s[key].prototype;
 
 const methodTests = [
     ['DecisionEngine', 'decision',        ['makeDecision', 'callLLM', 'getAvailableActions', 'readSoul', 'loadAutonomyConfig']],
-    ['Notifier',       'notify',          ['sendToAdmin', 'setQuietMode', 'drainQuietQueue']],
+    ['Notifier',       'notify',          ['sendToAdmin', 'setQuietMode', 'drainQuietQueue', 'isHardFailed']],
     ['JournalManager', 'journal',         ['append', 'readRecent']],
     ['ReflectAction',  'actions/reflect', ['performSelfReflection']],
     ['ReflectDiag',    'actions/reflect-diag', ['run']],

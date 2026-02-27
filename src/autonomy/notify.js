@@ -26,6 +26,7 @@ class Notifier {
         // 靜默時段暫存 queue（{ text, ts }[]）
         this._quietQueue = this._loadQuietQueueFromDisk();
         this.quietMode = false;
+        this._consecutiveFailures = 0;
     }
 
     /**
@@ -43,6 +44,14 @@ class Notifier {
         this._quietQueue = [];
         try { fs.unlinkSync(QUIET_QUEUE_PATH); } catch (_) {}
         return items;
+    }
+
+    /**
+     * 通知通道是否硬失敗（連續失敗 3 次以上，且非靜默時段）
+     * 用於 action 前置檢查，避免浪費 token
+     */
+    isHardFailed() {
+        return !this.quietMode && this._consecutiveFailures >= 3;
     }
 
     /**
@@ -100,6 +109,7 @@ class Notifier {
                     if (this.brain) {
                         this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
                     }
+                    this._consecutiveFailures = 0;
                     return true;
                 } else {
                     const chunks = [];
@@ -131,6 +141,7 @@ class Notifier {
                     if (this.brain) {
                         this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
                     }
+                    this._consecutiveFailures = 0;
                     return true;
                 }
             } else if (this.dcClient && this.config.DISCORD_ADMIN_ID) {
@@ -139,10 +150,12 @@ class Notifier {
             }
         } catch (e) {
             console.error('[Notifier] send FAILED:', e); // Log full error object for better diagnosis
+            this._consecutiveFailures++;
             return false;
         }
         // If we reach here, it means no valid notification channel (TG or Discord) was configured or had an admin ID.
         console.error('[Notifier] send FAILED: No valid notification channel (Telegram or Discord) with admin ID configured.');
+        this._consecutiveFailures++;
         return false;
     }
 

@@ -34,6 +34,11 @@ class ExploreAction {
 
     async performWebResearch(decisionReason = '') {
         try {
+            if (this.notifier.isHardFailed()) {
+                console.warn('[WebResearch] 通知通道硬失敗，提前中止');
+                this.journal.append({ action: 'web_research', outcome: 'aborted_channel_down' });
+                return { success: false, action: 'web_research', outcome: 'aborted_channel_down' };
+            }
             const soul = this.decision.readSoul();
             const recentJournal = this.journal.readRecent(5);
 
@@ -114,6 +119,11 @@ class ExploreAction {
 
     async performGitHubExplore() {
         try {
+            if (this.notifier.isHardFailed()) {
+                console.warn('[GitHub] 通知通道硬失敗，提前中止');
+                this.journal.append({ action: 'github_explore', outcome: 'aborted_channel_down' });
+                return { success: false, action: 'github_explore', outcome: 'aborted_channel_down' };
+            }
             const topics = [
                 'autonomous agent framework', 'LLM tool use', 'AI agent memory',
                 'local AI assistant', 'AI self-improvement', 'prompt engineering framework',
