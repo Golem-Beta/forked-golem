@@ -36,7 +36,7 @@ const PROVIDER_CONFIGS = {
         },
         defaultRpm: 30,
         modelCapabilities: {
-            'llama-3.3-70b-versatile':     [],
+            'llama-3.3-70b-versatile':     ['tristream'],  // benchmark 8/8 通過
             'moonshotai/kimi-k2-instruct': ['long_context'],
             'qwen/qwen3-32b':              [],
         },
@@ -73,10 +73,16 @@ const PROVIDER_CONFIGS = {
         multiKey: false,
         rpdLimits: {
             'meta-llama/llama-3.3-70b-instruct:free': 200,
+            'moonshotai/kimi-k2.5:free':              200,
+            'minimax/minimax-m2.1:free':              200,
+            'qwen/qwen3-coder-480b:free':             200,
         },
         defaultRpm: 20,
         modelCapabilities: {
             'meta-llama/llama-3.3-70b-instruct:free': [],
+            'moonshotai/kimi-k2.5:free':              ['long_context'],
+            'minimax/minimax-m2.1:free':              ['long_context'],
+            'qwen/qwen3-coder-480b:free':             ['long_context'],
         },
     },
     cerebras: {

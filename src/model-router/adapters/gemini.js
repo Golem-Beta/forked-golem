@@ -54,9 +54,14 @@ class GeminiAdapter extends ProviderAdapter {
 
             try {
                 const genAI = new GoogleGenerativeAI(apiKey);
+                const isGemini3 = model.startsWith('gemini-3');
                 const generationConfig = { maxOutputTokens: maxTokens, temperature };
                 if (requireJson) {
                     generationConfig.responseMimeType = 'application/json';
+                }
+                // Gemini 3 引入 thinking mode，thinkingBudget: 0 關閉推理節省延遲
+                if (isGemini3) {
+                    generationConfig.thinkingConfig = { thinkingBudget: 0 };
                 }
                 const modelConfig = {
                     model,
@@ -97,7 +102,12 @@ class GeminiAdapter extends ProviderAdapter {
                     );
                 }
 
-                const text = result.response.text().trim();
+                // Gemini 3 回應以 parts 陣列回傳（含 thoughtSignature），需手動組合
+                const candidate = result.response.candidates?.[0];
+                const responseParts = candidate?.content?.parts || [];
+                const text = responseParts.map(p => p.text || '').join('').trim()
+                    || result.response.text?.()?.trim()
+                    || '';
                 const usage = result.response.usageMetadata || {};
 
                 // 空字串視為失敗，讓 router failover
