@@ -99,7 +99,7 @@ class DashboardPlugin {
         });
 
         // [右上] 狀態面板（含日期時間）
-        this.statusBox = this.grid.set(0, 6, 3, 6, contrib.log, {
+        this.statusBox = this.grid.set(0, 6, 3, 6, contrib.markdown, {
             label: '🧠 引擎狀態',
             style: { border: { fg: 'cyan' } }
         });
@@ -479,12 +479,12 @@ class DashboardPlugin {
 
             // statusBox：系統狀態（乾淨版）
             if (this.statusBox) {
-                this.statusBox.setItems([
-                    `${dateStr}  ${timeStr}`,
-                    `  模式: ${mode}`,
-                    `  RAM: ${memUsage.toFixed(0)} MB  Up: ${hours}h ${minutes}m`,
-                    `  ⏰ 醒來: ${this._formatCountdown()}`,
-                ]);
+                this.statusBox.setMarkdown(`${dateStr} ${timeStr}
+- **模式**: ${mode}
+- **RAM**: ${memUsage.toFixed(0)} MB
+- **Uptime**: ${hours}h ${minutes}m
+- **⏰ 醒來**: ${this._formatCountdown()}
+`);
             }
 
             // providerBox：API Provider 即時狀態（獨立面板）
