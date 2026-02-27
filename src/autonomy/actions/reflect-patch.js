@@ -69,7 +69,7 @@ class ReflectPatch {
                 const sent = await this.notifier.sendToAdmin(failMsg);
                 console.log('[Reflection] no_proposals 通知:', sent ? 'OK' : 'FAILED');
             }
-            return;
+            return { success: false, action: 'self_reflection', outcome: 'no_proposals', target: targetFile };
         }
 
         const proposal = proposals[0];
@@ -77,17 +77,18 @@ class ReflectPatch {
 
         // 模式一：技能擴展
         if (mode === 'skill_create') {
-            await this._handleSkillCreate(proposal, reflectionFile);
-            return;
+            const scResult = await this._handleSkillCreate(proposal, reflectionFile);
+            return scResult || { success: false, action: 'self_reflection', outcome: 'skill_create_failed', target: targetFile };
         }
 
         // 模式二：核心進化
         if (mode === 'core_patch' || (proposal.search && proposal.replace !== undefined)) {
-            await this._handleCorePatch(proposal, reflectionFile, triggerCtx);
-            return;
+            const cpResult = await this._handleCorePatch(proposal, reflectionFile, triggerCtx);
+            return cpResult || { success: false, action: 'self_reflection', outcome: 'core_patch_failed', target: targetFile };
         }
 
         this.journal.append({ action: 'self_reflection', mode: mode, outcome: 'unknown_mode', reflection_file: reflectionFile });
+        return { success: false, action: 'self_reflection', outcome: 'unknown_mode', target: targetFile };
     }
 
     async _handleSkillCreate(proposal, reflectionFile) {
@@ -100,7 +101,7 @@ class ReflectPatch {
         const skillPath = path.join(process.cwd(), 'skills.d', skillName + '.md');
         if (fs.existsSync(skillPath)) {
             this.journal.append({ action: 'self_reflection', mode: 'skill_create', outcome: 'skill_already_exists', skill_name: skillName, reflection_file: reflectionFile });
-            return;
+            return { success: false, action: 'self_reflection', outcome: 'skill_already_exists' };
         }
         fs.writeFileSync(skillPath, content);
         const msgText = '🧩 **新技能已建立**: ' + skillName + '\n' + (proposal.description || '') + '\n原因: ' + (proposal.reason || '');
@@ -114,6 +115,7 @@ class ReflectPatch {
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens
         });
+        return { success: sentSC, action: 'self_reflection', outcome: sentSC ? 'skill_created' : 'skill_created_send_failed' };
     }
 
     async _handleCorePatch(proposal, reflectionFile, triggerCtx) {
@@ -184,12 +186,14 @@ class ReflectPatch {
                 model: this.decision.lastModel,
                 tokens: this.decision.lastTokens
             });
+            return { success: sentCP, action: 'self_reflection', outcome: sentCP ? 'proposed' : 'proposed_send_failed', target: targetName };
         } else {
             this.journal.append({
                 action: 'self_reflection', mode: 'core_patch',
                 proposal: proposalType, outcome: 'verification_failed',
                 reflection_file: reflectionFile
             });
+            return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
         }
     }
 }

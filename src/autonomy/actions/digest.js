@@ -116,6 +116,7 @@ class DigestAction {
         } catch (e) {
             console.error('❌ [Digest] 失敗:', e.message);
             this.journal.append({ action: 'digest', outcome: 'error', error: e.message });
+            return { success: false, action: 'digest', outcome: 'error', detail: e.message };
         }
     }
 
@@ -174,6 +175,7 @@ class DigestAction {
         } catch (e) {
             console.error('[MorningDigest] 失敗:', e.message);
             this.journal.append({ action: 'morning_digest', outcome: 'error', error: e.message });
+            return { success: false, action: 'morning_digest', outcome: 'error', detail: e.message };
         }
     }
 }

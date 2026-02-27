@@ -85,6 +85,7 @@ class SocialAction {
                 this._pendingSocialChat = null;
             }, 30 * 60 * 1000)
         };
+        return { success: sent, action: 'spontaneous_chat', outcome: sent ? 'sent' : 'send_failed' };
     }
 
     /**

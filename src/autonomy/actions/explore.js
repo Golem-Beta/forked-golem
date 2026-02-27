@@ -87,6 +87,7 @@ class ExploreAction {
         } catch (e) {
             console.error('❌ [WebResearch] 研究失敗:', e.message);
             this.journal.append({ action: 'web_research', outcome: 'error', error: e.message });
+            return { success: false, action: 'web_research', outcome: 'error', detail: e.message };
         }
     }
 
@@ -194,6 +195,7 @@ class ExploreAction {
         } catch (e) {
             console.error('❌ [GitHub] 探索失敗:', e.message);
             this.journal.append({ action: 'github_explore', outcome: 'error', error: e.message });
+            return { success: false, action: 'github_explore', outcome: 'error', detail: e.message };
         }
     }
 }

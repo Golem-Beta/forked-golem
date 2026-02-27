@@ -13,6 +13,7 @@ const JournalManager = require('./journal');
 const Notifier = require('./notify');
 const DecisionEngine = require('./decision');
 const ActionRunner = require('./actions/index');
+const { FailureTracker } = require('./failure-tracker');
 
 class AutonomyManager {
     /**
@@ -58,6 +59,7 @@ class AutonomyManager {
         this._timer = null;
         this.nextWakeTime = null;
         this.quietMode = false;
+        this._failureTracker = new FailureTracker(this.notifier);
     }
 
     // === Lifecycle ===
@@ -125,30 +127,31 @@ class AutonomyManager {
             };
             console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
 
+            let _actionResult = null;
             switch (decision.action) {
                 case 'self_reflection':
-                    await this.actions.performSelfReflection();
+                    _actionResult = await this.actions.performSelfReflection();
                     break;
                 case 'github_explore':
-                    await this.actions.performGitHubExplore();
+                    _actionResult = await this.actions.performGitHubExplore();
                     break;
                 case 'spontaneous_chat':
                     if (this.quietMode) {
                         console.log('🌙 [Autonomy] 靜音時段，跳過社交 → 改做 GitHub 探索');
                         this.journal.append({ action: 'spontaneous_chat', outcome: 'skipped_quiet_mode' });
-                        await this.actions.performGitHubExplore();
+                        _actionResult = await this.actions.performGitHubExplore();
                     } else {
-                        await this.actions.performSpontaneousChat();
+                        _actionResult = await this.actions.performSpontaneousChat();
                     }
                     break;
                 case 'web_research':
-                    await this.actions.performWebResearch(decision.reason);
+                    _actionResult = await this.actions.performWebResearch(decision.reason);
                     break;
                 case 'morning_digest':
-                    await this.actions.performMorningDigest();
+                    _actionResult = await this.actions.performMorningDigest();
                     break;
                 case 'digest':
-                    await this.actions.performDigest();
+                    _actionResult = await this.actions.performDigest();
                     break;
                 case 'rest':
                     console.log('😴 [Autonomy] Golem 選擇繼續休息。');
@@ -161,6 +164,7 @@ class AutonomyManager {
                 default:
                     console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
             }
+            if (_actionResult) await this._failureTracker.record(_actionResult);
         } catch (e) {
             console.error('[錯誤] 自由意志執行失敗:', e.message || e);
             this.journal.append({ action: 'error', error: e.message });

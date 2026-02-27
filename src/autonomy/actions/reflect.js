@@ -28,9 +28,10 @@ class ReflectAction {
             }
 
             const result = await this.diag.run(journalContext, triggerCtx);
-            if (!result) return;
+            if (!result) return { success: false, action: 'self_reflection', outcome: 'no_diagnosis' };
 
-            await this.patch.run(result.diag, result.diagFile, journalContext, triggerCtx);
+            const patchResult = await this.patch.run(result.diag, result.diagFile, journalContext, triggerCtx);
+            return patchResult || { success: false, action: 'self_reflection', outcome: 'no_patch', target: result.diag.target_file };
         } catch (e) {
             console.error('[錯誤] 自主進化失敗:', e.message || e, e.stack);
             this.journal.append({
@@ -43,6 +44,7 @@ class ReflectAction {
                     triggerContext: triggerCtx
                 }
             });
+            return { success: false, action: 'self_reflection', outcome: 'error', detail: e.message };
         }
     }
 }
