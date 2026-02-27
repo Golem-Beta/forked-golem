@@ -124,6 +124,8 @@ class ModelRouter {
                 const result = await adapter.complete({ ...opts, model });
                 const latency = Date.now() - startTime;
 
+                console.log(`✅ [ModelRouter] ${provider}/${model} (${latency}ms, intent=${intent})`);
+
                 // 更新健康狀態
                 this.health.onSuccess(provider);
 
