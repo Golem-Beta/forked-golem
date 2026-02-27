@@ -114,12 +114,12 @@ class ReflectPatch {
         this.journal.append({
             action: 'self_reflection', mode: 'skill_create',
             skill_name: skillName, description: proposal.description,
-            outcome: sentSC ? 'skill_created' : 'skill_created_send_failed',
+            outcome: sentSC === true ? 'skill_created' : sentSC === 'queued' ? 'queued' : 'skill_created_send_failed',
             reflection_file: reflectionFile,
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens
         });
-        return { success: sentSC, action: 'self_reflection', outcome: sentSC ? 'skill_created' : 'skill_created_send_failed' };
+        return { success: sentSC === true, action: 'self_reflection', outcome: sentSC === true ? 'skill_created' : sentSC === 'queued' ? 'queued' : 'skill_created_send_failed' };
     }
 
     async _handleCorePatch(proposal, reflectionFile, triggerCtx) {
@@ -233,13 +233,13 @@ class ReflectPatch {
                 action: 'self_reflection', mode: 'core_patch',
                 proposal: proposalType, target: targetName,
                 description: proposal.description,
-                outcome: sentCP ? 'proposed' : 'proposed_send_failed',
+                outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed',
                 ...metaFields,
                 reflection_file: reflectionFile,
                 model: this.decision.lastModel,
                 tokens: this.decision.lastTokens
             });
-            return { success: sentCP, action: 'self_reflection', outcome: sentCP ? 'proposed' : 'proposed_send_failed', target: targetName };
+            return { success: sentCP === true, action: 'self_reflection', outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed', target: targetName };
         } else {
             this.journal.append({
                 action: 'self_reflection', mode: 'core_patch',

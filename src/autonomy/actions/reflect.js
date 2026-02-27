@@ -40,7 +40,7 @@ class ReflectAction {
                 error: e.message,
                 details: {
                     stack: e.stack,
-                    journalContext: journalContext,
+                    journalContext: (typeof journalContext !== 'undefined' ? journalContext : '(unavailable)'),
                     triggerContext: triggerCtx
                 }
             });

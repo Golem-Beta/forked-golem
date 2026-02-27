@@ -130,7 +130,7 @@ class DigestAction {
 
             this.journal.append({
                 action: 'digest', topic: firstLine,
-                outcome: sentDG ? 'completed' : 'completed_send_failed',
+                outcome: sentDG === true ? 'completed' : sentDG === 'queued' ? 'queued' : 'completed_send_failed',
                 file: 'synthesis/' + filename, summary_preview: summary.substring(0, 100)
             });
             if (sentDG) console.log('[Digest] 消化歸納完成。');
@@ -191,7 +191,7 @@ class DigestAction {
             console.log('[MorningDigest] sendToAdmin:', sentMD ? '✅ OK' : '❌ FAILED');
             this.journal.append({
                 action: 'morning_digest',
-                outcome: sentMD ? 'sent' : 'send_failed',
+                outcome: sentMD === true ? 'sent' : sentMD === 'queued' ? 'queued' : 'send_failed',
                 item_count: items.length,
                 summary_preview: summary.substring(0, 100),
                 model: this.decision.lastModel,

@@ -100,11 +100,11 @@ class ExploreAction {
 
             this.journal.append({
                 action: 'web_research', topic: query, purpose: purpose,
-                outcome: sentWR ? 'shared' : 'send_failed', reflection_file: reflectionFile,
+                outcome: sentWR === true ? 'shared' : sentWR === 'queued' ? 'queued' : 'send_failed', reflection_file: reflectionFile,
                 grounded: grounding !== null, sources: grounding ? grounding.sources.length : 0
             });
             if (sentWR) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
-            return { success: sentWR, action: 'web_research', outcome: sentWR ? 'shared' : 'send_failed' };
+            return { success: sentWR === true, action: 'web_research', outcome: sentWR === true ? 'shared' : sentWR === 'queued' ? 'queued' : 'send_failed' };
         } catch (e) {
             console.error('❌ [WebResearch] 研究失敗:', e.message);
             this.journal.append({ action: 'web_research', outcome: 'error', error: e.message });
@@ -258,12 +258,12 @@ class ExploreAction {
             this.journal.append({
                 action: 'github_explore', topic, repo: newRepo.full_name,
                 stars: newRepo.stargazers_count, language: newRepo.language,
-                outcome: sentGH ? 'shared' : 'send_failed', reflection_file: reflectionFile,
+                outcome: sentGH === true ? 'shared' : sentGH === 'queued' ? 'queued' : 'send_failed', reflection_file: reflectionFile,
                 model: this.decision.lastModel,
                 tokens: this.decision.lastTokens
             });
             if (sentGH) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
-            return { success: sentGH, action: 'github_explore', outcome: sentGH ? 'shared' : 'send_failed' };
+            return { success: sentGH === true, action: 'github_explore', outcome: sentGH === true ? 'shared' : sentGH === 'queued' ? 'queued' : 'send_failed' };
         } catch (e) {
             console.error('❌ [GitHub] 探索失敗:', e.message);
             this.journal.append({ action: 'github_explore', outcome: 'error', error: e.message });

@@ -56,7 +56,7 @@ class SocialAction {
         this.journal.append({
             action: 'spontaneous_chat',
             context: contextNote,
-            outcome: sent ? 'sent' : 'send_failed',
+            outcome: sent === true ? 'sent' : sent === 'queued' ? 'queued' : 'send_failed',
             msg_length: msg.length,
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens
@@ -85,7 +85,7 @@ class SocialAction {
                 this._pendingSocialChat = null;
             }, 30 * 60 * 1000)
         };
-        return { success: sent, action: 'spontaneous_chat', outcome: sent ? 'sent' : 'send_failed' };
+        return { success: sent === true, action: 'spontaneous_chat', outcome: sent === true ? 'sent' : sent === 'queued' ? 'queued' : 'send_failed' };
     }
 
     /**
