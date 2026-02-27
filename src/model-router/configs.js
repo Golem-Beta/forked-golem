@@ -68,6 +68,7 @@ const PROVIDER_CONFIGS = {
         },
     },
     openrouter: {
+        priority: 0.1,
         baseUrl: 'https://openrouter.ai/api/v1',
         envKey: 'OPENROUTER_API_KEY',
         multiKey: false,
@@ -86,6 +87,7 @@ const PROVIDER_CONFIGS = {
         },
     },
     cerebras: {
+        priority: 0.1,
         baseUrl: 'https://api.cerebras.ai/v1',
         envKey: 'CEREBRAS_API_KEY',
         multiKey: false,

@@ -211,8 +211,10 @@ class ModelRouter {
             }
 
             candidates.sort((a, b) => {
-                let scoreA = this.health.score(a.provider, a.model);
-                let scoreB = this.health.score(b.provider, b.model);
+                const prioA = PROVIDER_CONFIGS[a.provider]?.priority ?? 1.0;
+                const prioB = PROVIDER_CONFIGS[b.provider]?.priority ?? 1.0;
+                let scoreA = this.health.score(a.provider, a.model) * prioA;
+                let scoreB = this.health.score(b.provider, b.model) * prioB;
                 // tristream 模型降分：讓非 Gemini 優先服務非三流 intent
                 if (savePremium) {
                     if (a.caps.includes('tristream')) scoreA *= 0.3;
