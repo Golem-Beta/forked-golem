@@ -142,6 +142,7 @@ const routerSubmodules = [
     ['router/adapters/base',     'src/model-router/adapters/base'],
     ['router/adapters/openai-compat', 'src/model-router/adapters/openai-compat'],
     ['router/adapters/gemini',   'src/model-router/adapters/gemini'],
+    ['router/selector',          'src/model-router/selector'],
 ];
 for (const [key, modPath] of routerSubmodules) {
     test(`model-router ${key} loadable`, () => {
@@ -150,6 +151,7 @@ for (const [key, modPath] of routerSubmodules) {
     });
 }
 test('router/health is a class', () => assert(typeof s['router/health'] === 'function'));
+test('router/selector is a class', () => assert(typeof s['router/selector'] === 'function'));
 test('router/configs has gemini/groq/deepseek keys', () => {
     const cfg = s['router/configs'];
     assert(typeof cfg === 'object');
@@ -196,6 +198,7 @@ const methodTests = [
     ['DigestAction',   'actions/digest',  ['performDigest', 'performMorningDigest']],
     ['SocialAction',   'actions/social',  ['performSpontaneousChat']],
     ['ProviderHealth', 'router/health',   ['register', 'isAvailable', 'score', 'onSuccess', 'on429', 'onError', 'getSummary']],
+    ['ModelSelector',  'router/selector', ['select']],
     ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
     ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],
     ['DashboardLog',          'dashboard-log',     ['setupOverride']],
