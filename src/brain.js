@@ -113,6 +113,7 @@ class GolemBrain {
         console.log(`✅ [Brain] 回應接收完成 (${response.length} chars, via ${result.meta.provider}/${result.meta.model})`);
 
         return response
+            .replace(/<think>[\s\S]*?<\/think>/gi, '')
             .replace('—-回覆開始—-', '')
             .replace('—-回覆結束—-', '')
             .trim();
