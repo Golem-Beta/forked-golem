@@ -51,6 +51,7 @@ class AutonomyManager {
             PatchManager: deps.PatchManager,
             ResponseParser: deps.ResponseParser,
             InputFile: deps.InputFile,
+            PendingPatches: deps.PendingPatches,
         });
 
         // Coordinator 自身狀態

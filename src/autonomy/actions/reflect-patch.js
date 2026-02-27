@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 class ReflectPatch {
-    constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile }) {
+    constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
@@ -17,6 +17,7 @@ class ReflectPatch {
         this.PatchManager = PatchManager;
         this.ResponseParser = ResponseParser;
         this.InputFile = InputFile;
+        this.PendingPatches = PendingPatches;
     }
 
     /**
@@ -152,10 +153,22 @@ class ReflectPatch {
         }
 
         if (isVerified) {
-            global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
             const truncLine = s => s.length > 80 ? s.substring(0, 80) + '...' : s;
             const searchPreview = proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
             const replacePreview = proposal.replace.split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
+            global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
+            // 持久化到磁碟
+            if (this.PendingPatches) {
+                const pendingId = this.PendingPatches.add({
+                    testFile,
+                    target: targetPath,
+                    name: targetName,
+                    description: proposal.description || '',
+                    proposalType,
+                    diffPreview: searchPreview + '\n' + replacePreview,
+                });
+                global.pendingPatch.pendingId = pendingId;
+            }
             const diffBlock = '```\n' + searchPreview + '\n' + replacePreview + '\n```';
             const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock;
             const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };

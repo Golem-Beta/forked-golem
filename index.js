@@ -99,10 +99,14 @@ if (dashboard) dashboard.inject({ modelRouter });
 const brain = new GolemBrain(modelRouter);
 const chronos = new ChronosManager({ tgBot, adminChatId: CONFIG.ADMIN_IDS[0] });
 const controller = new TaskController({ chronos, brain, skills, pendingTasks });
+const PendingPatches = require('./src/autonomy/pending-patches');
+const pendingPatches = new PendingPatches();
+
 const autonomy = new AutonomyManager({
     brain, chronos, tgBot, dcClient, memory, skills,
     CONFIG, loadPrompt, loadFeedbackPrompt,
-    Introspection, PatchManager, TriStreamParser, ResponseParser, InputFile
+    Introspection, PatchManager, TriStreamParser, ResponseParser, InputFile,
+    PendingPatches: pendingPatches,
 });
 
 // 📟 Dashboard 注入 Autonomy
@@ -272,6 +276,7 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
     // 📬 通知 Autonomy：老哥回訊息了（社交回應追蹤）
     if (ctx.text && autonomy.onAdminReply) autonomy.onAdminReply(ctx.text);
     if (await NodeRouter.handle(ctx, brain)) return;
+    if (ctx.text && (ctx.text === '/list_patches' || ctx.text === '/lp')) return listPatchesCommand(ctx);
     if (global.pendingPatch && ['ok', 'deploy', 'y', '部署'].includes(ctx.text.toLowerCase())) return executeDeploy(ctx);
     if (global.pendingPatch && ['no', 'drop', 'n', '丟棄'].includes(ctx.text.toLowerCase())) return executeDrop(ctx);
     if (global.pendingPatch) {
@@ -496,8 +501,22 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
 // --- 統一 Callback 處理 ---
 async function handleUnifiedCallback(ctx, actionData) {
     if (!ctx.isAdmin) return;
-    if (actionData === 'PATCH_DEPLOY') return executeDeploy(ctx);
-    if (actionData === 'PATCH_DROP') return executeDrop(ctx);
+    if (actionData === 'PATCH_DEPLOY' || actionData.startsWith('PATCH_DEPLOY:')) {
+        const id = actionData.includes(':') ? actionData.split(':')[1] : null;
+        if (id) {
+            const p = pendingPatches.getById(id);
+            if (p) global.pendingPatch = { path: p.testFile, target: p.target, name: p.name, description: p.description, pendingId: p.id };
+        }
+        return executeDeploy(ctx);
+    }
+    if (actionData === 'PATCH_DROP' || actionData.startsWith('PATCH_DROP:')) {
+        const id = actionData.includes(':') ? actionData.split(':')[1] : null;
+        if (id) {
+            const p = pendingPatches.getById(id);
+            if (p) global.pendingPatch = { path: p.testFile, target: p.target, name: p.name, description: p.description, pendingId: p.id };
+        }
+        return executeDrop(ctx);
+    }
 
     // OTA 按鈕處理
     if (actionData === 'SYSTEM_FORCE_UPDATE') {
@@ -576,6 +595,9 @@ async function executeDeploy(ctx) {
         fs.writeFileSync(targetPath, fs.readFileSync(patchPath));
         fs.unlinkSync(patchPath);
         const patchDesc = global.pendingPatch.description || '(no description)';
+        if (global.pendingPatch.pendingId) {
+            pendingPatches.resolve(global.pendingPatch.pendingId, 'deployed');
+        }
         global.pendingPatch = null;
         memory.recordSuccess();
         autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'deployed', target: targetName, description: patchDesc });
@@ -601,10 +623,37 @@ async function executeDrop(ctx) {
     if (!global.pendingPatch) return;
     try { fs.unlinkSync(global.pendingPatch.path); } catch (e) { }
     const patchDesc = global.pendingPatch ? global.pendingPatch.description || '(no description)' : '?';
+    if (global.pendingPatch && global.pendingPatch.pendingId) {
+        pendingPatches.resolve(global.pendingPatch.pendingId, 'dropped');
+    }
     global.pendingPatch = null;
     memory.recordRejection();
     autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'dropped', description: patchDesc });
     await ctx.reply("🗑️ 提案已丟棄");
+}
+
+async function listPatchesCommand(ctx) {
+    const pending = pendingPatches.listPending();
+    if (pending.length === 0) {
+        await ctx.reply('✅ 目前沒有待審提案');
+        return;
+    }
+    await ctx.reply(`📋 待審提案共 ${pending.length} 個，逐一發送：`);
+    for (const p of pending) {
+        const age = Math.floor((Date.now() - new Date(p.createdAt).getTime()) / 60000);
+        const ageStr = age < 60 ? `${age} 分鐘前` : age < 1440 ? `${Math.floor(age / 60)} 小時前` : `${Math.floor(age / 1440)} 天前`;
+        const msgText = `💡 **核心進化提案** (${p.proposalType})\n目標：${p.name}\n內容：${p.description}\n建立：${ageStr}\n\`\`\`\n${p.diffPreview}\n\`\`\``;
+        const options = {
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '🚀 部署', callback_data: `PATCH_DEPLOY:${p.id}` },
+                    { text: '🗑️ 丟棄', callback_data: `PATCH_DROP:${p.id}` }
+                ]]
+            }
+        };
+        await ctx.reply(msgText, options);
+        pendingPatches.updateNotified(p.id);
+    }
 }
 
 if (tgBot) {

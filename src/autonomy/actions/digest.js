@@ -102,8 +102,14 @@ class DigestAction {
             if (summaryMatch) { summary = summaryMatch[1].trim(); }
             else { summary = result.substring(0, 200).trim() + '...'; }
 
+            const PendingPatches = require('../pending-patches');
+            const _pp = new PendingPatches();
+            const _pendingCount = _pp.pendingCount();
+            const digestPendingReminder = _pendingCount > 0
+                ? `\n\n⚠️ 有 ${_pendingCount} 個待審提案，輸入 /lp 查看`
+                : '';
             const sentDG = await this.notifier.sendToAdmin(
-                '📝 消化歸納完成\n\n' + summary + '\n\n📄 完整文件: memory/synthesis/' + filename
+                '📝 消化歸納完成\n\n' + summary + '\n\n📄 完整文件: memory/synthesis/' + filename + digestPendingReminder
             );
             console.log('[Digest] sendToAdmin:', sentDG ? '✅ OK' : '❌ FAILED');
 
@@ -160,7 +166,13 @@ class DigestAction {
                 this.journal.append({ action: 'morning_digest', outcome: 'llm_empty' });
                 return;
             }
-            const sentMD = await this.notifier.sendToAdmin('🌅 晨間摘要' + NL + NL + summary);
+            const PendingPatches = require('../pending-patches');
+            const _pp2 = new PendingPatches();
+            const _pendingCount2 = _pp2.pendingCount();
+            const pendingReminder = _pendingCount2 > 0
+                ? NL + NL + `⚠️ 有 ${_pendingCount2} 個待審提案，輸入 /lp 查看`
+                : '';
+            const sentMD = await this.notifier.sendToAdmin('🌅 晨間摘要' + NL + NL + summary + pendingReminder);
             console.log('[MorningDigest] sendToAdmin:', sentMD ? '✅ OK' : '❌ FAILED');
             this.journal.append({
                 action: 'morning_digest',
