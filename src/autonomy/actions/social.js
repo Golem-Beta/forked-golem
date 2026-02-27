@@ -42,7 +42,7 @@ class SocialAction {
         }
 
         // 過濾 TriStream 格式（LLM 偶爾輸出三流 tag，需取 reply 部分）
-        const TriStreamParser = require('../../parsers');
+        const { TriStreamParser } = require('../../parsers');
         const parsed = TriStreamParser.parse(msg);
         const finalMsg = parsed.hasStructuredTags ? parsed.reply : msg;
         if (!finalMsg || finalMsg.trim().length === 0) {
