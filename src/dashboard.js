@@ -103,6 +103,14 @@ class DashboardPlugin {
             label: '🧠 引擎狀態',
             style: { border: { fg: 'cyan' } }
         });
+        this.statusBox.setMarkdown = (str) => {
+            const TerminalRenderer = require('marked-terminal');
+            const { marked } = require('marked');
+            marked.use({ renderer: new TerminalRenderer() });
+            const raw = marked.parse(str);
+            const stripped = raw.replace(/([^\n]+)\n\n/g, '$1\n');
+            this.statusBox.setContent(stripped);
+        };
 
         // [右中上] API Provider 狀態
         this.providerBox = this.grid.set(3, 6, 3, 6, blessed.box, {
