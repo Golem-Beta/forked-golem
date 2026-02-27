@@ -32,7 +32,7 @@ class ReflectPatch {
 
         if (!codeSnippet || codeSnippet.length < 10) {
             console.warn('🧬 [Reflection] 無法提取目標程式碼區段');
-            this.journal.append({ action: 'self_reflection', phase: 'extraction', outcome: 'section_not_found', target: targetFile + ':' + targetSection, reflection_file: diagFile });
+            this.journal.append({ action: 'self_reflection', phase: 'extraction', outcome: 'section_not_found', target: targetFile, reflection_file: diagFile });
             return;
         }
 

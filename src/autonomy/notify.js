@@ -88,7 +88,7 @@ class Notifier {
         if (this.quietMode) {
             this._quietQueue.push({ text, ts: new Date().toISOString() });
             this._saveQuietQueue();
-            console.log('[Notifier] 靜默時段，訊息暫存 (queue=' + this._quietQueue.length + ')');
+            console.log('[Notifier] 靜默佇列（不是失敗），訊息暫存 (queue=' + this._quietQueue.length + ')');
             return false;
         }
         const TG_MAX = 4000;

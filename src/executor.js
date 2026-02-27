@@ -66,7 +66,7 @@ class Executor {
                 maxBuffer: 1024 * 512
             }, (err, stdout, stderr) => {
                 if (err) {
-                    if (err.killed) reject('⏱️ 指令超時（30 秒限制）');
+                    if (err.killed) reject('⏱️ 指令超時（30 秒限制）: ' + cmd);
                     else reject(stderr || err.message);
                 }
                 else resolve(stdout);

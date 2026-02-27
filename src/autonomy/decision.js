@@ -175,7 +175,7 @@ class DecisionEngine {
                     memorySummary = memories.slice(0, 3).map(m => '• ' + m.text.substring(0, 100)).join('\n');
                 }
             }
-        } catch (e) { /* 記憶召回失敗不影響決策 */ }
+        } catch (e) { console.warn('[Decision] 記憶召回失敗（不影響決策）:', e.message); }
 
         // 行動分佈統計
         const actionCounts = {};

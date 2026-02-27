@@ -84,6 +84,7 @@ class ExploreAction {
                 outcome: sentWR ? 'shared' : 'send_failed', reflection_file: reflectionFile
             });
             if (sentWR) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
+            return { success: sentWR, action: 'web_research', outcome: sentWR ? 'shared' : 'send_failed' };
         } catch (e) {
             console.error('❌ [WebResearch] 研究失敗:', e.message);
             this.journal.append({ action: 'web_research', outcome: 'error', error: e.message });
@@ -192,6 +193,7 @@ class ExploreAction {
                 tokens: this.decision.lastTokens
             });
             if (sentGH) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
+            return { success: sentGH, action: 'github_explore', outcome: sentGH ? 'shared' : 'send_failed' };
         } catch (e) {
             console.error('❌ [GitHub] 探索失敗:', e.message);
             this.journal.append({ action: 'github_explore', outcome: 'error', error: e.message });

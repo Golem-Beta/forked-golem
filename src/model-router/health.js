@@ -121,6 +121,9 @@ class ProviderHealth {
         h.coolUntil = Date.now() + 60000;  // 60 秒冷卻
         h.reliability *= 0.5;
         console.log(`❌ [Health] ${provider} 網路錯誤，reliability → ${h.reliability.toFixed(2)}`);
+        if (h.reliability < 0.3) {
+            console.warn(`⚠️ [Health] ${provider} reliability 過低 (${h.reliability.toFixed(2)})，幾乎不會被選中，請檢查 API key 或網路`);
+        }
     }
 
     onFatal(provider) {

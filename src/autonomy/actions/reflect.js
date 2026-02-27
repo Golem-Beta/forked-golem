@@ -16,10 +16,10 @@ class ReflectAction {
     async performSelfReflection(triggerCtx = null) {
         const _heapReflect = process.memoryUsage();
         console.log(`🧠 [Heap] self_reflection 開始: RSS=${(_heapReflect.rss/1024/1024).toFixed(0)}MB, Heap=${(_heapReflect.heapUsed/1024/1024).toFixed(0)}MB`);
+        let journalContext = '(無)';  // 提升到 try 外，catch 才能存取
         try {
             // 建構共用 journalContext（phase1 + phase2 都需要）
             const recentJournal = this.journal.readRecent(10);
-            let journalContext = '(無)';
             if (recentJournal.length > 0) {
                 journalContext = recentJournal.map(j => {
                     const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
