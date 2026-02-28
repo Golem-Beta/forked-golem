@@ -196,3 +196,11 @@
 - **方向**: 改用 `google-auth-library` + 各 API REST 端點直連，預計可節省 ~50MB
 - **優先度**: 低（X200 目前 RAM 尚有餘裕，GCP 功能剛上線）
 - **前置**: GCP 整合穩定運行一段時間後再評估
+
+### 25. gmail_check 升級為真正的感知層
+- **問題**: 目前 gmail_check 是「讀信→規則分類→轉發給主人」，Golem 沒有真正理解信件對自己的意義
+- **目標**: Golem 帶著完整自我認知（soul.md + 最近 journal + 已知帳號清單）讀信，自己推理「這封信對我意味著什麼，我應該怎麼辦」
+- **verdict 升級**: 從 important/ignore 二元 → self_handle/notify_human/trigger_action + understanding + journal_note
+- **前置條件**: inbox 裡開始出現 Golem 自己行動產生的信（而非帳號建立階段的副產品）
+- **設計原則**: 感知 = 帶身份認知的推理，不是硬編碼規則
+- **注意**: gmail_check 本質上需要 LLM，與 drive_sync/health_check 等無 LLM action 不同
