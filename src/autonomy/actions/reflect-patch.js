@@ -19,7 +19,7 @@ async function runSmokeGate() {
 }
 
 class ReflectPatch {
-    constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices }) {
+    constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices, loadPrompt }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
@@ -31,6 +31,7 @@ class ReflectPatch {
         this.InputFile = InputFile;
         this.PendingPatches = PendingPatches;
         this.googleServices = googleServices || null;
+        this.loadPrompt = loadPrompt || null;
     }
 
     /**
@@ -51,28 +52,15 @@ class ReflectPatch {
         }
 
         const evolutionSkill = this.skills.skillLoader.loadSkill("EVOLUTION") || "Output a JSON Array.";
-        const patchPrompt = [
-            '【輸出格式強制規則】你的輸出將被程式直接 JSON.parse()。',
-            '第一個字元必須是 [，最後一個字元必須是 ]。',
-            '不要輸出任何說明文字或 markdown 格式符號。',
-            '違反此規則會導致 patch 被完全丟棄，等同於這次 reflection 白做。',
-            '',
-            evolutionSkill,
-            '', '## DIAGNOSIS（Phase 1 的分析結果）',
-            '問題：' + diag.diagnosis,
-            '改進方向：' + (diag.approach || ''),
-            '', '## TARGET CODE（' + targetFile + '，相關區段）', '', codeSnippet,
-            '', '## RECENT EXPERIENCE (journal)', '', journalContext,
-            '', 'Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.',
-            'The "search" field must EXACTLY match a substring in the target code above.',
-            'Include "file" field with the target file path (e.g. "src/brain.js").',
-            'Include "affected_files" listing other src/ files that call the modified function/method.',
-            'Include "confidence": 0.0-1.0，你對這個 patch 正確性的信心。',
-            'Include "risk_level": "low" | "medium" | "high"，改動風險評估。',
-            'Include "expected_outcome": 改完後預期行為變化（一句話）。',
-            'Keep the patch small and focused. ONE change only.',
-            'If you have no confident patch to propose, output exactly: []',
-        ].join('\n');
+        const patchPrompt = this.loadPrompt('self-reflection-patch.md', {
+            EVOLUTION_SKILL: evolutionSkill,
+            DIAGNOSIS:       diag.diagnosis,
+            APPROACH:        diag.approach || '',
+            TARGET_FILE:     targetFile,
+            CODE_SNIPPET:    codeSnippet,
+            JOURNAL_CONTEXT: journalContext,
+        });
+        if (!patchPrompt) throw new Error('self-reflection-patch.md 載入失敗');
 
         console.log('🧬 [Reflection] Phase 2: 生成 patch（' + codeSnippet.length + ' chars context）...');
         const raw = (await this.decision.callLLM(patchPrompt, { intent: 'code_edit', temperature: 0.2 })).text;

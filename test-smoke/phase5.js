@@ -142,4 +142,15 @@ module.exports = function phase5(test, s) {
         assert(typeof svc.uploadFile === 'function');
         assert(typeof svc.updateFile === 'function');
     });
+    test('prompts/self-reflection-patch.md 存在且含必要 {{VAR}} 佔位符', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const fp = path.join(process.cwd(), 'prompts', 'self-reflection-patch.md');
+        assert(fs.existsSync(fp), 'self-reflection-patch.md 不存在');
+        const content = fs.readFileSync(fp, 'utf-8');
+        for (const v of ['{{EVOLUTION_SKILL}}', '{{DIAGNOSIS}}', '{{APPROACH}}',
+                         '{{TARGET_FILE}}', '{{CODE_SNIPPET}}', '{{JOURNAL_CONTEXT}}']) {
+            assert(content.includes(v), `缺少佔位符 ${v}`);
+        }
+    });
 };
