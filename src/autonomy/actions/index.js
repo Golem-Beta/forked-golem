@@ -21,6 +21,7 @@ const HealthCheckAction = require('./health-check');
 const GoogleCheckAction = require('./google-check');
 const DriveSyncAction = require('./drive-sync');
 const XPostAction = require('./x-post');
+const MaintenanceRunner = require('./maintenance/index');
 
 class ActionRunner {
     /**
@@ -48,6 +49,7 @@ class ActionRunner {
         this._driveSync        = new DriveSyncAction(deps);
         this._xPost            = new XPostAction(deps);
         this._googleServices   = deps.googleServices || null;
+        this._maintenance      = new MaintenanceRunner(deps);
     }
 
     // --- social ---
@@ -130,6 +132,15 @@ class ActionRunner {
         } catch (e) {
             console.warn('[ActionRunner] Calendar 寫入失敗:', e.message);
         }
+    }
+    // --- maintenance（自動擴展）---
+    hasMaintenance(actionName)      { return this._maintenance.has(actionName); }
+    async performMaintenance(actionName) {
+        const result = await this._maintenance.run(actionName);
+        if (result?.summary) {
+            await this._logToCalendar(actionName, result.summary);
+        }
+        return result;
     }
 }
 

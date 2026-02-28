@@ -203,7 +203,12 @@ class AutonomyManager {
                     });
                     break;
                 default:
-                    console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
+                    // maintenance actions 自動路由
+                    if (this.actions.hasMaintenance(decision.action)) {
+                        _actionResult = await this.actions.performMaintenance(decision.action);
+                    } else {
+                        console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
+                    }
             }
             if (_actionResult) await this._failureTracker.record(_actionResult);
         } catch (e) {
