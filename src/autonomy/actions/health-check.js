@@ -63,7 +63,7 @@ class HealthCheckAction {
 
     _analyzeLog(cutoff) {
         try {
-            const logPath = path.join(process.cwd(), 'golem.log');
+            const logPath = path.join(process.cwd(), 'logs', 'golem.log');
             if (!fs.existsSync(logPath)) return { errors: [], warns: [], total: 0 };
             const cfg = this.decision.loadAutonomyConfig();
             const filter = (cfg.actions.health_check || {}).log_filter || {
@@ -93,7 +93,7 @@ class HealthCheckAction {
 
     _analyzeRestartLog(cutoff) {
         try {
-            const logPath = path.join(process.cwd(), 'golem-restart.log');
+            const logPath = path.join(process.cwd(), 'logs', 'golem-restart.log');
             if (!fs.existsSync(logPath)) return { restarts: [] };
             const restarts = fs.readFileSync(logPath, 'utf-8').split('\n').filter(l => {
                 const m = l.match(/(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2})/);

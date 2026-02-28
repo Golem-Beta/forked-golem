@@ -5,7 +5,7 @@
  * 更新重點：
  * 1. 支援 Neuro-Link 雙軌訊號的色彩高亮 (CDP vs DOM)。
  * 2. 狀態面板新增 Neuro-Link 狀態指示。
- * 3. 📝 [v8.5.1] 所有 log 同時寫入 golem.log，可透過 SSH tail -f 監看。
+ * 3. 📝 [v8.5.1] 所有 log 同時寫入 logs/golem.log，可透過 SSH tail -f 監看。
  * 4. 🔧 [v8.5.2] 修正 _writeLog 只去除 blessed 色彩標籤，不破壞 JSON 大括號。
  * 5. 🔄 [v8.5.3] F12 切換 detach/reattach，不再需要重啟 Golem。
  *    - detach 後在 console 按 F12 可重新叫出面板
@@ -56,7 +56,7 @@ class DashboardPlugin {
         this._stdinListener = null;
 
         // 📝 日誌檔案初始化
-        this.logFilePath = path.join(process.cwd(), 'golem.log');
+        this.logFilePath = path.join(process.cwd(), 'logs', 'golem.log');
         this._log = new DashboardLog(this);
         this._monitor = new DashboardMonitor(this);
         this._log._initLogStream();
