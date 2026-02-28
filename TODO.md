@@ -174,3 +174,18 @@
 - **問題**: inline keyboard callback query 有 60 秒有效期，超時按鈕失效
 - **根本解法**: 按鈕只確認意圖，實際部署透過新 message 觸發（/deploy 指令或 bot 重新發新 callback）
 - **影響**: 目前每次 self_reflection 提案若沒及時按，只能等下次重新提案
+
+### 22. Model Benchmark 自主執行與動態 Routing 調整
+- **概念**: Golem 定期執行 model-benchmark.js，根據結果自主調整各 provider 的 intent 優先權重
+- **設計張力**: 自主調整 routing config 是高風險操作（改壞影響所有請求），但完全靠人工維護不符合自律 Agent 目標
+- **待討論方向**:
+  1. benchmark 結果存入 memory（Golem 只讀參考，不自動改 config）
+  2. Golem 提案 → 走 pending-patches 審批流程 → 人工確認後才更新 routing
+  3. 完全自主更新，但加 rollback 機制（改壞後 5 分鐘內自動還原）
+- **前置工作**: model-benchmark.js 移入 repo，加入 health_check 觸發點
+- **關鍵問題**: 自律 Agent 與關鍵基礎設施安全邊界如何取得平衡？
+
+### 23. ModelRouter 全 provider 失敗時錯誤訊息格式
+- **問題**: 所有 provider 失敗時 [ERR] 輸出裸 JSON `{"providerError":"429","retryAfterMs":5000,...}`，不易閱讀
+- **修法**: 改為可讀格式 `[ModelRouter] 所有 provider 失敗，最後錯誤：429，將在 Xs 後重試`
+- **位置**: ModelRouter 最終錯誤拋出處
