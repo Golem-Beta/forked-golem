@@ -6,6 +6,7 @@
  * 輔助工具方法（設定讀取、靈魂文件、時間脈絡、檔案工具）委派至 DecisionUtils。
  */
 const DecisionUtils = require('./decision-utils');
+const ContextPressure = require('./context-pressure');
 const INTENT_REQUIREMENTS = require('../model-router/intents');
 
 class DecisionEngine {
@@ -24,6 +25,7 @@ class DecisionEngine {
         this.notifier = notifier;  // 用於讀取 quietQueue
         this.memory = memory || null;  // ExperienceMemoryLayer（三層記憶召回）
         this.utils = new DecisionUtils();
+        this._pressure = new ContextPressure({ journal, notifier });
     }
 
     // === 委派至 DecisionUtils（介面保持不變）===
@@ -186,6 +188,8 @@ class DecisionEngine {
               quietQueue.map(q => '[' + q.ts + '] ' + q.text.substring(0, 200)).join('\n')
             : '';
 
+        const pressureSection = this._pressure.evaluate();
+
         const decisionPrompt = this.loadPrompt('decision.md', {
             SOUL: soul,
             JOURNAL_SUMMARY: journalSummary,
@@ -198,7 +202,8 @@ class DecisionEngine {
             TIME_STR: timeStr,
             ACTION_LIST: actionList,
             VALID_ACTIONS: validActionStr,
-            QUIET_QUEUE_SECTION: quietQueueSection
+            QUIET_QUEUE_SECTION: quietQueueSection,
+            PRESSURE_SECTION: pressureSection
         }) || '選擇一個行動，用 JSON 回覆 {"action":"rest","reason":"fallback"}';
 
         try {

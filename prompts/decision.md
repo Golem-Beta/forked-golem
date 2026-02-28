@@ -22,6 +22,8 @@
 
 {{QUIET_QUEUE_SECTION}}
 
+{{PRESSURE_SECTION}}
+
 【可選行動】（已排除不可選的項目）
 {{ACTION_LIST}}
 

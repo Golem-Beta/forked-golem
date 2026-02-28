@@ -23,6 +23,7 @@ module.exports = function phase4(test) {
         ['actions/x-post',           'src/autonomy/actions/x-post'],
         ['actions/moltbook-check',   'src/autonomy/actions/moltbook-check'],
         ['actions/moltbook-post',    'src/autonomy/actions/moltbook-post'],
+        ['context-pressure',         'src/autonomy/context-pressure'],
     ];
     for (const [key, modPath] of autonomySubmodules) {
         test(`autonomy/${key} is a class`, () => {
