@@ -31,7 +31,7 @@ module.exports = function phase5(test, s) {
         ['MessageHandler',      'message-handler',          ['handleMessage']],
         ['CallbackHandler',     'callback-handler',         ['handle']],
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
-        ['ContextPressure',     'context-pressure',          ['evaluate']],
+        ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],
         ['MoltbookCheckAction', 'actions/moltbook-check',   ['run', '_wrapExternal', '_askLLMForPlan', '_executePlan']],
         ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection', '_loadState', '_saveState']],
     ];
@@ -71,6 +71,19 @@ module.exports = function phase5(test, s) {
         assert(inst.memoryLayer === stub, 'memoryLayer 應透過 memory alias 注入');
     });
 
+    test('moltbook-engagement checkPostEngagement 是 async function', () => {
+        const { checkPostEngagement } = require('../src/autonomy/actions/moltbook-engagement');
+        assert(typeof checkPostEngagement === 'function');
+        // async function 的 return value 是 Promise（instance of Function）
+        assert(checkPostEngagement.constructor.name === 'AsyncFunction');
+    });
+    test('MoltbookCheckAction._loadState 回傳含 postStats 欄位', () => {
+        const MoltbookCheckAction = require('../src/autonomy/actions/moltbook-check');
+        const inst = new MoltbookCheckAction({ journal: { readRecent: () => [] }, notifier: null, decision: null, brain: null });
+        const state = inst._loadState();
+        assert('postStats' in state, 'postStats 欄位應在 _loadState 預設值中');
+        assert(typeof state.postStats === 'object');
+    });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
         const auth = new GCPAuth();

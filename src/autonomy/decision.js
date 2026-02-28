@@ -189,6 +189,9 @@ class DecisionEngine {
             : '';
 
         const pressureSection = this._pressure.evaluate();
+        if (pressureSection) {
+            console.log('🔺 [Decision] 情境壓力訊號:\n' + pressureSection);
+        }
 
         const decisionPrompt = this.loadPrompt('decision.md', {
             SOUL: soul,
@@ -227,6 +230,16 @@ class DecisionEngine {
             }
 
             console.log('🎯 [Decision] ' + result.meta.provider + ' 選擇: ' + decision.action + ' — ' + decision.reason);
+            try {
+                this.journal.append({
+                    action: 'decision',
+                    chosen: decision.action,
+                    reason: decision.reason,
+                    pressures: pressureSection
+                        ? pressureSection.split('\n').filter(l => l.trim() && !l.startsWith('【')).length
+                        : 0,
+                });
+            } catch (_) {}
             return decision;
         } catch (e) {
             console.warn('⚠️ [Decision] 決策失敗:', e.message);

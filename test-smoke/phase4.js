@@ -25,6 +25,12 @@ module.exports = function phase4(test) {
         ['actions/moltbook-post',    'src/autonomy/actions/moltbook-post'],
         ['context-pressure',         'src/autonomy/context-pressure'],
     ];
+    // moltbook-engagement 是純函式模組（非 class），單獨驗證
+    test('actions/moltbook-engagement exports checkPostEngagement', () => {
+        s['actions/moltbook-engagement'] = require('../src/autonomy/actions/moltbook-engagement');
+        assert(typeof s['actions/moltbook-engagement'] === 'object');
+        assert(typeof s['actions/moltbook-engagement'].checkPostEngagement === 'function');
+    });
     for (const [key, modPath] of autonomySubmodules) {
         test(`autonomy/${key} is a class`, () => {
             s[key] = require(`../${modPath}`);

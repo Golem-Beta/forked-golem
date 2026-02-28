@@ -19,6 +19,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const MoltbookClient = require('../../moltbook-client');
+const { checkPostEngagement } = require('./moltbook-engagement');
 
 const MAX_UPVOTES_PER_CHECK    = 3;
 const MAX_COMMENTS_PER_CHECK   = 2;
@@ -61,6 +62,9 @@ class MoltbookCheckAction {
 
         const state = this._loadState();
         state.lastHomeTimestamp = Date.now();
+
+        // 效果學習迴路：追蹤已發貼文的互動變化，寫入 journal 供下次發文參考
+        await checkPostEngagement({ client: this.client, journal: this.journal, state });
 
         const externalBlock = this._wrapExternal({ feed, dms, mentions, state });
         const plan = await this._askLLMForPlan(externalBlock);
@@ -270,12 +274,12 @@ ${draft}
                 const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
                 // 補齊新欄位的預設值（向後兼容舊 state）
                 return Object.assign(
-                    { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {} },
+                    { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {}, postStats: {} },
                     parsed
                 );
             }
         } catch {}
-        return { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {} };
+        return { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {}, postStats: {} };
     }
 
     _saveState(state) {
