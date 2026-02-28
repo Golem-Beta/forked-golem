@@ -6,12 +6,13 @@
 const { execSync } = require('child_process');
 
 class ReflectDiag {
-    constructor({ journal, notifier, decision, memory, memoryLayer }) {
+    constructor({ journal, notifier, decision, memory, memoryLayer, loadPrompt }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
         this.memory = memory;              // 舊 ExperienceMemory（getAdvice 用）
         this.memoryLayer = memoryLayer || null; // 新三層記憶召回
+        this.loadPrompt = loadPrompt || null;
     }
 
     /**
@@ -77,28 +78,18 @@ class ReflectDiag {
             return lines.join('\n');
         })();
 
-        const diagPrompt = [
-            '你是 Golem，一個自律型 AI Agent。你正在做自我反省。',
-            '', '【靈魂文件】', soul,
-            ...(triggerSection ? ['', triggerSection] : []),
-            '', '【最近經驗】', journalContext,
-            '', '【歷史 reflection 結果（最近 5 次）】', recentReflections,
-            '', '【最近 git 變更（供參考，避免重複診斷已修問題）】', recentGitLog,
-            '', '【老哥的建議】', advice || '(無)',
-            '', '【過去探索的相關洞察（冷層召回）】', coldInsights || '(無)',
-            '', '【近期歸納文件摘要（溫層）】', warmInsights || '(無)',
-            '', '【專案檔案清單（含行數）】', fileList,
-            '', '【要求】',
-            '根據你最近的經驗（特別是失敗、錯誤、或可改進的地方），判斷：',
-            '1. 你想改進什麼？（具體描述問題，避免與歷史 reflection 重複診斷同樣問題）',
-            '2. 需要看哪個檔案的哪個函式或區段？',
-            '3. 改進方案的大致方向（不需要寫程式碼）',
-            '', '用 JSON 回覆：',
-            '{"diagnosis": "問題描述", "target_file": "src/autonomy/actions.js", "approach": "改進方向"}',
-            '注意：target_file 必須是上方檔案清單中的完整路徑（例如 src/brain.js, src/autonomy/decision.js）',
-            '只輸出 JSON。如果你認為目前沒有需要改進的地方，回覆：',
-            '{"diagnosis": "none", "reason": "為什麼不需要改進"}',
-        ].join('\n');
+        const diagPrompt = this.loadPrompt('self-reflection-diag.md', {
+            SOUL:               soul,
+            TRIGGER_SECTION:    triggerSection ? '\n' + triggerSection : '',
+            JOURNAL_CONTEXT:    journalContext,
+            RECENT_REFLECTIONS: recentReflections,
+            GIT_LOG:            recentGitLog,
+            ADVICE:             advice || '(無)',
+            COLD_INSIGHTS:      coldInsights || '(無)',
+            WARM_INSIGHTS:      warmInsights || '(無)',
+            FILE_LIST:          fileList,
+        });
+        if (!diagPrompt) throw new Error('self-reflection-diag.md 載入失敗');
 
         console.log('🧬 [Reflection] Phase 1: 診斷...');
         const diagRaw = (await this.decision.callLLM(diagPrompt, { temperature: 0.5, intent: 'analysis' })).text;
@@ -126,6 +117,7 @@ class ReflectDiag {
 
         console.log('🧬 [Reflection] 診斷: ' + diag.diagnosis);
         console.log('🧬 [Reflection] 目標: ' + (diag.target_file || 'src/autonomy/actions.js'));
+        if (diag.capability_gap) console.log('🧬 [Reflection] 能力缺口: ' + diag.capability_gap);
         return { diag, diagFile };
     }
 }

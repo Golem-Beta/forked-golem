@@ -117,6 +117,19 @@ module.exports = function phase5(test, s) {
         assert(typeof auth.isAuthenticated === 'function');
         assert(typeof auth.startLoopbackFlow === 'function');
     });
+    test('prompts/self-reflection-diag.md 存在且含必要 {{VAR}} 佔位符', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const fp = path.join(process.cwd(), 'prompts', 'self-reflection-diag.md');
+        assert(fs.existsSync(fp), 'self-reflection-diag.md 不存在');
+        const content = fs.readFileSync(fp, 'utf-8');
+        for (const v of ['{{SOUL}}', '{{TRIGGER_SECTION}}', '{{JOURNAL_CONTEXT}}',
+                         '{{RECENT_REFLECTIONS}}', '{{GIT_LOG}}', '{{FILE_LIST}}',
+                         '{{ADVICE}}', '{{COLD_INSIGHTS}}', '{{WARM_INSIGHTS}}']) {
+            assert(content.includes(v), `缺少佔位符 ${v}`);
+        }
+        assert(content.includes('capability_gap'), 'schema 缺少 capability_gap 欄位');
+    });
     test('GoogleServices interface', () => {
         const GoogleServices = require('../src/google-services');
         const GCPAuth = require('../src/gcp-auth');
