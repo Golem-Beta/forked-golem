@@ -31,6 +31,7 @@ module.exports = function phase5(test, s) {
         ['MessageHandler',      'message-handler',          ['handleMessage']],
         ['CallbackHandler',     'callback-handler',         ['handle']],
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
+        ['ContextPressure',     'context-pressure',          ['evaluate']],
         ['MoltbookCheckAction', 'actions/moltbook-check',   ['run', '_wrapExternal', '_askLLMForPlan', '_executePlan']],
         ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection', '_loadState', '_saveState']],
     ];
