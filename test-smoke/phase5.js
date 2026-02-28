@@ -84,6 +84,31 @@ module.exports = function phase5(test, s) {
         assert('postStats' in state, 'postStats 欄位應在 _loadState 預設值中');
         assert(typeof state.postStats === 'object');
     });
+    test('HealthCheckAction._shouldTriggerReflection 無異常回傳 null', () => {
+        const HealthCheckAction = require('../src/autonomy/actions/health-check');
+        const inst = new HealthCheckAction({ journal: null, notifier: null, decision: null });
+        const data = {
+            journal: { verificationFailed: 0, errors: [], byOutcome: {} },
+            log: { errors: [] },
+            reflections: { patches: { stale: 0 } },
+        };
+        assert(inst._shouldTriggerReflection(data) === null, '無異常應回傳 null');
+    });
+    test('HealthCheckAction._shouldTriggerReflection 有異常回傳 { reason, failedActions, errorType }', () => {
+        const HealthCheckAction = require('../src/autonomy/actions/health-check');
+        const inst = new HealthCheckAction({ journal: null, notifier: null, decision: null });
+        const data = {
+            journal: { verificationFailed: 2, errors: [], byOutcome: { 'github_explore/verification_failed': 2 } },
+            log: { errors: [] },
+            reflections: { patches: { stale: 0 } },
+        };
+        const r = inst._shouldTriggerReflection(data);
+        assert(r !== null, '有異常不應回傳 null');
+        assert(typeof r.reason === 'string', 'r.reason 應為字串');
+        assert(Array.isArray(r.failedActions), 'r.failedActions 應為陣列');
+        assert(typeof r.errorType === 'string', 'r.errorType 應為字串');
+        assert(r.errorType === 'config', 'verification_failed 應分類為 config');
+    });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
         const auth = new GCPAuth();

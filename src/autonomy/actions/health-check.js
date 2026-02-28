@@ -191,8 +191,21 @@ class HealthCheckAction {
     }
 
     _shouldTriggerReflection(data) {
-        return data.journal.verificationFailed > 0 || data.journal.errors.length > 0
-            || data.log.errors.length > 0 || data.reflections.patches.stale > 0;
+        const j = data.journal;
+        const items = [];
+        if (j.verificationFailed > 0)       items.push({ type: 'config', msg: `verification_failed ${j.verificationFailed} 次` });
+        if (j.errors.length > 0)            items.push({ type: 'code',   msg: `系統錯誤 ${j.errors.length} 次` });
+        if (data.log.errors.length > 0)     items.push({ type: 'code',   msg: `日誌錯誤 ${data.log.errors.length} 條` });
+        if (data.reflections.patches.stale > 0) items.push({ type: 'config', msg: `${data.reflections.patches.stale} 個過期未處理提案` });
+        if (items.length === 0) return null;
+
+        const errorType = ['config', 'code', 'external'].find(t => items.some(i => i.type === t));
+        const failedActions = [...new Set(
+            Object.keys(j.byOutcome)
+                .filter(k => { const o = k.split('/').slice(1).join('/'); return /fail|error/.test(o); })
+                .map(k => k.split('/')[0])
+        )];
+        return { reason: items.map(i => i.msg).join('、'), failedActions, errorType };
     }
 }
 

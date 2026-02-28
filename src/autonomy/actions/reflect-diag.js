@@ -59,9 +59,28 @@ class ReflectDiag {
             }
         } catch (e) { /* 記憶召回失敗不影響診斷 */ }
 
+        // 本次診斷重點（health_check 觸發時補入異常資料，引導 LLM 聚焦）
+        const triggerSection = (() => {
+            if (!triggerCtx || !triggerCtx.reason) return '';
+            const typeLabel = { external: '外部依賴，通訊問題', config: '設定/程式問題', code: '程式碼問題' };
+            const lines = ['【本次診斷重點】', `觸發原因：${triggerCtx.reason}`];
+            if (triggerCtx.failedActions && triggerCtx.failedActions.length > 0)
+                lines.push(`失敗行動：${triggerCtx.failedActions.join(', ')}`);
+            if (triggerCtx.errorType) {
+                lines.push(`錯誤類型：${triggerCtx.errorType}（${typeLabel[triggerCtx.errorType] || triggerCtx.errorType}）`);
+                const focus = triggerCtx.errorType === 'external' ? '通訊層的錯誤處理，而非功能邏輯'
+                    : triggerCtx.errorType === 'config' ? '設定讀取與驗證邏輯' : '失敗的程式邏輯';
+                lines.push(`建議聚焦：${focus}`);
+                if (triggerCtx.errorType === 'external')
+                    lines.push('此類問題通常無需修改程式碼，考慮回覆 {"diagnosis": "none"} 或診斷錯誤處理機制');
+            }
+            return lines.join('\n');
+        })();
+
         const diagPrompt = [
             '你是 Golem，一個自律型 AI Agent。你正在做自我反省。',
             '', '【靈魂文件】', soul,
+            ...(triggerSection ? ['', triggerSection] : []),
             '', '【最近經驗】', journalContext,
             '', '【歷史 reflection 結果（最近 5 次）】', recentReflections,
             '', '【最近 git 變更（供參考，避免重複診斷已修問題）】', recentGitLog,

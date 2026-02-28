@@ -182,7 +182,8 @@ class AutonomyManager {
                     _actionResult = await this.actions.performHealthCheck();
                     if (_actionResult && _actionResult.needsReflection) {
                         console.log('🏥 [HealthCheck] 發現異常，排程觸發 self_reflection');
-                        setTimeout(() => this.actions.performSelfReflection({ trigger: 'health_check' }), 5 * 60 * 1000);
+                        const needsReflection = _actionResult.needsReflection;
+                        setTimeout(() => this.actions.performSelfReflection({ trigger: 'health_check', ...needsReflection }), 5 * 60 * 1000);
                     }
                     break;
                 case 'gmail_check':
