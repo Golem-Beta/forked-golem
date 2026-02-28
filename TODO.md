@@ -189,3 +189,10 @@
 - **問題**: 所有 provider 失敗時 [ERR] 輸出裸 JSON `{"providerError":"429","retryAfterMs":5000,...}`，不易閱讀
 - **修法**: 改為可讀格式 `[ModelRouter] 所有 provider 失敗，最後錯誤：429，將在 Xs 後重試`
 - **位置**: ModelRouter 最終錯誤拋出處
+
+### 24. googleapis 記憶體佔用優化
+- **問題**: `googleapis` 整包 SDK 佔用約 60MB RAM，但 Golem 只用 Gmail/Calendar/Drive/Tasks 四個 API
+- **根源**: `google-services.js` 用 `require('googleapis')`，載入了幾十個用不到的 API client
+- **方向**: 改用 `google-auth-library` + 各 API REST 端點直連，預計可節省 ~50MB
+- **優先度**: 低（X200 目前 RAM 尚有餘裕，GCP 功能剛上線）
+- **前置**: GCP 整合穩定運行一段時間後再評估
