@@ -1,3 +1,7 @@
+/**
+ * 🎯 ModelSelector — 根據 intent + 健康狀態選擇最佳 provider/model
+ * 依賴：configs.js, intents.js
+ */
 'use strict';
 const PROVIDER_CONFIGS = require('./configs');
 const INTENT_REQUIREMENTS = require('./intents');

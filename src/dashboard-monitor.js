@@ -1,3 +1,7 @@
+/**
+ * 📟 DashboardMonitor — blessed 終端機系統監控面板（CPU/RAM/進程）
+ * 依賴：os, child_process（Node built-in）
+ */
 'use strict';
 
 class DashboardMonitor {

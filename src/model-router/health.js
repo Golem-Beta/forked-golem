@@ -1,3 +1,7 @@
+/**
+ * 🏥 ProviderHealth — Provider 健康狀態追蹤（冷卻時間、失敗計數）
+ * 依賴：fs, path（Node built-in）
+ */
 const fs = require('fs');
 const path = require('path');
 

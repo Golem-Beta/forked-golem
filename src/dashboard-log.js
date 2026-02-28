@@ -1,3 +1,7 @@
+/**
+ * 📟 DashboardLog — blessed 終端機 Log 面板（console 覆寫）
+ * 依賴：fs, path（Node built-in）
+ */
 'use strict';
 const fs = require('fs');
 

@@ -1,3 +1,7 @@
+/**
+ * 🔔 NotifyManager — 靜默佇列管理（quiet hours 期間暫存通知）
+ * 依賴：fs, path（Node built-in）
+ */
 const fs = require('fs');
 const path = require('path');
 const QUIET_QUEUE_PATH = path.join(process.cwd(), 'memory', 'quiet-queue.json');
