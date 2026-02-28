@@ -8,13 +8,14 @@ const path = require('path');
 const https = require('https');
 
 class ExploreAction {
-    constructor({ journal, notifier, decision, config, loadPrompt, memoryLayer }) {
+    constructor({ journal, notifier, decision, config, loadPrompt, memoryLayer, brain }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
         this.config = config;
         this.loadPrompt = loadPrompt;
         this.memory = memoryLayer || null; // 三層記憶召回
+        this.brain = brain || null;
     }
 
     _getExploredRepos() {
@@ -235,11 +236,11 @@ class ExploreAction {
                 tokens: this.decision.lastTokens
             });
 
-            if (sentGH && this.memory) {
-                this.memory.save(`[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`, { 
-                    source: 'github_explore', 
-                    repo: newRepo.full_name, 
-                    topic 
+            if (sentGH && this.brain) {
+                this.brain.memorize(`[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`, {
+                    source: 'github_explore',
+                    repo: newRepo.full_name,
+                    topic
                 });
             }
             if (sentGH) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
