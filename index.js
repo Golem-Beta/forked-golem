@@ -708,7 +708,7 @@ if (tgBot) {
     tgBot.on('message', (ctx) => handleUnifiedMessage(new UniversalContext('telegram', ctx, tgBot)));
     tgBot.on('callback_query:data', (ctx) => {
         handleUnifiedCallback(new UniversalContext('telegram', ctx, tgBot), ctx.callbackQuery.data);
-        ctx.answerCallbackQuery();
+        ctx.answerCallbackQuery().catch(() => {}); // 過期的 callback query 靜默忽略
     });
     tgBot.catch((err) => console.error(`⚠️ [TG] ${err.message}`));
     tgBot.start();
@@ -759,7 +759,10 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason) => {
-    console.error('🛡️ [Guard] unhandledRejection 已攔截:', reason);
+    const msg = reason instanceof Error
+        ? (reason.stack || reason.message)
+        : (JSON.stringify(reason) || String(reason));
+    console.error('🛡️ [Guard] unhandledRejection 已攔截:', msg);
 });
 
 // Graceful shutdown — 確保 Telegram 長輪詢正常關閉再退出
