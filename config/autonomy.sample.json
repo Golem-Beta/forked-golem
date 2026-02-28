@@ -1,7 +1,7 @@
 {
   "awakening": {
-    "minHours": 0.5,
-    "maxHours": 1,
+    "minHours": 2,
+    "maxHours": 3,
     "quietHours": [
       22,
       23,

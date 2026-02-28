@@ -34,3 +34,8 @@ mem_*.md
 setup.bat.original
 setup.sh.original
 Shioaji/
+
+# ── 本地個人化版本（sample 版本已在 repo）────────────
+soul.local.md
+config/autonomy.json
+CLAUDE.local.md
