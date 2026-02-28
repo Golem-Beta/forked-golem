@@ -128,6 +128,7 @@ const autonomySubmodules = [
     ['actions/digest',         'src/autonomy/actions/digest'],
     ['actions/social',         'src/autonomy/actions/social'],
     ['actions/health-check',   'src/autonomy/actions/health-check'],
+    ['actions/drive-sync',     'src/autonomy/actions/drive-sync'],
 ];
 for (const [key, modPath] of autonomySubmodules) {
     test(`autonomy/${key} is a class`, () => {
@@ -188,6 +189,14 @@ test('require src/autonomy/actions/health-check', () => {
     assert(typeof HealthCheckAction === 'function');
     assert(HealthCheckAction.name === 'HealthCheckAction');
 });
+test('require src/gcp-auth', () => {
+    const GCPAuth = require('./src/gcp-auth');
+    assert(typeof GCPAuth === 'function');
+});
+test('require src/google-services', () => {
+    const GoogleServices = require('./src/google-services');
+    assert(typeof GoogleServices === 'function');
+});
 
 // === Phase 5: 子模組介面合約 ===
 console.log('\n[Phase 5] 子模組介面合約');
@@ -211,6 +220,7 @@ const methodTests = [
     ['DashboardMonitor',      'dashboard-monitor', ['startMonitoring']],
     ['DecisionUtils',         'decision-utils',    ['getAvailableActions']],
     ['HealthCheckAction',     'actions/health-check', ['run']],
+    ['DriveSyncAction',       'actions/drive-sync',   ['run']],
 ];
 for (const [className, key, methods] of methodTests) {
     for (const method of methods) {
@@ -222,6 +232,34 @@ for (const [className, key, methods] of methodTests) {
 test('ActionRunner.prototype.performHealthCheck', () => {
     assert(typeof proto('actions/index').performHealthCheck === 'function',
         'ActionRunner.prototype.performHealthCheck not found');
+});
+test('ActionRunner.prototype.performGoogleCheck', () => {
+    assert(typeof proto('actions/index').performGoogleCheck === 'function',
+        'ActionRunner.prototype.performGoogleCheck not found');
+});
+test('ActionRunner.prototype.performDriveSync', () => {
+    assert(typeof proto('actions/index').performDriveSync === 'function',
+        'ActionRunner.prototype.performDriveSync not found');
+});
+test('GCPAuth interface', () => {
+    const GCPAuth = require('./src/gcp-auth');
+    const auth = new GCPAuth();
+    assert(typeof auth.ensureAuthenticated === 'function');
+    assert(typeof auth.getClient === 'function');
+    assert(typeof auth.isAuthenticated === 'function');
+    assert(typeof auth.startLoopbackFlow === 'function');
+});
+test('GoogleServices interface', () => {
+    const GoogleServices = require('./src/google-services');
+    const GCPAuth = require('./src/gcp-auth');
+    const svc = new GoogleServices(new GCPAuth());
+    assert(typeof svc.listUnread === 'function');
+    assert(typeof svc.listTasks === 'function');
+    assert(typeof svc.createTask === 'function');
+    assert(typeof svc.listEvents === 'function');
+    assert(typeof svc.findFile === 'function');
+    assert(typeof svc.uploadFile === 'function');
+    assert(typeof svc.updateFile === 'function');
 });
 
 // === Phase 6: 模組大小健康檢查 ===

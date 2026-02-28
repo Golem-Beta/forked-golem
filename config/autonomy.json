@@ -60,6 +60,14 @@
                 "levels": ["[ERR]", "[WARN]"],
                 "keywords": ["❌", "⚠️", "失敗", "錯誤", "異常", "FATAL"]
             }
+        },
+        "gmail_check": {
+            "dailyLimit": null,
+            "desc": "讀取 Gmail 感知外部聯繫，智慧過濾重要通知。建議節奏：每 4 小時，但你可自行判斷"
+        },
+        "drive_sync": {
+            "dailyLimit": null,
+            "desc": "將 journal 和 reflections 備份到 Google Drive，保持長期記憶持久化。建議節奏：每 12 小時，但剛完成重要反思後可提前執行"
         }
     },
     "cooldown": {

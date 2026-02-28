@@ -56,6 +56,7 @@ class AutonomyManager {
             ResponseParser: deps.ResponseParser,
             InputFile: deps.InputFile,
             PendingPatches: deps.PendingPatches,
+            googleServices: deps.googleServices, // Google 數位生活基礎設施
         });
 
         // Coordinator 自身狀態
@@ -144,7 +145,8 @@ class AutonomyManager {
             const actionEmoji = {
                 'self_reflection': '🧬', 'github_explore': '🔍',
                 'spontaneous_chat': '💬', 'web_research': '🌐',
-                'digest': '📝', 'health_check': '🏥', 'rest': '😴'
+                'digest': '📝', 'health_check': '🏥', 'rest': '😴',
+                'gmail_check': '📬', 'drive_sync': '💾',
             };
             console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
 
@@ -180,6 +182,12 @@ class AutonomyManager {
                         console.log('🏥 [HealthCheck] 發現異常，排程觸發 self_reflection');
                         setTimeout(() => this.actions.performSelfReflection({ trigger: 'health_check' }), 5 * 60 * 1000);
                     }
+                    break;
+                case 'gmail_check':
+                    _actionResult = await this.actions.performGoogleCheck();
+                    break;
+                case 'drive_sync':
+                    _actionResult = await this.actions.performDriveSync();
                     break;
                 case 'rest':
                     console.log('😴 [Autonomy] Golem 選擇繼續休息。');

@@ -30,7 +30,9 @@ const CONFIG = {
         .filter(k => k),
     GITHUB_REPO: cleanEnv(process.env.GITHUB_REPO || 'https://raw.githubusercontent.com/Arvincreator/project-golem/main/', true),
     QMD_PATH: cleanEnv(process.env.GOLEM_QMD_PATH || 'qmd', true),
-    DONATE_URL: 'https://buymeacoffee.com/arvincreator'
+    DONATE_URL: 'https://buymeacoffee.com/arvincreator',
+    GCP_CLIENT_ID: cleanEnv(process.env.GCP_CLIENT_ID || '', true),
+    GCP_CLIENT_SECRET: cleanEnv(process.env.GCP_CLIENT_SECRET || '', true)
 };
 
 // 驗證關鍵 Token

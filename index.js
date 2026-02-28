@@ -88,6 +88,8 @@ const TaskController = require('./src/task-controller');
 const ChronosManager = require('./src/chronos');
 
 const AutonomyManager = require('./src/autonomy');
+const GCPAuth = require('./src/gcp-auth');
+const GoogleServices = require('./src/google-services');
 // ============================================================
 // 🎮 Hydra Main Loop
 // ============================================================
@@ -98,15 +100,19 @@ const modelRouter = new ModelRouter();
 if (dashboard) dashboard.inject({ modelRouter });
 const brain = new GolemBrain(modelRouter);
 const chronos = new ChronosManager({ tgBot, adminChatId: CONFIG.ADMIN_IDS[0] });
+const gcpAuth = new GCPAuth();
+const googleServices = new GoogleServices(gcpAuth);
 const controller = new TaskController({ chronos, brain, skills, pendingTasks });
 const PendingPatches = require('./src/autonomy/pending-patches');
 const pendingPatches = new PendingPatches();
+
 
 const autonomy = new AutonomyManager({
     brain, chronos, tgBot, dcClient, memory, skills,
     CONFIG, loadPrompt, loadFeedbackPrompt,
     Introspection, PatchManager, TriStreamParser, ResponseParser, InputFile,
     PendingPatches: pendingPatches,
+    googleServices,
 });
 
 // 📟 Dashboard 注入 Autonomy
@@ -124,6 +130,28 @@ if (dashboard) dashboard.inject({ autonomy });
     await brain.init();
     autonomy.start();
     console.log(`📡 Golem v${GOLEM_VERSION} is Online.`);
+
+    // GCP OAuth 初始化（非阻塞，失敗不影響主流程）
+    (async () => {
+        try {
+            if (!gcpAuth.isAuthenticated()) {
+                await gcpAuth.startLoopbackFlow(async (authUrl) => {
+                    const msg = `🔑 Google 授權需要你的操作（10 分鐘內有效）\n\n請在瀏覽器開啟以下連結：\n${authUrl}`;
+                    if (tgBot && CONFIG.ADMIN_ID) {
+                        await tgBot.api.sendMessage(CONFIG.ADMIN_ID, msg).catch(e => console.warn('[GCP] 授權通知發送失敗:', e.message));
+                    }
+                });
+                if (tgBot && CONFIG.ADMIN_ID) {
+                    await tgBot.api.sendMessage(CONFIG.ADMIN_ID, '✅ Google 授權完成！Gmail / Calendar / Drive / Tasks 已就緒').catch(() => {});
+                }
+            }
+        } catch (e) {
+            console.error('[GCP] OAuth init 失敗:', e.message);
+            if (tgBot && CONFIG.ADMIN_ID) {
+                tgBot.api.sendMessage(CONFIG.ADMIN_ID, `⚠️ Google 授權失敗：${e.message}`).catch(() => {});
+            }
+        }
+    })();
     if (dcClient) dcClient.login(CONFIG.DC_TOKEN);
 })();
 // --- 統一事件處理 ---
@@ -277,6 +305,10 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
     if (ctx.text && autonomy.onAdminReply) autonomy.onAdminReply(ctx.text);
     if (await NodeRouter.handle(ctx, brain)) return;
     if (ctx.text && (ctx.text === '/list_patches' || ctx.text === '/lp')) return listPatchesCommand(ctx);
+    if (ctx.text === '/gmail') return gmailCommand(ctx);
+    if (ctx.text.startsWith('/calendar')) return calendarCommand(ctx);
+    if (ctx.text === '/tasks') return tasksCommand(ctx);
+    if (ctx.text.startsWith('/drive')) return driveCommand(ctx);
     if (global.pendingPatch && ['ok', 'deploy', 'y', '部署'].includes(ctx.text.toLowerCase())) return executeDeploy(ctx);
     if (global.pendingPatch && ['no', 'drop', 'n', '丟棄'].includes(ctx.text.toLowerCase())) return executeDrop(ctx);
     if (global.pendingPatch) {
@@ -701,6 +733,110 @@ async function listPatchesCommand(ctx) {
         };
         await ctx.reply(msgText, options);
         pendingPatches.updateNotified(p.id);
+    }
+}
+
+// ─── Google 服務指令 ────────────────────────────────────────
+
+function _gcpGuard(ctx) {
+    if (!googleServices || !gcpAuth.isAuthenticated()) {
+        ctx.reply('⚠️ Google 尚未授權，請等待 Golem 發送授權連結');
+        return false;
+    }
+    return true;
+}
+
+function _simplifyMime(mimeType) {
+    if (!mimeType) return '未知';
+    const map = {
+        'application/vnd.google-apps.document':     'Google Doc',
+        'application/vnd.google-apps.spreadsheet':  '試算表',
+        'application/vnd.google-apps.presentation': '簡報',
+        'application/vnd.google-apps.folder':       '資料夾',
+    };
+    if (map[mimeType]) return map[mimeType];
+    const slash = mimeType.lastIndexOf('/');
+    return slash >= 0 ? mimeType.slice(slash + 1) : mimeType;
+}
+
+async function gmailCommand(ctx) {
+    if (!_gcpGuard(ctx)) return;
+    await ctx.sendTyping();
+    try {
+        const msgs = await googleServices.listUnread(10);
+        if (!msgs.length) { await ctx.reply('📭 沒有未讀郵件'); return; }
+        const lines = [`📬 Gmail 未讀（${msgs.length} 封）`];
+        msgs.forEach((m, i) => {
+            lines.push('');
+            lines.push(`${i + 1}. 寄件人：${m.from}`);
+            lines.push(`   主旨：${m.subject || '（無主旨）'}`);
+            if (m.snippet) lines.push(`   摘要：${m.snippet.substring(0, 80)}`);
+            lines.push(`   時間：${m.date}`);
+        });
+        await ctx.reply(lines.join('\n'));
+    } catch (e) {
+        await ctx.reply(`❌ Gmail 讀取失敗：${e.message}`);
+    }
+}
+
+async function calendarCommand(ctx) {
+    if (!_gcpGuard(ctx)) return;
+    const parts = ctx.text.trim().split(/\s+/);
+    const days = parseInt(parts[1], 10) || 7;
+    await ctx.sendTyping();
+    try {
+        const events = await googleServices.listEvents(days);
+        if (!events.length) { await ctx.reply(`📅 未來 ${days} 天沒有行程`); return; }
+        const lines = [`📅 未來 ${days} 天行程（${events.length} 項）`];
+        for (const ev of events) {
+            lines.push('');
+            lines.push(`• ${ev.title || '（無標題）'}`);
+            lines.push(`  🕐 ${ev.start} → ${ev.end}`);
+            if (ev.location) lines.push(`  📍 ${ev.location}`);
+        }
+        await ctx.reply(lines.join('\n'));
+    } catch (e) {
+        await ctx.reply(`❌ Calendar 讀取失敗：${e.message}`);
+    }
+}
+
+async function tasksCommand(ctx) {
+    if (!_gcpGuard(ctx)) return;
+    await ctx.sendTyping();
+    try {
+        const tasks = await googleServices.listTasks(20);
+        if (!tasks.length) { await ctx.reply('✅ 沒有待辦事項'); return; }
+        const lines = [`✅ Tasks 待辦（${tasks.length} 項）`];
+        for (const t of tasks) {
+            const due = t.due ? t.due.substring(0, 10) : '無';
+            lines.push('');
+            lines.push(`• ${t.title}（截止：${due}）`);
+            if (t.notes) lines.push(`  ${t.notes.substring(0, 50)}`);
+        }
+        await ctx.reply(lines.join('\n'));
+    } catch (e) {
+        await ctx.reply(`❌ Tasks 讀取失敗：${e.message}`);
+    }
+}
+
+async function driveCommand(ctx) {
+    if (!_gcpGuard(ctx)) return;
+    const query = ctx.text.replace(/^\/drive\s*/i, '').trim();
+    await ctx.sendTyping();
+    try {
+        const files = await googleServices.listFiles(query, 10);
+        if (!files.length) { await ctx.reply('📁 沒有找到相關檔案'); return; }
+        const lines = [`📁 Drive 檔案（${files.length} 筆）`];
+        for (const f of files) {
+            const mtime = f.modifiedTime ? f.modifiedTime.substring(0, 10) : '未知';
+            lines.push('');
+            lines.push(`• ${f.name}`);
+            lines.push(`  類型：${_simplifyMime(f.mimeType)}`);
+            lines.push(`  修改：${mtime}`);
+        }
+        await ctx.reply(lines.join('\n'));
+    } catch (e) {
+        await ctx.reply(`❌ Drive 讀取失敗：${e.message}`);
     }
 }
 

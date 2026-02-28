@@ -153,12 +153,34 @@ class DecisionUtils {
 
     // === 行動過濾 ===
 
+    // 各行動的硬限制（程式層強制，不進入 LLM 決策）
+    static get HARD_LIMITS() {
+        return {
+            gmail_check: 2 * 60 * 60 * 1000,   // 2 小時
+            drive_sync:  6 * 60 * 60 * 1000,   // 6 小時
+        };
+    }
+
     getAvailableActions({ journal, notifier }) {
         const cfg = this.loadAutonomyConfig();
         const now = new Date();
         const hour = now.getHours();
         const today = now.toISOString().slice(0, 10);
-        const entries = journal.readRecent(cfg.journal.decisionReadCount);
+        // 多讀 50 條以覆蓋硬限制查詢（gmail/drive 可能超出 decisionReadCount）
+        const hardLimitEntries = journal.readRecent(50);
+        const entries = hardLimitEntries.slice(-(cfg.journal.decisionReadCount));
+
+        // 硬限制輔助：找最後一次執行時間（ms）
+        const lastRunMs = (actionName) => {
+            const entry = hardLimitEntries.filter(e => e.action === actionName).slice(-1)[0];
+            return entry?.ts ? new Date(entry.ts).getTime() : 0;
+        };
+        const HARD_LIMITS = DecisionUtils.HARD_LIMITS;
+        const passesHardLimit = (id) => {
+            const limit = HARD_LIMITS[id];
+            if (!limit) return true;
+            return (now.getTime() - lastRunMs(id)) >= limit;
+        };
 
         const lastAction = entries.filter(j => j.action !== 'error').slice(-1)[0];
         const minutesSinceLast = lastAction && lastAction.ts
@@ -169,6 +191,9 @@ class DecisionUtils {
 
         for (const [id, actionCfg] of Object.entries(cfg.actions)) {
             if (id === 'rest') continue;
+
+            // 硬限制：未達時間門檻，直接從候選清單移除
+            if (!passesHardLimit(id)) continue;
 
             let blocked = false;
             let note = '';
@@ -189,12 +214,21 @@ class DecisionUtils {
             }
 
             if (!blocked) {
-                const lastOfType = entries.filter(j => j.action === id).slice(-1)[0];
+                // 硬限制行動用 hardLimitEntries 以確保找得到（可能超出 decisionReadCount）
+                const lastOfType = (HARD_LIMITS[id]
+                    ? hardLimitEntries
+                    : entries
+                ).filter(j => j.action === id).slice(-1)[0];
                 if (lastOfType) {
-                    const ago = lastOfType.ts
-                        ? Math.round((now.getTime() - new Date(lastOfType.ts).getTime()) / 60000)
+                    const agoMs = lastOfType.ts
+                        ? now.getTime() - new Date(lastOfType.ts).getTime()
                         : null;
-                    note = '上次 ' + (ago !== null ? ago + ' 分鐘前' : '時間不明');
+                    if (HARD_LIMITS[id] && agoMs !== null) {
+                        // 硬限制行動：小時顯示（更直觀）
+                        note = '上次 ' + (agoMs / 3600000).toFixed(1) + ' 小時前';
+                    } else {
+                        note = '上次 ' + (agoMs !== null ? Math.round(agoMs / 60000) + ' 分鐘前' : '時間不明');
+                    }
                     if (lastOfType.outcome) note += '，結果: ' + lastOfType.outcome;
                 } else {
                     note = '從未執行過';

@@ -29,6 +29,7 @@
     "discord.js": "^14.14.1",
     "dotenv": "^16.6.1",
     "flexsearch": "^0.8.212",
+    "googleapis": "^171.4.0",
     "grammy": "^1.40.0",
     "uuid": "^9.0.1"
   },

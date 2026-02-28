@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 class ReflectPatch {
-    constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches }) {
+    constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
@@ -18,6 +18,7 @@ class ReflectPatch {
         this.ResponseParser = ResponseParser;
         this.InputFile = InputFile;
         this.PendingPatches = PendingPatches;
+        this.googleServices = googleServices || null;
     }
 
     /**
@@ -108,6 +109,15 @@ class ReflectPatch {
             return { success: false, action: 'self_reflection', outcome: 'skill_already_exists' };
         }
         fs.writeFileSync(skillPath, content);
+        // Tasks 閉環：記錄新技能建立
+        if (this.googleServices?._auth?.isAuthenticated()) {
+            try {
+                await this.googleServices.createTask({
+                    title: `[反思待辦] 新技能：${skillName}`,
+                    notes: (proposal.description || '').substring(0, 500),
+                });
+            } catch (e) { console.warn('[Reflect] Tasks 寫入失敗:', e.message); }
+        }
         const msgText = '🧩 **新技能已建立**: ' + skillName + '\n' + (proposal.description || '') + '\n原因: ' + (proposal.reason || '');
         const sentSC = await this.notifier.sendToAdmin(msgText);
         console.log('[SelfReflection/skill_create] sendToAdmin:', sentSC ? '✅ OK' : '❌ FAILED');
@@ -165,6 +175,15 @@ class ReflectPatch {
                     fs.copyFileSync(targetPath, targetPath + '.bak-' + Date.now());
                     fs.writeFileSync(targetPath, fs.readFileSync(testFile));
                     fs.unlinkSync(testFile);
+                    // Tasks 閉環：記錄自動部署
+                    if (this.googleServices?._auth?.isAuthenticated()) {
+                        try {
+                            await this.googleServices.createTask({
+                                title: `[反思待辦] 已部署：${targetName}`,
+                                notes: (proposal.description || '').substring(0, 500),
+                            });
+                        } catch (e) { console.warn('[Reflect] Tasks 寫入失敗:', e.message); }
+                    }
                     const autoMsg = '🤖 **核心進化已自動部署** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n信心: ' + (confidence * 100).toFixed(0) + '% | 風險: ' + riskLevel + '\n預期: ' + expectedOutcome;
                     const sentAuto = await this.notifier.sendToAdmin(autoMsg);
                     console.log('[SelfReflection/auto_deploy] sendToAdmin:', sentAuto ? '✅ OK' : '❌ FAILED');
@@ -225,6 +244,15 @@ class ReflectPatch {
                 console.error('[SelfReflection/core_patch] send FAILED:', sendErr.message);
             }
             console.log('[SelfReflection/core_patch] send:', sentCP ? '✅ OK' : '❌ FAILED');
+            // Tasks 閉環：提案待審核提醒
+            if (this.googleServices?._auth?.isAuthenticated()) {
+                try {
+                    await this.googleServices.createTask({
+                        title: `[反思待辦] 待審核 patch：${targetName}`,
+                        notes: ((proposal.description || '') + '\n類型: ' + proposalType).substring(0, 500),
+                    });
+                } catch (e) { console.warn('[Reflect] Tasks 寫入失敗:', e.message); }
+            }
             const metaFields = {};
             if (typeof proposal.confidence === 'number') metaFields.confidence = proposal.confidence;
             if (proposal.risk_level) metaFields.risk_level = proposal.risk_level;

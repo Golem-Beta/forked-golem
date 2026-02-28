@@ -9,12 +9,16 @@
  *   reflect.js       — performSelfReflection（協調 reflect-diag + reflect-patch）
  *   digest.js        — performDigest, performMorningDigest
  *   health-check.js  — performHealthCheck
+ *   google-check.js  — performGoogleCheck
+ *   drive-sync.js    — performDriveSync
  */
 const SocialAction = require('./social');
 const ExploreAction = require('./explore');
 const ReflectAction = require('./reflect');
 const DigestAction = require('./digest');
 const HealthCheckAction = require('./health-check');
+const GoogleCheckAction = require('./google-check');
+const DriveSyncAction = require('./drive-sync');
 
 class ActionRunner {
     /**
@@ -32,11 +36,14 @@ class ActionRunner {
      * @param {Function} deps.InputFile
      */
     constructor(deps) {
-        this._social       = new SocialAction(deps);
-        this._explore      = new ExploreAction(deps);
-        this._reflect      = new ReflectAction(deps);
-        this._digest       = new DigestAction(deps);
-        this._healthCheck  = new HealthCheckAction(deps);
+        this._social           = new SocialAction(deps);
+        this._explore          = new ExploreAction(deps);
+        this._reflect          = new ReflectAction(deps);
+        this._digest           = new DigestAction(deps);
+        this._healthCheck      = new HealthCheckAction(deps);
+        this._googleCheck      = new GoogleCheckAction(deps);
+        this._driveSync        = new DriveSyncAction(deps);
+        this._googleServices   = deps.googleServices || null;
     }
 
     // --- social ---
@@ -45,17 +52,72 @@ class ActionRunner {
 
     // --- explore ---
     async performWebResearch(reason)     { return this._explore.performWebResearch(reason); }
-    async performGitHubExplore()         { return this._explore.performGitHubExplore(); }
 
     // --- reflect ---
-    async performSelfReflection(ctx)     { return this._reflect.performSelfReflection(ctx); }
+    async performSelfReflection(ctx) {
+        const result = await this._reflect.performSelfReflection(ctx);
+        if (result?.outcome && result.outcome !== 'error') {
+            await this._logToCalendar('自我反思', result.outcome);
+        }
+        return result;
+    }
+
+    // --- explore ---（覆寫以加入 Calendar logging）
+    async performGitHubExplore() {
+        const result = await this._explore.performGitHubExplore();
+        await this._logToCalendar('GitHub 探索', result?.topic || '探索完成');
+        return result;
+    }
 
     // --- digest ---
     async performDigest()                { return this._digest.performDigest(); }
     async performMorningDigest()         { return this._digest.performMorningDigest(); }
 
     // --- health-check ---
-    async performHealthCheck()           { return this._healthCheck.run(); }
+    async performHealthCheck() {
+        const result = await this._healthCheck.run();
+        await this._logToCalendar('健康巡查', '系統健康檢查完成');
+        return result;
+    }
+
+    // --- google-check ---
+    async performGoogleCheck() {
+        const result = await this._googleCheck.run();
+        if (result && !result.skipped) {
+            const notified = result.gmail?.notified ?? 0;
+            const ignored = result.gmail?.ignored ?? 0;
+            await this._logToCalendar('Gmail 巡查', `通知:${notified}封, 忽略:${ignored}封`);
+        }
+        return result;
+    }
+
+    // --- drive-sync ---
+    async performDriveSync() {
+        const result = await this._driveSync.run();
+        if (result && !result.skipped) {
+            const up = (result.uploaded || []).length;
+            const upd = (result.updated || []).length;
+            await this._logToCalendar('Drive 同步', up > 0 ? `上傳${up}個, 更新${upd}個` : '無新檔案');
+        }
+        return result;
+    }
+
+    // --- calendar logging（非阻塞，失敗靜默）---
+    async _logToCalendar(title, description) {
+        if (!this._googleServices?._auth?.isAuthenticated()) return;
+        try {
+            const now = new Date();
+            const end = new Date(now.getTime() + 5 * 60 * 1000);
+            await this._googleServices.createEvent({
+                title: `[Golem] ${title}`,
+                start: now.toISOString(),
+                end: end.toISOString(),
+                description,
+            });
+        } catch (e) {
+            console.warn('[ActionRunner] Calendar 寫入失敗:', e.message);
+        }
+    }
 }
 
 module.exports = ActionRunner;
