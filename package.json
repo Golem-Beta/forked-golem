@@ -31,6 +31,7 @@
     "flexsearch": "^0.8.212",
     "googleapis": "^171.4.0",
     "grammy": "^1.40.0",
+    "twitter-api-v2": "^1.29.0",
     "uuid": "^9.0.1"
   },
   "engines": {

@@ -1,24 +1,36 @@
+# ── 依賴 ──────────────────────────────────────────
 node_modules/
+
+# ── 環境與金鑰 ────────────────────────────────────
 .env
-golem_memory/
+config/gcp-tokens.json
+
+# ── 執行時產生的檔案 ──────────────────────────────
+golem.log
+golem-restart.log
 golem_learning.json
 golem_persona.json
-golem.log
-mem_*.md
-*.test-clone.*
+memory/
+!src/memory/
+golem_memory/
+
+# ── 本地個人筆記 ──────────────────────────────────
+CLAUDE.local.md
+TODO.md
+CLAUDE.md
+
+# ── patch 腳本（開發用，不入 repo）────────────────
+patch-*.js
+
+# ── 備份殘留 ──────────────────────────────────────
 *.backup_*
 *.blessd
 *.F12
+*.bak
+*.bak_*
+*.bak-*
+mem_*.md
+*.test-clone.*
 setup.bat.original
 setup.sh.original
-.txt
-*.bak_*
-patch-*.js
-memory/
-!src/memory/
-*.bak*
-TODO.md
-CLAUDE.md
-Shioaji
-golem-restart.log
-config/gcp-tokens.json
+Shioaji/
