@@ -11,6 +11,7 @@
  *   health-check.js  — performHealthCheck
  *   google-check.js  — performGoogleCheck
  *   drive-sync.js    — performDriveSync
+ *   x-post.js        — performXPost
  */
 const SocialAction = require('./social');
 const ExploreAction = require('./explore');
@@ -19,6 +20,7 @@ const DigestAction = require('./digest');
 const HealthCheckAction = require('./health-check');
 const GoogleCheckAction = require('./google-check');
 const DriveSyncAction = require('./drive-sync');
+const XPostAction = require('./x-post');
 
 class ActionRunner {
     /**
@@ -34,6 +36,7 @@ class ActionRunner {
      * @param {object} deps.PatchManager
      * @param {object} deps.ResponseParser
      * @param {Function} deps.InputFile
+     * @param {object} [deps.xPublisher] - XPublisher instance（可選，未設定時 performXPost 靜默跳過）
      */
     constructor(deps) {
         this._social           = new SocialAction(deps);
@@ -43,6 +46,7 @@ class ActionRunner {
         this._healthCheck      = new HealthCheckAction(deps);
         this._googleCheck      = new GoogleCheckAction(deps);
         this._driveSync        = new DriveSyncAction(deps);
+        this._xPost            = new XPostAction(deps);
         this._googleServices   = deps.googleServices || null;
     }
 
@@ -98,6 +102,15 @@ class ActionRunner {
             const up = (result.uploaded || []).length;
             const upd = (result.updated || []).length;
             await this._logToCalendar('Drive 同步', up > 0 ? `上傳${up}個, 更新${upd}個` : '無新檔案');
+        }
+        return result;
+    }
+
+    // --- x-post ---
+    async performXPost() {
+        const result = await this._xPost.performXPost();
+        if (result && result.success) {
+            await this._logToCalendar('X 發文', result.preview || '發文成功');
         }
         return result;
     }

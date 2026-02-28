@@ -68,6 +68,11 @@
         "drive_sync": {
             "dailyLimit": null,
             "desc": "將 journal 和 reflections 備份到 Google Drive，保持長期記憶持久化。建議節奏：每 12 小時，但剛完成重要反思後可提前執行"
+        },
+        "x_post": {
+            "dailyLimit": 3,
+            "blockedHours": [22, 23, 0, 1, 2, 3, 4, 5, 6],
+            "desc": "撰寫並發佈一篇 X (Twitter) 貼文，分享當下的觀察、思考或正在做的事。只在有值得分享的洞察時選擇"
         }
     },
     "cooldown": {

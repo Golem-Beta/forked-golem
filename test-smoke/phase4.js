@@ -20,6 +20,7 @@ module.exports = function phase4(test) {
         ['actions/social',         'src/autonomy/actions/social'],
         ['actions/health-check',   'src/autonomy/actions/health-check'],
         ['actions/drive-sync',     'src/autonomy/actions/drive-sync'],
+        ['actions/x-post',         'src/autonomy/actions/x-post'],
     ];
     for (const [key, modPath] of autonomySubmodules) {
         test(`autonomy/${key} is a class`, () => {

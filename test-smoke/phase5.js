@@ -15,6 +15,7 @@ module.exports = function phase5(test, s) {
         ['ExploreAction',  'actions/explore', ['performGitHubExplore', 'performWebResearch']],
         ['DigestAction',   'actions/digest',  ['performDigest', 'performMorningDigest']],
         ['SocialAction',   'actions/social',  ['performSpontaneousChat']],
+        ['XPostAction',    'actions/x-post',  ['performXPost']],
         ['ProviderHealth', 'router/health',   ['register', 'isAvailable', 'score', 'onSuccess', 'on429', 'onError', 'getSummary']],
         ['ModelSelector',  'router/selector', ['select']],
         ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
@@ -48,6 +49,10 @@ module.exports = function phase5(test, s) {
     test('ActionRunner.prototype.performDriveSync', () => {
         assert(typeof proto('actions/index').performDriveSync === 'function',
             'ActionRunner.prototype.performDriveSync not found');
+    });
+    test('ActionRunner.prototype.performXPost', () => {
+        assert(typeof proto('actions/index').performXPost === 'function',
+            'ActionRunner.prototype.performXPost not found');
     });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');

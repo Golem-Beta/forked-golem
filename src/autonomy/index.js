@@ -15,6 +15,7 @@ const DecisionEngine = require('./decision');
 const ActionRunner = require('./actions/index');
 const { FailureTracker } = require('./failure-tracker');
 const ExperienceMemoryLayer = require('../memory/index');
+const XPublisher = require('../x-publisher');
 
 class AutonomyManager {
     /**
@@ -57,6 +58,7 @@ class AutonomyManager {
             InputFile: deps.InputFile,
             PendingPatches: deps.PendingPatches,
             googleServices: deps.googleServices, // Google 數位生活基礎設施
+            xPublisher: new XPublisher({ config: deps.CONFIG }), // X 自主發文
         });
 
         // Coordinator 自身狀態
@@ -146,7 +148,7 @@ class AutonomyManager {
                 'self_reflection': '🧬', 'github_explore': '🔍',
                 'spontaneous_chat': '💬', 'web_research': '🌐',
                 'digest': '📝', 'health_check': '🏥', 'rest': '😴',
-                'gmail_check': '📬', 'drive_sync': '💾',
+                'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦',
             };
             console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
 
@@ -188,6 +190,9 @@ class AutonomyManager {
                     break;
                 case 'drive_sync':
                     _actionResult = await this.actions.performDriveSync();
+                    break;
+                case 'x_post':
+                    _actionResult = await this.actions.performXPost();
                     break;
                 case 'rest':
                     console.log('😴 [Autonomy] Golem 選擇繼續休息。');
