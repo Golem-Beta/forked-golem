@@ -197,6 +197,19 @@ test('require src/google-services', () => {
     const GoogleServices = require('./src/google-services');
     assert(typeof GoogleServices === 'function');
 });
+const coreModules = [
+    ['react-loop',       'src/react-loop'],
+    ['deploy-actions',   'src/deploy-actions'],
+    ['google-commands',  'src/google-commands'],
+    ['message-handler',  'src/message-handler'],
+    ['callback-handler', 'src/callback-handler'],
+];
+for (const [key, modPath] of coreModules) {
+    test(`${key} is a class`, () => {
+        s[key] = require(`./${modPath}`);
+        assert(typeof s[key] === 'function', `expected function, got ${typeof s[key]}`);
+    });
+}
 
 // === Phase 5: 子模組介面合約 ===
 console.log('\n[Phase 5] 子模組介面合約');
@@ -221,6 +234,11 @@ const methodTests = [
     ['DecisionUtils',         'decision-utils',    ['getAvailableActions']],
     ['HealthCheckAction',     'actions/health-check', ['run']],
     ['DriveSyncAction',       'actions/drive-sync',   ['run']],
+    ['ReactLoop',       'react-loop',       ['run', 'writeJournal']],
+    ['DeployActions',   'deploy-actions',   ['runSmokeGate', 'deploy', 'drop', 'listPatches']],
+    ['GoogleCommands',  'google-commands',  ['gmail', 'calendar', 'tasks', 'drive']],
+    ['MessageHandler',  'message-handler',  ['handleMessage']],
+    ['CallbackHandler', 'callback-handler', ['handle']],
 ];
 for (const [className, key, methods] of methodTests) {
     for (const method of methods) {
