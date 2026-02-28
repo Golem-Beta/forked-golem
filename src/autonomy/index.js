@@ -148,7 +148,7 @@ class AutonomyManager {
                 'self_reflection': '🧬', 'github_explore': '🔍',
                 'spontaneous_chat': '💬', 'web_research': '🌐',
                 'digest': '📝', 'health_check': '🏥', 'rest': '😴',
-                'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦',
+                'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦', 'moltbook_check': '🦞', 'moltbook_post': '🦞',
             };
             console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
 
@@ -193,6 +193,12 @@ class AutonomyManager {
                     break;
                 case 'x_post':
                     _actionResult = await this.actions.performXPost();
+                    break;
+                case 'moltbook_check':
+                    _actionResult = await this.actions.performMoltbookCheck();
+                    break;
+                case 'moltbook_post':
+                    _actionResult = await this.actions.performMoltbookPost();
                     break;
                 case 'rest':
                     console.log('😴 [Autonomy] Golem 選擇繼續休息。');

@@ -12,6 +12,8 @@
  *   google-check.js  — performGoogleCheck
  *   drive-sync.js    — performDriveSync
  *   x-post.js        — performXPost
+ *   moltbook-check.js — performMoltbookCheck
+ *   moltbook-post.js  — performMoltbookPost
  */
 const SocialAction = require('./social');
 const ExploreAction = require('./explore');
@@ -21,6 +23,8 @@ const HealthCheckAction = require('./health-check');
 const GoogleCheckAction = require('./google-check');
 const DriveSyncAction = require('./drive-sync');
 const XPostAction = require('./x-post');
+const MoltbookCheckAction = require('./moltbook-check');
+const MoltbookPostAction  = require('./moltbook-post');
 const MaintenanceRunner = require('./maintenance/index');
 
 class ActionRunner {
@@ -49,6 +53,8 @@ class ActionRunner {
         this._driveSync        = new DriveSyncAction(deps);
         this._xPost            = new XPostAction(deps);
         this._googleServices   = deps.googleServices || null;
+        this._moltbookCheck    = new MoltbookCheckAction(deps);
+        this._moltbookPost     = new MoltbookPostAction(deps);
         this._maintenance      = new MaintenanceRunner(deps);
     }
 
@@ -133,6 +139,23 @@ class ActionRunner {
             console.warn('[ActionRunner] Calendar 寫入失敗:', e.message);
         }
     }
+    // --- moltbook ---
+    async performMoltbookCheck() {
+        const result = await this._moltbookCheck.run();
+        if (result && result.success) {
+            await this._logToCalendar('Moltbook 巡查', `upvoted:${result.upvoted} commented:${result.commented} dm:${result.dm_replied}`);
+        }
+        return result;
+    }
+
+    async performMoltbookPost() {
+        const result = await this._moltbookPost.run();
+        if (result && result.success) {
+            await this._logToCalendar('Moltbook 發文', result.title || '發文成功');
+        }
+        return result;
+    }
+
     // --- maintenance（自動擴展）---
     hasMaintenance(actionName)      { return this._maintenance.has(actionName); }
     async performMaintenance(actionName) {
