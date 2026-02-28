@@ -13,27 +13,54 @@
 const ALWAYS_NOTIFY_KEYWORDS = [
     '帳單', '付款', '到期', '逾期', 'billing', 'payment', 'invoice', 'overdue',
     '錯誤', '警告', '異常', 'error', 'warning', 'alert', 'critical', 'failed',
-    '安全', 'security', 'unauthorized', 'breach',
+    'unauthorized', 'breach', 'intrusion',
     '憑證', 'certificate', 'ssl', 'tls', 'expired',
     '配額', 'quota', 'limit exceeded', 'rate limit',
+    'shut down', 'deletion', 'suspended', 'terminated',
 ];
 
+// Golem 自己帳號的例行通知，不打擾主人
 const ALWAYS_IGNORE_PATTERNS = [
-    /noreply|no-reply|donotreply|do-not-reply/i,
-    /notifications?@/i,
+    // Google 安全性快訊（OAuth 授權、新登入通知）— Golem 自己操作產生的
+    /accounts.google.com/i,
+    /no-reply@accounts.google.com/i,
+    // 行銷、電子報、促銷
     /newsletter|marketing|promo|unsubscribe/i,
-    /google\.com.*\b(account|security|signin)\b/i,
+    // 社群媒體例行推播
+    /follow-suggestions@|posts-recap@|instagram.com/i,
+    // 歡迎信、onboarding
+    /welcome@|support@buymeacoffee/i,
+    // 其他 noreply（需在 ignore patterns 之後，避免擋掉重要 noreply）
+    /notifications?@(?!github)/i,
 ];
 
-const GITHUB_IMPORTANT = ['security alert', 'failed', 'vulnerability', 'merged', 'closed'];
+// Google 平台通知：只有真正影響服務的才通知
+const GOOGLE_PLATFORM_NOTIFY = [
+    'shut down', 'deletion warning', 'suspended', 'terminated',
+    'billing', 'payment', 'quota exceeded',
+];
+
+const GITHUB_IMPORTANT = ['security alert', 'failed', 'vulnerability', 'dependabot'];
 
 function classifyByRules(email) {
     const text = (email.subject + ' ' + email.snippet + ' ' + email.from).toLowerCase();
-    if (ALWAYS_NOTIFY_KEYWORDS.some(k => text.includes(k.toLowerCase()))) return 'notify';
+
+    // Google platform 通知：精確判斷，不靠 security 關鍵字
+    if (/google.com|googleapis.com|platformnotifications/i.test(email.from)) {
+        return GOOGLE_PLATFORM_NOTIFY.some(k => text.includes(k)) ? 'notify' : 'ignore';
+    }
+
+    // GitHub：只有真正重要的
     if (/github|gitlab/.test(email.from)) {
         return GITHUB_IMPORTANT.some(k => text.includes(k)) ? 'notify' : 'ignore';
     }
-    if (ALWAYS_IGNORE_PATTERNS.some(p => p.test(email.from))) return 'ignore';
+
+    // 明確 ignore patterns
+    if (ALWAYS_IGNORE_PATTERNS.some(p => p.test(email.from + ' ' + email.subject))) return 'ignore';
+
+    // 明確 notify keywords（已移除 'security'，避免 Google 安全快訊誤觸發）
+    if (ALWAYS_NOTIFY_KEYWORDS.some(k => text.includes(k))) return 'notify';
+
     return 'uncertain';
 }
 
