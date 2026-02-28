@@ -3,6 +3,7 @@
  * @role Self-reflection Phase 1 — 診斷當前問題，產出改進方向
  * @when-to-modify 調整診斷提示詞、歷史 reflection 讀取數量、或診斷輸出 schema 時
  */
+const { execSync } = require('child_process');
 
 class ReflectDiag {
     constructor({ journal, notifier, decision, memory, memoryLayer }) {
@@ -24,15 +25,27 @@ class ReflectDiag {
         const soul = this.decision.readSoul();
         const fileList = this.decision.getProjectFileList();
 
-        // 加入歷史 reflection 記錄，讓 Golem 知道上次診斷了什麼、成功還是失敗
-        const recentReflections = this.journal.readRecent(50)
+        // 加入歷史 reflection 記錄，過濾掉已部署的 proposed（避免重複診斷已解決問題）
+        const allJournal = this.journal.readRecent(50);
+        const resolvedSet = new Set(
+            allJournal
+                .filter(j => j.action === 'self_reflection_feedback' && j.resolves)
+                .map(j => j.resolves)
+        );
+        const recentReflections = allJournal
             .filter(j => j.action === 'self_reflection')
+            .filter(j => !(j.outcome === 'proposed' && resolvedSet.has(j.ts)))
             .slice(-5)
             .map(j => {
                 const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
                 const detail = [j.outcome, j.diagnosis, j.description, j.reason].filter(Boolean).join(' / ');
                 return '[' + time + '] ' + (j.mode || 'phase1') + ' outcome=' + detail;
             }).join('\n') || '(無歷史記錄)';
+
+        let recentGitLog = '(無法取得)';
+        try {
+            recentGitLog = execSync('git log --oneline -8', { cwd: process.cwd() }).toString().trim();
+        } catch (e) { /* 不影響診斷 */ }
 
         // 三層記憶：取過去 github/web 探索的相關洞察（Phase 1 尚無 diag，以 soul + 近期 journal 作查詢）
         let coldInsights = '';
@@ -51,6 +64,7 @@ class ReflectDiag {
             '', '【靈魂文件】', soul,
             '', '【最近經驗】', journalContext,
             '', '【歷史 reflection 結果（最近 5 次）】', recentReflections,
+            '', '【最近 git 變更（供參考，避免重複診斷已修問題）】', recentGitLog,
             '', '【老哥的建議】', advice || '(無)',
             '', '【過去探索的相關洞察（冷層召回）】', coldInsights || '(無)',
             '', '【近期歸納文件摘要（溫層）】', warmInsights || '(無)',

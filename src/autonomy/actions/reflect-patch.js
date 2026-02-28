@@ -277,16 +277,19 @@ class ReflectPatch {
             if (typeof proposal.confidence === 'number') metaFields.confidence = proposal.confidence;
             if (proposal.risk_level) metaFields.risk_level = proposal.risk_level;
             if (proposal.expected_outcome) metaFields.expected_outcome = proposal.expected_outcome;
+            const proposedTs = new Date().toISOString();
             this.journal.append({
                 action: 'self_reflection', mode: 'core_patch',
                 proposal: proposalType, target: targetName,
                 description: proposal.description,
+                ts: proposedTs,
                 outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed',
                 ...metaFields,
                 reflection_file: reflectionFile,
                 model: this.decision.lastModel,
                 tokens: this.decision.lastTokens
             });
+            if (global.pendingPatch) global.pendingPatch.proposedTs = proposedTs;
             return { success: sentCP === true, action: 'self_reflection', outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed', target: targetName };
         } else {
             this.journal.append({

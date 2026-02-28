@@ -49,7 +49,7 @@ class DeployActions {
             const patchSnapshot = { ...global.pendingPatch };
             global.pendingPatch = null;
             this.memory.recordSuccess();
-            this.autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'deployed', target: targetName, description: patchDesc });
+            this.autonomy.appendJournal({ action: 'self_reflection_feedback', outcome: 'deployed', target: targetName, description: patchDesc, resolves: patchSnapshot.proposedTs });
             try {
                 execSync(`git -C "${process.cwd()}" add "${targetPath}"`);
                 execSync(`git -C "${process.cwd()}" commit -m "feat(self_reflection): ${patchDesc.substring(0, 60)}"`);
