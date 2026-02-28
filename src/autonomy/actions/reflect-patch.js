@@ -247,6 +247,7 @@ class ReflectPatch {
                 reflection_file: reflectionFile
             });
             return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
+            return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
         }
     }
 }
