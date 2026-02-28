@@ -707,7 +707,8 @@ async function listPatchesCommand(ctx) {
 if (tgBot) {
     tgBot.on('message', (ctx) => handleUnifiedMessage(new UniversalContext('telegram', ctx, tgBot)));
     tgBot.on('callback_query:data', (ctx) => {
-        handleUnifiedCallback(new UniversalContext('telegram', ctx, tgBot), ctx.callbackQuery.data);
+        handleUnifiedCallback(new UniversalContext('telegram', ctx, tgBot), ctx.callbackQuery.data)
+            .catch(e => console.error('❌ [Callback] handleUnifiedCallback 失敗:', e.stack || e.message || String(e)));
         ctx.answerCallbackQuery().catch(() => {}); // 過期的 callback query 靜默忽略
     });
     tgBot.catch((err) => console.error(`⚠️ [TG] ${err.message}`));
