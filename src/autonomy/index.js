@@ -144,7 +144,7 @@ class AutonomyManager {
             const actionEmoji = {
                 'self_reflection': '🧬', 'github_explore': '🔍',
                 'spontaneous_chat': '💬', 'web_research': '🌐',
-                'digest': '📝', 'rest': '😴'
+                'digest': '📝', 'health_check': '🏥', 'rest': '😴'
             };
             console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
 
@@ -173,6 +173,13 @@ class AutonomyManager {
                     break;
                 case 'digest':
                     _actionResult = await this.actions.performDigest();
+                    break;
+                case 'health_check':
+                    _actionResult = await this.actions.performHealthCheck();
+                    if (_actionResult && _actionResult.needsReflection) {
+                        console.log('🏥 [HealthCheck] 發現異常，排程觸發 self_reflection');
+                        setTimeout(() => this.actions.performSelfReflection({ trigger: 'health_check' }), 5 * 60 * 1000);
+                    }
                     break;
                 case 'rest':
                     console.log('😴 [Autonomy] Golem 選擇繼續休息。');

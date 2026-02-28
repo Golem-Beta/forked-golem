@@ -4,15 +4,17 @@
  * @when-to-modify 新增行動類型、或調整子模組組裝方式時；個別行動邏輯請修改對應子模組
  *
  * 子模組對應：
- *   social.js       — performSpontaneousChat, onAdminReply
- *   explore.js      — performWebResearch, performGitHubExplore
- *   reflect.js      — performSelfReflection（協調 reflect-diag + reflect-patch）
- *   digest.js       — performDigest, performMorningDigest
+ *   social.js        — performSpontaneousChat, onAdminReply
+ *   explore.js       — performWebResearch, performGitHubExplore
+ *   reflect.js       — performSelfReflection（協調 reflect-diag + reflect-patch）
+ *   digest.js        — performDigest, performMorningDigest
+ *   health-check.js  — performHealthCheck
  */
 const SocialAction = require('./social');
 const ExploreAction = require('./explore');
 const ReflectAction = require('./reflect');
 const DigestAction = require('./digest');
+const HealthCheckAction = require('./health-check');
 
 class ActionRunner {
     /**
@@ -30,10 +32,11 @@ class ActionRunner {
      * @param {Function} deps.InputFile
      */
     constructor(deps) {
-        this._social  = new SocialAction(deps);
-        this._explore = new ExploreAction(deps);
-        this._reflect = new ReflectAction(deps);
-        this._digest  = new DigestAction(deps);
+        this._social       = new SocialAction(deps);
+        this._explore      = new ExploreAction(deps);
+        this._reflect      = new ReflectAction(deps);
+        this._digest       = new DigestAction(deps);
+        this._healthCheck  = new HealthCheckAction(deps);
     }
 
     // --- social ---
@@ -50,6 +53,9 @@ class ActionRunner {
     // --- digest ---
     async performDigest()                { return this._digest.performDigest(); }
     async performMorningDigest()         { return this._digest.performMorningDigest(); }
+
+    // --- health-check ---
+    async performHealthCheck()           { return this._healthCheck.run(); }
 }
 
 module.exports = ActionRunner;

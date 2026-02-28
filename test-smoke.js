@@ -127,6 +127,7 @@ const autonomySubmodules = [
     ['actions/explore',        'src/autonomy/actions/explore'],
     ['actions/digest',         'src/autonomy/actions/digest'],
     ['actions/social',         'src/autonomy/actions/social'],
+    ['actions/health-check',   'src/autonomy/actions/health-check'],
 ];
 for (const [key, modPath] of autonomySubmodules) {
     test(`autonomy/${key} is a class`, () => {
@@ -182,6 +183,11 @@ test('require src/dashboard-monitor', () => {
     s['dashboard-monitor'] = require('./src/dashboard-monitor');
     assert(typeof s['dashboard-monitor'] === 'function');
 });
+test('require src/autonomy/actions/health-check', () => {
+    const HealthCheckAction = require('./src/autonomy/actions/health-check');
+    assert(typeof HealthCheckAction === 'function');
+    assert(HealthCheckAction.name === 'HealthCheckAction');
+});
 
 // === Phase 5: 子模組介面合約 ===
 console.log('\n[Phase 5] 子模組介面合約');
@@ -204,6 +210,7 @@ const methodTests = [
     ['DashboardLog',          'dashboard-log',     ['setupOverride']],
     ['DashboardMonitor',      'dashboard-monitor', ['startMonitoring']],
     ['DecisionUtils',         'decision-utils',    ['getAvailableActions']],
+    ['HealthCheckAction',     'actions/health-check', ['run']],
 ];
 for (const [className, key, methods] of methodTests) {
     for (const method of methods) {
@@ -212,6 +219,10 @@ for (const [className, key, methods] of methodTests) {
         });
     }
 }
+test('ActionRunner.prototype.performHealthCheck', () => {
+    assert(typeof proto('actions/index').performHealthCheck === 'function',
+        'ActionRunner.prototype.performHealthCheck not found');
+});
 
 // === Phase 6: 模組大小健康檢查 ===
 console.log('\n[Phase 6] 模組大小健康檢查');

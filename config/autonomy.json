@@ -51,6 +51,15 @@
         "morning_digest": {
             "dailyLimit": 1,
             "desc": "回顧靜默時段的行動紀錄，生成晨間摘要發給主人。只在有未匯報的靜默時段行動時才選擇。"
+        },
+        "health_check": {
+            "dailyLimit": 1,
+            "blockedHours": [22,23,0,1,2,3,4,5,6,7],
+            "desc": "巡查過去 24 小時系統健康狀況，發現異常時通知主人並考慮觸發自我反思",
+            "log_filter": {
+                "levels": ["[ERR]", "[WARN]"],
+                "keywords": ["❌", "⚠️", "失敗", "錯誤", "異常", "FATAL"]
+            }
         }
     },
     "cooldown": {
