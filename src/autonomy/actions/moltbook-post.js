@@ -4,7 +4,12 @@
  * @when-to-modify 調整發文策略、cooldown 邏輯、或首次 bio 生成時
  *
  * 首次執行會自動用 LLM 生成 bio 並 PATCH /agents/me
- * 30 分鐘 cooldown 本地管理（state 存 journal metadata）
+ * 30 分鐘 cooldown 本地管理（state 存 data/moltbook-state.json）
+ *
+ * 記憶整合：
+ *   _generatePost() 透過 memoryLayer.recall('moltbook post topic') 補入三層記憶
+ *   發文成功後寫入 memory/reflections/moltbook-post-{YYYY-MM-DD}.txt
+ *   寫入後呼叫 memoryLayer.addReflection() 增量更新冷層索引
  */
 
 'use strict';
@@ -14,14 +19,15 @@ const path = require('path');
 
 const MoltbookClient = require('../../moltbook-client');
 
-const COOLDOWN_MS   = 31 * 60 * 1000; // 31 分鐘（比 API 限制多 1 分鐘緩衝）
-const STATE_FILE    = path.join(__dirname, '../../../data/moltbook-state.json');
+const COOLDOWN_MS = 31 * 60 * 1000; // 31 分鐘（比 API 限制多 1 分鐘緩衝）
+const STATE_FILE  = path.join(__dirname, '../../../data/moltbook-state.json');
 
 class MoltbookPostAction {
-    constructor({ journal, decision, brain }) {
-        this.journal  = journal;
-        this.decision = decision;
-        this.brain    = brain;
+    constructor({ journal, decision, brain, memoryLayer, memory }) {
+        this.journal     = journal;
+        this.decision    = decision;
+        this.brain       = brain;
+        this.memoryLayer = memoryLayer || memory || null;
 
         const apiKey = process.env.MOLTBOOK_API_KEY;
         this.client  = apiKey ? new MoltbookClient(apiKey) : null;
@@ -94,6 +100,9 @@ class MoltbookPostAction {
             tokens:  this.decision.lastTokens,
         });
 
+        // 7. 寫入冷層記憶（發文成功後才寫入）
+        this._saveToReflection({ submolt, title, content });
+
         console.log(`🦞 [MoltbookPost] 發文成功 [${submolt}] "${title}"`);
         return { success: true, submolt, title, post_id: result.post?.id };
     }
@@ -130,7 +139,7 @@ class MoltbookPostAction {
         }
     }
 
-    // ── LLM 生成發文內容 ──────────────────────────────────────────────────
+    // ── LLM 生成發文內容（補入三層記憶）──────────────────────────────────
 
     async _generatePost() {
         const recentJournal = this.journal.readRecent(8)
@@ -139,6 +148,22 @@ class MoltbookPostAction {
 
         const soul = this.decision.readSoul ? this.decision.readSoul() : '';
 
+        let memSection = '';
+        if (this.memoryLayer) {
+            try {
+                const { hot, warm, cold } = this.memoryLayer.recall(
+                    'moltbook post topic', { hotLimit: 3, warmLimit: 2, coldLimit: 3 }
+                );
+                const parts = [];
+                if (hot)  parts.push('【近期發文行動】\n' + hot);
+                if (warm) parts.push('【往期摘要】\n' + warm);
+                if (cold) parts.push('【過去發文記憶】\n' + cold);
+                if (parts.length > 0) {
+                    memSection = '\n過去的 Moltbook 發文記憶（避免重複話題）：\n' + parts.join('\n\n');
+                }
+            } catch (e) { /* 不影響主流程 */ }
+        }
+
         const prompt = `你是 GolemBeta，一個運行在 ThinkPad X200 的自主 AI agent。
 
 你的 soul：
@@ -146,10 +171,12 @@ ${soul}
 
 近期行動摘要：
 ${recentJournal}
+${memSection}
 
 請根據以上，在 Moltbook 發一篇有意義的貼文。要求：
 - 分享真實的觀察、正在思考的問題、或近期有趣的發現
 - 有個性，不假掰，不刻意賣萌
+- 避免重複過去已發過的話題
 - title 簡潔（< 80 字元），content 100-300 字元
 - 選擇最適合的 submolt（如 general, ai, agents, tech 等）
 
@@ -169,15 +196,40 @@ ${recentJournal}
         }
     }
 
+    // ── 發文成功後寫入冷層記憶 ────────────────────────────────────────────
+
+    _saveToReflection({ submolt, title, content }) {
+        if (!this.memoryLayer) return;
+        try {
+            const today    = new Date().toISOString().slice(0, 10);
+            const filename = `moltbook-post-${today}.txt`;
+            const reflDir  = path.join(process.cwd(), 'memory', 'reflections');
+            if (!fs.existsSync(reflDir)) fs.mkdirSync(reflDir, { recursive: true });
+
+            const entry = `\n=== 發文 ${new Date().toISOString()} ===\nSubmolt: ${submolt}\nTitle: ${title}\nContent:\n${content}\n`;
+            fs.appendFileSync(path.join(reflDir, filename), entry);
+
+            this.memoryLayer.addReflection(filename);
+            console.log(`🦞 [MoltbookPost] 冷層記憶更新: ${filename}`);
+        } catch (e) {
+            console.warn('🦞 [MoltbookPost] 冷層記憶寫入失敗:', e.message);
+        }
+    }
+
     // ── State 管理 ────────────────────────────────────────────────────────
 
     _loadState() {
         try {
             if (fs.existsSync(STATE_FILE)) {
-                return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+                const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+                // 補齊新欄位（向後兼容舊 state）
+                return Object.assign(
+                    { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {} },
+                    parsed
+                );
             }
         } catch {}
-        return { bioSet: false, lastPostAt: null };
+        return { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {} };
     }
 
     _saveState(state) {
