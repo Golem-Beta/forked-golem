@@ -59,10 +59,11 @@ class SocialAction {
             outcome: sent === true ? 'sent' : sent === 'queued' ? 'queued' : 'send_failed',
             msg_length: msg.length,
             model: this.decision.lastModel,
-            tokens: this.decision.lastTokens
+            tokens: this.decision.lastTokens,
+            ...(sent !== true && sent !== 'queued' && sent && sent.error ? { error: sent.error } : {})
         });
 
-        if (!sent) {
+        if (sent !== true && sent !== 'queued') {
             console.error('[Social] SEND FAILED! preview:', msg.substring(0, 80));
             return;
         }

@@ -102,15 +102,16 @@ class ExploreAction {
                 '', text + sourcesBlock
             ].filter(Boolean).join('\n');
             const sentWR = await this.notifier.sendToAdmin(parts);
-            console.log('[WebResearch] sendToAdmin:', sentWR ? '✅ OK' : '❌ FAILED');
+            console.log('[WebResearch] sendToAdmin:', sentWR === true ? '✅ OK' : '❌ FAILED');
 
             this.journal.append({
                 action: 'web_research', topic: query, purpose: purpose,
-                outcome: sentWR ? 'shared' : 'send_failed', reflection_file: reflectionFile,
-                grounded: grounding !== null, sources: grounding ? grounding.sources.length : 0
+                outcome: sentWR === true ? 'shared' : 'send_failed', reflection_file: reflectionFile,
+                grounded: grounding !== null, sources: grounding ? grounding.sources.length : 0,
+                ...(sentWR !== true && sentWR !== 'queued' && sentWR && sentWR.error ? { error: sentWR.error } : {})
             });
-            if (sentWR) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
-            return { success: sentWR, action: 'web_research', outcome: sentWR ? 'shared' : 'send_failed' };
+            if (sentWR === true) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
+            return { success: sentWR === true, action: 'web_research', outcome: sentWR === true ? 'shared' : 'send_failed' };
         } catch (e) {
             console.error('❌ [WebResearch] 研究失敗:', e.message);
             this.journal.append({ action: 'web_research', outcome: 'error', error: e.message });
@@ -226,25 +227,26 @@ class ExploreAction {
                 '', analysis
             ].join('\n');
             const sentGH = await this.notifier.sendToAdmin(parts);
-            console.log('[GitHub] sendToAdmin:', sentGH ? '✅ OK' : '❌ FAILED');
+            console.log('[GitHub] sendToAdmin:', sentGH === true ? '✅ OK' : '❌ FAILED');
 
             this.journal.append({
                 action: 'github_explore', topic, repo: newRepo.full_name,
                 stars: newRepo.stargazers_count, language: newRepo.language,
-                outcome: sentGH ? 'shared' : 'send_failed', reflection_file: reflectionFile,
+                outcome: sentGH === true ? 'shared' : 'send_failed', reflection_file: reflectionFile,
                 model: this.decision.lastModel,
-                tokens: this.decision.lastTokens
+                tokens: this.decision.lastTokens,
+                ...(sentGH !== true && sentGH !== 'queued' && sentGH && sentGH.error ? { error: sentGH.error } : {})
             });
 
-            if (sentGH && this.brain) {
+            if (sentGH === true && this.brain) {
                 this.brain.memorize(`[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`, {
                     source: 'github_explore',
                     repo: newRepo.full_name,
                     topic
                 });
             }
-            if (sentGH) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
-            return { success: sentGH, action: 'github_explore', outcome: sentGH ? 'shared' : 'send_failed' };
+            if (sentGH === true) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
+            return { success: sentGH === true, action: 'github_explore', outcome: sentGH === true ? 'shared' : 'send_failed' };
         } catch (e) {
             console.error('❌ [GitHub] 探索失敗:', e.message);
             this.journal.append({ action: 'github_explore', outcome: 'error', error: e.message });

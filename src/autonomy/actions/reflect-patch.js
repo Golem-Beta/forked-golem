@@ -72,7 +72,7 @@ class ReflectPatch {
             if (!triggerCtx) {
                 const failMsg = '🧬 [self_reflection] Phase 2 無法產出有效 patch\n診斷: ' + diag.diagnosis + '\n目標: ' + targetFile + '\n(LLM 輸出已存至 ' + reflectionFile + ')';
                 const sent = await this.notifier.sendToAdmin(failMsg);
-                console.log('[Reflection] no_proposals 通知:', sent ? 'OK' : 'FAILED');
+                console.log('[Reflection] no_proposals 通知:', sent === true ? 'OK' : 'FAILED');
             }
             return { success: false, action: 'self_reflection', outcome: 'no_proposals', target: targetFile };
         }
@@ -120,14 +120,15 @@ class ReflectPatch {
         }
         const msgText = '🧩 **新技能已建立**: ' + skillName + '\n' + (proposal.description || '') + '\n原因: ' + (proposal.reason || '');
         const sentSC = await this.notifier.sendToAdmin(msgText);
-        console.log('[SelfReflection/skill_create] sendToAdmin:', sentSC ? '✅ OK' : '❌ FAILED');
+        console.log('[SelfReflection/skill_create] sendToAdmin:', sentSC === true ? '✅ OK' : '❌ FAILED');
         this.journal.append({
             action: 'self_reflection', mode: 'skill_create',
             skill_name: skillName, description: proposal.description,
             outcome: sentSC === true ? 'skill_created' : sentSC === 'queued' ? 'queued' : 'skill_created_send_failed',
             reflection_file: reflectionFile,
             model: this.decision.lastModel,
-            tokens: this.decision.lastTokens
+            tokens: this.decision.lastTokens,
+            ...(sentSC !== true && sentSC !== 'queued' && sentSC && sentSC.error ? { error: sentSC.error } : {})
         });
         return { success: sentSC === true, action: 'self_reflection', outcome: sentSC === true ? 'skill_created' : sentSC === 'queued' ? 'queued' : 'skill_created_send_failed' };
     }
@@ -158,14 +159,14 @@ class ReflectPatch {
         const targetPath = path.join(process.cwd(), targetName);
 
         const testFile = this.PatchManager.createTestClone(targetPath, [proposal]);
-        let isVerified = false;
+        let verifyResult;
         if (targetName === 'skills.js') {
-            try { require(path.resolve(testFile)); isVerified = true; } catch (e) { console.error(e); }
+            try { require(path.resolve(testFile)); verifyResult = { ok: true }; } catch (e) { verifyResult = { ok: false, error: e.message }; }
         } else {
-            isVerified = this.PatchManager.verify(testFile);
+            verifyResult = this.PatchManager.verify(testFile);
         }
 
-        if (isVerified) {
+        if (verifyResult.ok) {
             const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
             const riskLevel = proposal.risk_level || 'medium';
             const expectedOutcome = proposal.expected_outcome || '';
@@ -194,7 +195,7 @@ class ReflectPatch {
                     }
                     const autoMsg = '🤖 **核心進化已自動部署** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n信心: ' + (confidence * 100).toFixed(0) + '% | 風險: ' + riskLevel + '\n預期: ' + expectedOutcome;
                     const sentAuto = await this.notifier.sendToAdmin(autoMsg);
-                    console.log('[SelfReflection/auto_deploy] sendToAdmin:', sentAuto ? '✅ OK' : '❌ FAILED');
+                    console.log('[SelfReflection/auto_deploy] sendToAdmin:', sentAuto === true ? '✅ OK' : '❌ FAILED');
                     this.journal.append({
                         action: 'self_reflection', mode: 'core_patch',
                         proposal: proposalType, target: targetName,
@@ -235,6 +236,7 @@ class ReflectPatch {
             const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine;
             const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
             let sentCP = false;
+            let sentCPError = null;
             try {
                 if (triggerCtx) {
                     await triggerCtx.reply(msgText, options);
@@ -250,6 +252,7 @@ class ReflectPatch {
                 }
             } catch (sendErr) {
                 console.error('[SelfReflection/core_patch] send FAILED:', sendErr.message);
+                sentCPError = sendErr.message;
             }
             console.log('[SelfReflection/core_patch] send:', sentCP ? '✅ OK' : '❌ FAILED');
             // Tasks 閉環：提案待審核提醒
@@ -275,7 +278,8 @@ class ReflectPatch {
                 ...metaFields,
                 reflection_file: reflectionFile,
                 model: this.decision.lastModel,
-                tokens: this.decision.lastTokens
+                tokens: this.decision.lastTokens,
+                ...(sentCP !== true && sentCP !== 'queued' && sentCPError ? { error: sentCPError } : {})
             });
             if (global.pendingPatch) global.pendingPatch.proposedTs = proposedTs;
             return { success: sentCP === true, action: 'self_reflection', outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed', target: targetName };
@@ -283,9 +287,9 @@ class ReflectPatch {
             this.journal.append({
                 action: 'self_reflection', mode: 'core_patch',
                 proposal: proposalType, outcome: 'verification_failed',
+                error: verifyResult.error || 'unknown',
                 reflection_file: reflectionFile
             });
-            return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
             return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
         }
     }

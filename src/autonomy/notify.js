@@ -153,14 +153,14 @@ class Notifier {
                 await user.send(text.slice(0, 2000));
             }
         } catch (e) {
-            console.error('[Notifier] send FAILED:', e); // Log full error object for better diagnosis
+            console.error('[Notifier] send FAILED:', e.message);
             this._consecutiveFailures++;
-            return false;
+            return { ok: false, error: e.message };
         }
         // If we reach here, it means no valid notification channel (TG or Discord) was configured or had an admin ID.
         console.error('[Notifier] send FAILED: No valid notification channel (Telegram or Discord) with admin ID configured.');
         this._consecutiveFailures++;
-        return false;
+        return { ok: false, error: 'no_channel' };
     }
 
     /**

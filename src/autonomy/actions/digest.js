@@ -131,7 +131,8 @@ class DigestAction {
             this.journal.append({
                 action: 'digest', topic: firstLine,
                 outcome: sentDG === true ? 'completed' : sentDG === 'queued' ? 'queued' : 'completed_send_failed',
-                file: 'synthesis/' + filename, summary_preview: summary.substring(0, 100)
+                file: 'synthesis/' + filename, summary_preview: summary.substring(0, 100),
+                ...(sentDG !== true && sentDG !== 'queued' && sentDG && sentDG.error ? { error: sentDG.error } : {})
             });
             if (sentDG) console.log('[Digest] 消化歸納完成。');
         } catch (e) {
@@ -194,7 +195,8 @@ class DigestAction {
                 item_count: items.length,
                 summary_preview: summary.substring(0, 100),
                 model: this.decision.lastModel,
-                tokens: this.decision.lastTokens
+                tokens: this.decision.lastTokens,
+                ...(sentMD !== true && sentMD !== 'queued' && sentMD && sentMD.error ? { error: sentMD.error } : {})
             });
             if (sentMD) console.log('[MorningDigest] 晨間摘要已發送。');
         } catch (e) {

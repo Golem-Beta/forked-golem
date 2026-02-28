@@ -32,6 +32,7 @@ class HealthCheckAction {
             outcome: sent === true ? 'reported' : sent === 'queued' ? 'queued' : 'send_failed',
             anomalies: data.log.errors.length + data.log.warns.length,
             needsReflection,
+            ...(sent !== true && sent !== 'queued' && sent && sent.error ? { error: sent.error } : {})
         });
         return { success: true, action: 'health_check', needsReflection };
     }

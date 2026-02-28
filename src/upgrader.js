@@ -66,16 +66,17 @@ class PatchManager {
             const capturedCalls = content.match(/(?:const|let|var)\s+\w+\s*=\s*await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || [];
             if (sendCalls.length > capturedCalls.length) {
                 const uncaptured = sendCalls.length - capturedCalls.length;
-                console.error(`❌ [PatchManager] OCR 違規：${uncaptured} 個 sendToAdmin/sendNotification 呼叫未接回傳值。所有發送操作必須用 const sent = await ... 接回傳值，並依結果記錄 journal outcome。`);
+                const errMsg = `OCR 違規：${uncaptured} 個 sendToAdmin/sendNotification 呼叫未接回傳值`;
+                console.error(`❌ [PatchManager] ${errMsg}`);
                 try { fs.unlinkSync(filePath); } catch (_) {}
-                return false;
+                return { ok: false, error: errMsg };
             }
             console.log(`✅ [PatchManager] ${filePath} 驗證通過`);
-            return true;
+            return { ok: true };
         } catch (e) {
             console.error(`❌ [PatchManager] 驗證失敗: ${e.message}`);
             try { fs.unlinkSync(filePath); console.log(`🗑️ [PatchManager] 已清理: ${filePath}`); } catch (_) {}
-            return false;
+            return { ok: false, error: e.message };
         }
     }
 }
@@ -102,8 +103,8 @@ class SystemUpgrader {
 
             await ctx.reply("🛡️ 下載完成，正在進行語法完整性掃描...");
             for (const item of downloadedFiles) {
-                const isValid = PatchManager.verify(item.tempPath);
-                if (!isValid) throw new Error(`檔案 ${item.file} 驗證失敗，更新已終止以保護系統。`);
+                const verifyResult = PatchManager.verify(item.tempPath);
+                if (!verifyResult.ok) throw new Error(`檔案 ${item.file} 驗證失敗，更新已終止以保護系統。`);
             }
 
             await ctx.reply("✅ 驗證通過。正在寫入系統...");
