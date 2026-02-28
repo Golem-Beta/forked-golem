@@ -151,6 +151,24 @@ class GoogleServices {
     }
 
     // 上傳新檔案至指定資料夾，回傳 fileId
+
+    async createFolder({ name, parentId = null }) {
+        try {
+            await this._init();
+            const res = await this._drive.files.create({
+                requestBody: {
+                    name,
+                    mimeType: 'application/vnd.google-apps.folder',
+                    parents: parentId ? [parentId] : [],
+                },
+                fields: 'id, name',
+            });
+            return { id: res.data.id, name: res.data.name };
+        } catch (e) {
+            throw new Error(`[GoogleServices.createFolder] ${e.message}`);
+        }
+    }
+
     async uploadFile({ name, content, mimeType, folderId }) {
         try {
             await this._init();

@@ -38,16 +38,20 @@ class DriveSyncAction {
             return { success: false, error: e.message };
         }
 
+        let folderId;
         if (!folders.length) {
-            this._deps.journal.append({
-                action: 'drive_sync',
-                outcome: 'folder_missing',
-                detail: `找不到 Drive 資料夾：${DRIVE_FOLDER_NAME}`,
-            });
-            return { skipped: true, reason: 'folder_missing' };
+            try {
+                const created = await this._deps.googleServices.createFolder({ name: DRIVE_FOLDER_NAME });
+                console.log(`[DriveSync] 自動建立資料夾：${DRIVE_FOLDER_NAME} (id: ${created.id})`);
+                folderId = created.id;
+            } catch (e) {
+                console.error('[DriveSync] 建立資料夾失敗:', e.message);
+                return { success: false, error: e.message };
+            }
+        } else {
+            folderId = folders[0].id;
         }
 
-        const folderId = folders[0].id;
         const results = { uploaded: [], updated: [], failed: [] };
 
         // 上傳 journal.jsonl
