@@ -19,8 +19,10 @@ module.exports = function phase4(test) {
         ['actions/digest',         'src/autonomy/actions/digest'],
         ['actions/social',         'src/autonomy/actions/social'],
         ['actions/health-check',   'src/autonomy/actions/health-check'],
-        ['actions/drive-sync',     'src/autonomy/actions/drive-sync'],
-        ['actions/x-post',         'src/autonomy/actions/x-post'],
+        ['actions/drive-sync',       'src/autonomy/actions/drive-sync'],
+        ['actions/x-post',           'src/autonomy/actions/x-post'],
+        ['actions/moltbook-check',   'src/autonomy/actions/moltbook-check'],
+        ['actions/moltbook-post',    'src/autonomy/actions/moltbook-post'],
     ];
     for (const [key, modPath] of autonomySubmodules) {
         test(`autonomy/${key} is a class`, () => {
@@ -63,6 +65,12 @@ module.exports = function phase4(test) {
     test('router/adapters/base is a class', () => assert(typeof s['router/adapters/base'] === 'function'));
     test('router/adapters/openai-compat is a class', () => assert(typeof s['router/adapters/openai-compat'] === 'function'));
     test('router/adapters/gemini is a class', () => assert(typeof s['router/adapters/gemini'] === 'function'));
+
+    test('require src/moltbook-client', () => {
+        s['moltbook-client'] = require('../src/moltbook-client');
+        assert(typeof s['moltbook-client'] === 'function');
+        assert(s['moltbook-client'].name === 'MoltbookClient');
+    });
 
     test('memory/index is a class', () => {
         s['memory/index'] = require('../src/memory/index');

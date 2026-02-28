@@ -28,8 +28,11 @@ module.exports = function phase5(test, s) {
         ['ReactLoop',       'react-loop',       ['run', 'writeJournal']],
         ['DeployActions',   'deploy-actions',   ['runSmokeGate', 'deploy', 'drop', 'listPatches']],
         ['GoogleCommands',  'google-commands',  ['gmail', 'calendar', 'tasks', 'drive']],
-        ['MessageHandler',  'message-handler',  ['handleMessage']],
-        ['CallbackHandler', 'callback-handler', ['handle']],
+        ['MessageHandler',      'message-handler',          ['handleMessage']],
+        ['CallbackHandler',     'callback-handler',         ['handle']],
+        ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
+        ['MoltbookCheckAction', 'actions/moltbook-check',   ['run', '_wrapExternal', '_askLLMForPlan', '_executePlan']],
+        ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection', '_loadState', '_saveState']],
     ];
     for (const [className, key, methods] of methodTests) {
         for (const method of methods) {
@@ -54,6 +57,19 @@ module.exports = function phase5(test, s) {
         assert(typeof proto('actions/index').performXPost === 'function',
             'ActionRunner.prototype.performXPost not found');
     });
+    test('MoltbookCheckAction memoryLayer alias（memory key 正確接入）', () => {
+        const MoltbookCheckAction = require('../src/autonomy/actions/moltbook-check');
+        const stub = { recall: () => ({ hot: '', warm: '', cold: '' }) };
+        const inst = new MoltbookCheckAction({ memory: stub });
+        assert(inst.memoryLayer === stub, 'memoryLayer 應透過 memory alias 注入');
+    });
+    test('MoltbookPostAction memoryLayer alias（memory key 正確接入）', () => {
+        const MoltbookPostAction = require('../src/autonomy/actions/moltbook-post');
+        const stub = { recall: () => ({ hot: '', warm: '', cold: '' }) };
+        const inst = new MoltbookPostAction({ memory: stub });
+        assert(inst.memoryLayer === stub, 'memoryLayer 應透過 memory alias 注入');
+    });
+
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
         const auth = new GCPAuth();
