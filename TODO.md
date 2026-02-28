@@ -77,10 +77,10 @@
 - **優先順序**: Calendar（接 Chronos 持久化）→ Drive（備份 journal）→ Gmail（最後）
 - **安全**: Gmail 牽涉外部通訊，prompt injection 風險高，放最後
 
-### 6. Journal 智慧檢索（BM25）
-- **內容**: 用 flexsearch 或 lunr.js 替代「讀最近 10 條」硬編碼策略
-- **好處**: Golem 能回憶兩週前的經驗；RAM < 5MB
-- **與 #2 互補**
+### ~~6. Journal 智慧檢索（BM25）~~ ✅
+- ~~已由 v9.9.8 三層記憶召回系統（FlexSearch）覆蓋~~
+
+
 
 ### 7. skill-moltbook.md 整合
 - **安全疑慮**: 間接 prompt injection 風險高，需謹慎評估
@@ -121,7 +121,11 @@
 - **備註**: 目前人工審批為最後防線，非緊急
 
 ### 19. Dashboard 頻繁重啟根因調查（觀察中）
-- **備註**: 2026-02-27 後無復現，待下次復現再查
+
+### 20. health-check log 分類邊界情況
+- **內容**: `_analyzeLog` 以 `line.includes("[ERR]")` 判斷 errorMap vs warnMap，但 keywords 命中（❌/失敗等）的 `[LOG]` 行會誤歸 warnMap
+- **修法**: 先判斷 level tag（ERR/WARN/LOG），keywords 命中但無 ERR level 的歸 warnMap 即可
+- **優先級**: 低，實務上 ❌ 幾乎只出現在 [ERR] 行
 
 ---
 
@@ -159,7 +163,14 @@
   - ~~callLLM 回傳結構化 { text, grounding }，移除 returnFull workaround~~
   - ~~brain.js chatHistory 保留 thought signature (rawParts)~~
 
-### 20. Telegram 部署按鈕 60 秒過期問題
+### 20. 新免費 LLM Provider 評估與整合
+- **候選**（依優先順序）：
+  1. **Alibaba Cloud Model Studio（國際版）** — 每模型 100萬 tokens 免費，Qwen3-235B 直連官方 endpoint，比 OpenRouter 更穩且不佔 200 RPD
+  2. **NVIDIA NIM** — 40 RPM 免費，模型多，需手機驗證
+  3. **Scaleway Generative APIs** — 100萬 free tokens，有 Qwen3-235B / DeepSeek R1，歐洲節點
+- **方式**: 取得 API key → 加入 configs.js → intents.js 適當 priority → smoke test
+
+### 21. Telegram 部署按鈕 60 秒過期問題
 - **問題**: inline keyboard callback query 有 60 秒有效期，超時按鈕失效
 - **根本解法**: 按鈕只確認意圖，實際部署透過新 message 觸發（/deploy 指令或 bot 重新發新 callback）
 - **影響**: 目前每次 self_reflection 提案若沒及時按，只能等下次重新提案
