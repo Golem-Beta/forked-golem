@@ -8,7 +8,8 @@ module.exports = function phase1(test) {
         'config', 'context', 'message-buffer', 'memory-drivers',
         'security', 'brain', 'parsers', 'executor', 'node-router',
         'chronos', 'upgrader', 'tools', 'prompt-loader',
-        'autonomy', 'skills', 'model-router', 'task-controller'
+        'autonomy', 'skills', 'model-router', 'task-controller',
+        'x-publisher'
     ];
     for (const name of moduleList) {
         test(`require src/${name}`, () => {

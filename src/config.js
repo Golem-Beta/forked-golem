@@ -32,7 +32,11 @@ const CONFIG = {
     QMD_PATH: cleanEnv(process.env.GOLEM_QMD_PATH || 'qmd', true),
     DONATE_URL: 'https://buymeacoffee.com/arvincreator',
     GCP_CLIENT_ID: cleanEnv(process.env.GCP_CLIENT_ID || '', true),
-    GCP_CLIENT_SECRET: cleanEnv(process.env.GCP_CLIENT_SECRET || '', true)
+    GCP_CLIENT_SECRET: cleanEnv(process.env.GCP_CLIENT_SECRET || '', true),
+    X_API_KEY:             cleanEnv(process.env.X_API_KEY || ''),
+    X_API_SECRET:          cleanEnv(process.env.X_API_SECRET || ''),
+    X_ACCESS_TOKEN:        cleanEnv(process.env.X_ACCESS_TOKEN || ''),
+    X_ACCESS_TOKEN_SECRET: cleanEnv(process.env.X_ACCESS_TOKEN_SECRET || '')
 };
 
 // 驗證關鍵 Token
