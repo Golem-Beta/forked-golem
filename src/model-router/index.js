@@ -116,6 +116,7 @@ class ModelRouter {
         }
 
         let lastError = null;
+        const failLog = [];
 
         for (const candidate of candidates) {
             const { provider, model } = candidate;
@@ -147,6 +148,7 @@ class ModelRouter {
             } catch (e) {
                 lastError = e;
                 const errType = e.providerError || 'error';
+                failLog.push(`${provider}: ${(e.message || errType).substring(0, 60)}`);
 
                 // 更新健康狀態
                 if (errType === 'fatal') {
@@ -169,7 +171,8 @@ class ModelRouter {
             }
         }
 
-        throw lastError || new Error(`[ModelRouter] intent "${intent}" all providers failed`);
+        const detail = failLog.length > 0 ? failLog.join(', ') : '未知錯誤';
+        throw new Error(`[ModelRouter] 所有 provider 均失敗 (intent: ${intent}) — ${detail}`);
     }
 
     // --- 相容性介面 ---

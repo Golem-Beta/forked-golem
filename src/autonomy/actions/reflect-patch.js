@@ -3,8 +3,20 @@
  * @role Self-reflection Phase 2 — 根據診斷結果產生 patch 並送審
  * @when-to-modify 調整 patch 格式、skill_create/core_patch 處理邏輯、或驗證流程時
  */
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+async function runSmokeGate() {
+    return new Promise((resolve) => {
+        const child = spawn('node', ['test-smoke.js'], { cwd: process.cwd(), stdio: 'pipe' });
+        let output = '';
+        child.stdout.on('data', d => { output += d.toString(); });
+        child.stderr.on('data', d => { output += d.toString(); });
+        child.on('close', code => resolve({ ok: code === 0, output }));
+        child.on('error', err => resolve({ ok: false, output: err.message }));
+    });
+}
 
 class ReflectPatch {
     constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices }) {
@@ -172,6 +184,14 @@ class ReflectPatch {
             // 高信心低風險：自動部署
             if (confidence >= 0.85 && riskLevel === 'low') {
                 try {
+                    const smoke = await runSmokeGate();
+                    if (!smoke.ok) {
+                        try { fs.unlinkSync(testFile); } catch (_) {}
+                        const tail = smoke.output.slice(-600);
+                        await this.notifier.sendToAdmin('❌ 自動部署中止（Smoke gate 未通過）\n目標：' + targetName + '\n```\n' + tail + '\n```');
+                        this.journal.append({ action: 'self_reflection', outcome: 'smoke_gate_failed', target: targetName, reflection_file: reflectionFile });
+                        return { success: false, action: 'self_reflection', outcome: 'smoke_gate_failed', target: targetName };
+                    }
                     fs.copyFileSync(targetPath, targetPath + '.bak-' + Date.now());
                     fs.writeFileSync(targetPath, fs.readFileSync(testFile));
                     fs.unlinkSync(testFile);

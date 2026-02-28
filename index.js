@@ -332,6 +332,12 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
             if (targetName === 'skills.js') { try { require(path.resolve(testFile)); isVerified = true; } catch (e) { console.error(e); } }
             else { isVerified = PatchManager.verify(testFile); }
             if (isVerified) {
+                const smoke = await runSmokeGate();
+                if (!smoke.ok) {
+                    try { fs.unlinkSync(testFile); } catch (_) {}
+                    await ctx.reply(`❌ 提案中止：Smoke test 未通過\n\`\`\`\n${smoke.output.slice(-600)}\n\`\`\``);
+                    return;
+                }
                 global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: patch.description };
                 await ctx.reply(`💡 提案就緒 (目標: ${targetName})。`, { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } });
                 await ctx.sendDocument(testFile);
@@ -534,6 +540,8 @@ async function _handleUnifiedMessageCore(ctx, mergedText, hasMedia) {
 async function handleUnifiedCallback(ctx, actionData) {
     if (!ctx.isAdmin) return;
     if (actionData === 'PATCH_DEPLOY' || actionData.startsWith('PATCH_DEPLOY:')) {
+        // 立即 answer，避免 smoke gate 耗時導致 TG 60 秒過期
+        if (ctx.platform === 'telegram') ctx.event.answerCallbackQuery().catch(() => {});
         const id = actionData.includes(':') ? actionData.split(':')[1] : null;
         if (id) {
             const p = pendingPatches.getById(id);
@@ -542,6 +550,8 @@ async function handleUnifiedCallback(ctx, actionData) {
         return executeDeploy(ctx);
     }
     if (actionData === 'PATCH_DROP' || actionData.startsWith('PATCH_DROP:')) {
+        // 立即 answer，避免等待 executeDrop 完成才解除 spinner
+        if (ctx.platform === 'telegram') ctx.event.answerCallbackQuery().catch(() => {});
         const id = actionData.includes(':') ? actionData.split(':')[1] : null;
         if (id) {
             const p = pendingPatches.getById(id);
@@ -619,10 +629,29 @@ async function handleUnifiedCallback(ctx, actionData) {
     }
 }
 
+async function runSmokeGate() {
+    return new Promise((resolve) => {
+        const child = spawn('node', ['test-smoke.js'], { cwd: process.cwd(), stdio: 'pipe' });
+        let output = '';
+        child.stdout.on('data', d => { output += d.toString(); });
+        child.stderr.on('data', d => { output += d.toString(); });
+        child.on('close', code => resolve({ ok: code === 0, output }));
+        child.on('error', err => resolve({ ok: false, output: err.message }));
+    });
+}
+
 async function executeDeploy(ctx) {
     if (!global.pendingPatch) return;
     try {
         const { path: patchPath, target: targetPath, name: targetName } = global.pendingPatch;
+        const smoke = await runSmokeGate();
+        if (!smoke.ok) {
+            try { fs.unlinkSync(patchPath); } catch (_) {}
+            if (global.pendingPatch && global.pendingPatch.pendingId) pendingPatches.resolve(global.pendingPatch.pendingId, 'smoke_failed');
+            global.pendingPatch = null;
+            await ctx.reply(`❌ 部署中止：Smoke test 未通過\n\`\`\`\n${smoke.output.slice(-600)}\n\`\`\``);
+            return;
+        }
         fs.copyFileSync(targetPath, `${targetName}.bak-${Date.now()}`);
         fs.writeFileSync(targetPath, fs.readFileSync(patchPath));
         fs.unlinkSync(patchPath);
