@@ -8,6 +8,7 @@ module.exports = function phase4(test) {
     const autonomySubmodules = [
         ['decision',               'src/autonomy/decision'],
         ['decision-utils',         'src/autonomy/decision-utils'],
+        ['action-filter',          'src/autonomy/action-filter'],
         ['notify',                 'src/autonomy/notify'],
         ['journal',                'src/autonomy/journal'],
         ['pending-patches',        'src/autonomy/pending-patches'],

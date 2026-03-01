@@ -4,8 +4,10 @@
  * @when-to-modify 調整決策邏輯、行動過濾規則、或 makeDecision prompt 時
  *
  * 輔助工具方法（設定讀取、靈魂文件、時間脈絡、檔案工具）委派至 DecisionUtils。
+ * 行動可用性過濾委派至 ActionFilter。
  */
 const DecisionUtils = require('./decision-utils');
+const ActionFilter = require('./action-filter');
 const ContextPressure = require('./context-pressure');
 const INTENT_REQUIREMENTS = require('../model-router/intents');
 
@@ -25,6 +27,7 @@ class DecisionEngine {
         this.notifier = notifier;  // 用於讀取 quietQueue
         this.memory = memory || null;  // ExperienceMemoryLayer（三層記憶召回）
         this.utils = new DecisionUtils();
+        this._actionFilter = new ActionFilter();
         this._pressure = new ContextPressure({ journal, notifier });
     }
 
@@ -36,7 +39,7 @@ class DecisionEngine {
     getProjectFileList() { return this.utils.getProjectFileList(); }
     extractCodeSection(f) { return this.utils.extractCodeSection(f); }
     saveReflection(a, c) { return this.utils.saveReflection(a, c); }
-    getAvailableActions() { return this.utils.getAvailableActions({ journal: this.journal, notifier: this.notifier }); }
+    getAvailableActions() { return this._actionFilter.getAvailableActions({ journal: this.journal, notifier: this.notifier, cfg: this.loadAutonomyConfig() }); }
 
     /**
      * Autonomy 專用 LLM 呼叫（不帶 chatHistory / skills）
