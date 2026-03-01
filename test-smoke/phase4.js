@@ -94,6 +94,10 @@ module.exports = function phase4(test) {
         s['memory/index'] = require('../src/memory/index');
         assert(typeof s['memory/index'] === 'function');
     });
+    test('memory/cold-index is a class', () => {
+        s['memory/cold-index'] = require('../src/memory/cold-index');
+        assert(typeof s['memory/cold-index'] === 'function');
+    });
     test('require src/dashboard-log', () => {
         s['dashboard-log'] = require('../src/dashboard-log');
         assert(typeof s['dashboard-log'] === 'function');

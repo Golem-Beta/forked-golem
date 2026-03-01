@@ -25,7 +25,8 @@ module.exports = function phase5(test, s) {
         ['ModelSelector',  'router/selector', ['select']],
         ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
         // openai-http 是純函式模組，單獨驗證（見下方）
-        ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],
+        ['ExperienceMemoryLayer', 'memory/index',      ['recall', 'addReflection']],
+        ['ColdIndex',             'memory/cold-index', ['add', 'search']],
         ['DashboardLog',          'dashboard-log',     ['setupOverride']],
         ['DashboardMonitor',      'dashboard-monitor', ['startMonitoring']],
         ['DecisionUtils',         'decision-utils',    ['loadAutonomyConfig', 'readSoul', 'getTimeContext', 'extractCodeSection', 'saveReflection']],
