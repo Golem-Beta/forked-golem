@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-03-01T06:50:30.659Z",
-  "gitHead": "b0c6d482cf6a709df12e3d1f63840c6196923ca6",
+  "generatedAt": "2026-03-01T06:59:00.261Z",
+  "gitHead": "72177339dbcdeb1ab53217056fffee40318e27e8",
   "symbols": {
     "files": {
       "src/autonomy/action-filter.js": {
@@ -79,7 +79,7 @@
       },
       "src/autonomy/actions/health-check.js": {
         "path": "src/autonomy/actions/health-check.js",
-        "lines": 60,
+        "lines": 81,
         "classes": [
           "HealthCheckAction"
         ],
@@ -205,7 +205,7 @@
       },
       "src/autonomy/actions/reflect-patch.js": {
         "path": "src/autonomy/actions/reflect-patch.js",
-        "lines": 185,
+        "lines": 210,
         "classes": [
           "ReflectPatch"
         ],
@@ -253,7 +253,7 @@
       },
       "src/autonomy/decision-context.js": {
         "path": "src/autonomy/decision-context.js",
-        "lines": 185,
+        "lines": 200,
         "classes": [
           "DecisionContext"
         ],
@@ -269,7 +269,7 @@
       },
       "src/autonomy/decision.js": {
         "path": "src/autonomy/decision.js",
-        "lines": 169,
+        "lines": 170,
         "classes": [
           "DecisionEngine"
         ],
@@ -971,15 +971,23 @@
         "methodName": "run",
         "isAsync": true,
         "lineStart": 17,
-        "lineEnd": 38
+        "lineEnd": 39
+      },
+      "HealthCheckAction._checkIndexHealth": {
+        "file": "src/autonomy/actions/health-check.js",
+        "className": "HealthCheckAction",
+        "methodName": "_checkIndexHealth",
+        "isAsync": false,
+        "lineStart": 41,
+        "lineEnd": 59
       },
       "HealthCheckAction._shouldTriggerReflection": {
         "file": "src/autonomy/actions/health-check.js",
         "className": "HealthCheckAction",
         "methodName": "_shouldTriggerReflection",
         "isAsync": false,
-        "lineStart": 40,
-        "lineEnd": 56
+        "lineStart": 61,
+        "lineEnd": 77
       },
       "ActionRunner.constructor": {
         "file": "src/autonomy/actions/index.js",
@@ -1411,7 +1419,7 @@
         "methodName": "_handleCorePatch",
         "isAsync": true,
         "lineStart": 129,
-        "lineEnd": 181
+        "lineEnd": 206
       },
       "ReflectAction.constructor": {
         "file": "src/autonomy/actions/reflect.js",
@@ -1530,72 +1538,80 @@
         "className": "DecisionContext",
         "methodName": "constructor",
         "isAsync": false,
-        "lineStart": 28,
-        "lineEnd": 34
+        "lineStart": 29,
+        "lineEnd": 35
       },
       "DecisionContext.build": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "build",
         "isAsync": true,
-        "lineStart": 44,
-        "lineEnd": 69
+        "lineStart": 45,
+        "lineEnd": 74
       },
       "DecisionContext._buildJournalSummary": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_buildJournalSummary",
         "isAsync": false,
-        "lineStart": 73,
-        "lineEnd": 79
+        "lineStart": 78,
+        "lineEnd": 84
       },
       "DecisionContext._recallBrainMemory": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_recallBrainMemory",
         "isAsync": true,
-        "lineStart": 81,
-        "lineEnd": 97
+        "lineStart": 86,
+        "lineEnd": 102
       },
       "DecisionContext._buildDiversitySection": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_buildDiversitySection",
         "isAsync": false,
-        "lineStart": 99,
-        "lineEnd": 116
+        "lineStart": 104,
+        "lineEnd": 121
       },
       "DecisionContext._recallThreeLayers": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_recallThreeLayers",
         "isAsync": true,
-        "lineStart": 118,
-        "lineEnd": 135
+        "lineStart": 123,
+        "lineEnd": 140
       },
       "DecisionContext._bm25Search": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_bm25Search",
         "isAsync": false,
-        "lineStart": 137,
-        "lineEnd": 156
+        "lineStart": 142,
+        "lineEnd": 161
+      },
+      "DecisionContext._readCodebaseSummary": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_readCodebaseSummary",
+        "isAsync": false,
+        "lineStart": 163,
+        "lineEnd": 171
       },
       "DecisionContext._readLatestSynthesis": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_readLatestSynthesis",
         "isAsync": false,
-        "lineStart": 158,
-        "lineEnd": 174
+        "lineStart": 173,
+        "lineEnd": 189
       },
       "DecisionContext._buildQuietQueueSection": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_buildQuietQueueSection",
         "isAsync": false,
-        "lineStart": 176,
-        "lineEnd": 181
+        "lineStart": 191,
+        "lineEnd": 196
       },
       "DecisionUtils.loadAutonomyConfig": {
         "file": "src/autonomy/decision-utils.js",
@@ -1747,7 +1763,7 @@
         "methodName": "makeDecision",
         "isAsync": true,
         "lineStart": 81,
-        "lineEnd": 165
+        "lineEnd": 166
       },
       "FailureTracker.constructor": {
         "file": "src/autonomy/failure-tracker.js",
@@ -5155,8 +5171,8 @@
   "metadata": {
     "totalFiles": 91,
     "totalClasses": 83,
-    "totalMethods": 425,
+    "totalMethods": 427,
     "totalFunctions": 29,
-    "scanDuration_ms": 650
+    "scanDuration_ms": 525
   }
 }

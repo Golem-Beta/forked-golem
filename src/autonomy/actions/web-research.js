@@ -50,9 +50,12 @@ class WebResearchAction {
             try {
                 topicData = JSON.parse(topicCleaned);
             } catch {
-                console.warn('🌐 [WebResearch] 主題 JSON 解析失敗:', topicCleaned.substring(0, 100));
-                this.journal.append({ action: 'web_research', outcome: 'topic_parse_failed' });
-                return;
+                console.warn('🌐 [WebResearch] 主題 JSON 解析失敗，啟動降級機制');
+                topicData = {
+                    query: 'AI agent autonomous evolution',
+                    purpose: 'fallback due to topic parse failure: ' + decisionReason
+                };
+                this.journal.append({ action: 'web_research', outcome: 'topic_parse_fallback', detail: 'json_error' });
             }
 
             const query = topicData.query || 'AI agent architecture';

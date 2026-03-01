@@ -204,21 +204,49 @@ class DecisionContext {
 
     _buildInternalStateSection() {
         try {
-            const rpdPath = path.join(process.cwd(), 'memory', 'rpd-state.json');
-            if (!fs.existsSync(rpdPath)) return '';
-            const rpd = JSON.parse(fs.readFileSync(rpdPath, 'utf8'));
-            const today = new Date().toDateString();
             const lines = ['【自身狀態】'];
-            for (const [provider, data] of Object.entries(rpd)) {
-                if (!data || data.date !== today) continue;
-                const used = data.used || 0;
-                if (used === 0) continue;
-                // 找主要使用的 model
-                const topModel = Object.entries(data.modelUsed || {})
-                    .sort((a, b) => b[1] - a[1])[0];
-                const modelStr = topModel && topModel[1] > 0 ? ' (' + topModel[0].split('/').pop().replace('gemini-','').replace('-instruct','') + ')' : '';
-                lines.push(provider + ': 今日已用 ' + used + ' 次' + modelStr);
-            }
+
+            // 孤立天數：讀 journal 找最後一筆 user_message，計算距今幾天
+            try {
+                const journalPath = path.join(process.cwd(), 'memory', 'journal.jsonl');
+                if (fs.existsSync(journalPath)) {
+                    const content = fs.readFileSync(journalPath, 'utf8');
+                    const entries = content.trim().split('\n').filter(Boolean);
+                    let lastMsgTs = null;
+                    for (let i = entries.length - 1; i >= 0; i--) {
+                        try {
+                            const e = JSON.parse(entries[i]);
+                            if (e.action === 'user_message') { lastMsgTs = e.ts; break; }
+                        } catch (_) {}
+                    }
+                    if (lastMsgTs) {
+                        const daysDiff = Math.floor((Date.now() - lastMsgTs) / (1000 * 60 * 60 * 24));
+                        const dateStr = new Date(lastMsgTs).toLocaleDateString('zh-TW');
+                        let line = `距上次對話：${daysDiff} 天前（${dateStr}）`;
+                        if (daysDiff >= 3) line += ' ⚠️ 超過 3 天，可考慮主動傳訊';
+                        lines.push(line);
+                    }
+                }
+            } catch (_) { /* 孤立天數計算失敗不影響其他狀態 */ }
+
+            // API 配額使用量
+            try {
+                const rpdPath = path.join(process.cwd(), 'memory', 'rpd-state.json');
+                if (fs.existsSync(rpdPath)) {
+                    const rpd = JSON.parse(fs.readFileSync(rpdPath, 'utf8'));
+                    const today = new Date().toDateString();
+                    for (const [provider, data] of Object.entries(rpd)) {
+                        if (!data || data.date !== today) continue;
+                        const used = data.used || 0;
+                        if (used === 0) continue;
+                        const topModel = Object.entries(data.modelUsed || {})
+                            .sort((a, b) => b[1] - a[1])[0];
+                        const modelStr = topModel && topModel[1] > 0 ? ' (' + topModel[0].split('/').pop().replace('gemini-', '').replace('-instruct', '') + ')' : '';
+                        lines.push(provider + ': 今日已用 ' + used + ' 次' + modelStr);
+                    }
+                }
+            } catch (_) { /* RPD 配額讀取失敗不影響其他狀態 */ }
+
             return lines.length > 1 ? lines.join('\n') : '';
         } catch (e) {
             return '';

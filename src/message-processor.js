@@ -50,6 +50,11 @@ class MessageProcessor {
 
         try {
             if (ctx.isAdmin && ctx.text && this.autonomy) {
+                this.autonomy.appendJournal({
+                    action: 'user_message',
+                    source: 'telegram',
+                    preview: ctx.text.slice(0, 50)
+                });
                 if (steps.length === 0) {
                     this.autonomy.appendJournal({
                         action: 'conversation',

@@ -4,6 +4,8 @@
  * @role HealthCheckAction — 巡查過去 24h 系統健康：協調分析、通知、觸發 self_reflection
  * @when-to-modify 調整業務流程、self_reflection 觸發條件、或通知邏輯時
  */
+const fs   = require('fs');
+const path = require('path');
 const HealthAnalyzer = require('./health-analyzer');
 
 class HealthCheckAction {
@@ -19,6 +21,7 @@ class HealthCheckAction {
         console.log('🏥 [HealthCheck] 開始健康巡查...');
         this._checkIndexHealth();
         this._cleanOrphanNodes();
+        await this._checkMemoryHealth();
         const data = {
             journal:     this._analyzer.analyzeJournal(cutoff),
             log:         this._analyzer.analyzeLog(cutoff),
@@ -87,6 +90,42 @@ class HealthCheckAction {
         } catch (e) {
             console.warn('[HealthCheck] 索引檢查失敗:', e.message);
             return 'error';
+        }
+    }
+
+    async _checkMemoryHealth() {
+        try {
+            const memDir      = path.join(process.cwd(), 'memory');
+            const journalPath = path.join(memDir, 'journal.jsonl');
+            const reposPath   = path.join(memDir, 'explored-repos.json');
+            const warnings    = [];
+            let lines       = 0;
+            let totalSizeKB = 0;
+
+            if (fs.existsSync(journalPath)) {
+                const content = fs.readFileSync(journalPath, 'utf8');
+                lines = content.split('\n').filter(Boolean).length;
+                if (lines > 5000) warnings.push(`journal.jsonl 已達 ${lines} 行（警戒：5000）`);
+            }
+
+            for (const entry of fs.readdirSync(memDir, { withFileTypes: true })) {
+                if (entry.isFile()) {
+                    try { totalSizeKB += fs.statSync(path.join(memDir, entry.name)).size / 1024; } catch (_) {}
+                }
+            }
+            if (totalSizeKB > 10 * 1024) warnings.push(`memory/ 總大小 ${Math.round(totalSizeKB)}KB（警戒：10240KB）`);
+
+            if (fs.existsSync(reposPath)) {
+                const reposSizeKB = fs.statSync(reposPath).size / 1024;
+                if (reposSizeKB > 50) warnings.push(`explored-repos.json ${Math.round(reposSizeKB)}KB（警戒：50KB）`);
+            }
+
+            this.journal.append({ action: 'memory_health', lines, sizeKB: Math.round(totalSizeKB), warnings });
+            if (warnings.length > 0) {
+                await this.notifier.sendToAdmin('⚠️ [記憶健康] 警告:\n' + warnings.join('\n'));
+            }
+        } catch (e) {
+            console.warn('[HealthCheck] 記憶健康檢查失敗:', e.message);
         }
     }
 
