@@ -54,6 +54,7 @@ class DecisionContext {
 
         const hasExplore     = Array.isArray(available) && available.some(a => EXPLORE_ACTIONS.has(a.id));
         const synthesisSection = hasExplore ? this._readLatestSynthesis() : '';
+        const hnSection        = hasExplore ? await this._fetchHNSection() : '';
 
         const hasReflect     = Array.isArray(available) && available.some(a => a.id === 'self_reflection');
         const codebaseSummary = hasReflect ? this._readCodebaseSummary() : '';
@@ -70,6 +71,7 @@ class DecisionContext {
             quietQueueSection,
             pressureSection,
             synthesisSection,
+            hnSection,
             codebaseSummary,
             internalState,
         };
@@ -185,6 +187,16 @@ class DecisionContext {
                 return raw.substring(0, 500);
             });
             return '【近期思考歸納】\n' + snippets.join('\n\n---\n\n');
+        } catch (e) {
+            return '';
+        }
+    }
+
+    async _fetchHNSection() {
+        try {
+            const hn = require('../reality/hn-feed');
+            const stories = await hn.fetch();
+            return hn.format(stories);
         } catch (e) {
             return '';
         }

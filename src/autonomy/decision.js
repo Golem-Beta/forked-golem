@@ -97,7 +97,7 @@ class DecisionEngine {
         const {
             journalSummary, memorySection, diversitySection, statsSection,
             warmSection, coldSection, journalSearchSection, quietQueueSection, pressureSection,
-            synthesisSection, codebaseSummary, internalState,
+            synthesisSection, hnSection, codebaseSummary, internalState,
         } = await this._context.build(cfg, soul, journal, available);
 
         const actionList = available.map((a, i) =>
@@ -124,6 +124,7 @@ class DecisionEngine {
             QUIET_QUEUE_SECTION: quietQueueSection,
             PRESSURE_SECTION: pressureSection,
             SYNTHESIS_SECTION: synthesisSection,
+            HN_SECTION: hnSection,
             CODEBASE_SUMMARY: codebaseSummary,
             INTERNAL_STATE: internalState
         }) || '選擇一個行動，用 JSON 回覆 {"action":"rest","reason":"fallback"}';
