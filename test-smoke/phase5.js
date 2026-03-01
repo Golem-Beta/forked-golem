@@ -20,6 +20,7 @@ module.exports = function phase5(test, s) {
         ['SocialAction',   'actions/social',  ['performSpontaneousChat']],
         ['XPostAction',    'actions/x-post',  ['performXPost']],
         ['ProviderHealth', 'router/health',   ['register', 'isAvailable', 'score', 'onSuccess', 'on429', 'onError', 'getSummary']],
+        ['HealthReporter', 'router/health-reporter', ['fetchDeepSeekBalance', 'getDeepSeekBalance', 'getSummary']],
         ['ModelSelector',  'router/selector', ['select']],
         ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
         ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],

@@ -46,6 +46,7 @@ module.exports = function phase4(test) {
 
     const routerSubmodules = [
         ['router/health',                'src/model-router/health'],
+        ['router/health-reporter',       'src/model-router/health-reporter'],
         ['router/configs',               'src/model-router/configs'],
         ['router/intents',               'src/model-router/intents'],
         ['router/adapters/base',         'src/model-router/adapters/base'],

@@ -1,9 +1,13 @@
 /**
- * 🏥 ProviderHealth — Provider 健康狀態追蹤（冷卻時間、失敗計數）
+ * 🏥 ProviderHealth — Provider 健康狀態追蹤（冷卻時間、失敗計數、RPD 持久化）
  * 依賴：fs, path（Node built-in）
+ *
+ * 顯示格式化與 DeepSeek 餘額查詢由 health-reporter.js 負責，
+ * 透過 this.reporter 代理，外部介面保持不變。
  */
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
+const HealthReporter = require('./health-reporter');
 
 /**
  * ProviderHealth — 追蹤每個 provider 的即時健康狀態
@@ -11,10 +15,9 @@ const path = require('path');
 class ProviderHealth {
     constructor() {
         this.providers = new Map();  // provider name → health state
-        this._deepseekBalance = null; // { total, granted, topped_up }
-        this._deepseekBalanceTs = 0;  // 上次查詢時間
         this._diskPath = path.join(process.cwd(), 'memory', 'rpd-state.json');
         this._savePending = false;
+        this.reporter = new HealthReporter();
     }
 
     register(name, config) {
@@ -153,61 +156,11 @@ class ProviderHealth {
         this.saveToDisk();
     }
 
-    /**
-     * 查詢 DeepSeek 帳戶餘額
-     * @param {string} apiKey
-     */
-    async fetchDeepSeekBalance(apiKey) {
-        if (!apiKey) return null;
-        try {
-            const resp = await fetch('https://api.deepseek.com/user/balance', {
-                headers: { 'Authorization': 'Bearer ' + apiKey }
-            });
-            if (!resp.ok) return null;
-            const data = await resp.json();
-            if (data.balance_infos && data.balance_infos.length > 0) {
-                const info = data.balance_infos[0];
-                this._deepseekBalance = {
-                    total: parseFloat(info.total_balance),
-                    granted: parseFloat(info.granted_balance),
-                    topped_up: parseFloat(info.topped_up_balance),
-                };
-                this._deepseekBalanceTs = Date.now();
-                return this._deepseekBalance;
-            }
-        } catch (e) {
-            // 查詢失敗不影響正常運作
-        }
-        return null;
-    }
+    // --- 委派至 HealthReporter（顯示格式化、DeepSeek 餘額查詢）---
 
-    /**
-     * 取得快取的 DeepSeek 餘額（不發 API 請求）
-     */
-    getDeepSeekBalance() {
-        return this._deepseekBalance;
-    }
-
-    /**
-     * 啟動摘要
-     */
-    getSummary(adapters) {
-        const lines = [];
-        for (const [name, h] of this.providers) {
-            if (!h.hasKey) continue;
-            const rpdStr = h.rpd.limit === Infinity ? '∞' : String(h.rpd.limit);
-            // 顯示 key 數量（如果 adapter 有 keys 屬性）
-            let keyInfo = '';
-            if (adapters) {
-                const adapter = adapters.get(name);
-                if (adapter && adapter.keys) {
-                    keyInfo = `, ${adapter.keys.length} key(s)`;
-                }
-            }
-            lines.push(`  ${name}: RPD limit ${rpdStr}${keyInfo}`);
-        }
-        return lines.join('\n');
-    }
+    async fetchDeepSeekBalance(apiKey) { return this.reporter.fetchDeepSeekBalance(apiKey); }
+    getDeepSeekBalance()               { return this.reporter.getDeepSeekBalance(); }
+    getSummary(adapters)               { return this.reporter.getSummary(this.providers, adapters); }
 
     /**
      * 防抖寫磁碟（1 秒內多次 onSuccess 只寫一次）
