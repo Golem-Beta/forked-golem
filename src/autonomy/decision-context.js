@@ -13,8 +13,9 @@
 const fs   = require('fs');
 const path = require('path');
 
-const SYNTHESIS_DIR    = path.join(__dirname, '../../memory/synthesis');
-const EXPLORE_ACTIONS  = new Set(['github_explore', 'web_research']);
+const SYNTHESIS_DIR        = path.join(__dirname, '../../memory/synthesis');
+const EXPLORE_ACTIONS      = new Set(['github_explore', 'web_research']);
+const CODEBASE_INDEX_PATH  = path.join(__dirname, '../../data/codebase-index.json');
 
 class DecisionContext {
     /**
@@ -51,8 +52,11 @@ class DecisionContext {
         const quietQueueSection    = this._buildQuietQueueSection();
         const pressureSection      = this._pressure.evaluate();
 
-        const hasExplore = Array.isArray(available) && available.some(a => EXPLORE_ACTIONS.has(a.id));
+        const hasExplore     = Array.isArray(available) && available.some(a => EXPLORE_ACTIONS.has(a.id));
         const synthesisSection = hasExplore ? this._readLatestSynthesis() : '';
+
+        const hasReflect     = Array.isArray(available) && available.some(a => a.id === 'self_reflection');
+        const codebaseSummary = hasReflect ? this._readCodebaseSummary() : '';
 
         return {
             journalSummary,
@@ -65,6 +69,7 @@ class DecisionContext {
             quietQueueSection,
             pressureSection,
             synthesisSection,
+            codebaseSummary,
         };
     }
 
@@ -153,6 +158,16 @@ class DecisionContext {
             }).join('\n');
         } catch (e) { /* 搜尋失敗不影響決策 */ }
         return '';
+    }
+
+    _readCodebaseSummary() {
+        try {
+            const CodebaseIndexer = require('../../src/codebase-indexer');
+            const idx = CodebaseIndexer.load();
+            return '【Codebase 索引摘要】\n' + CodebaseIndexer.generateSummary(idx);
+        } catch (e) {
+            return ''; // 索引不可用時靜默略過
+        }
     }
 
     _readLatestSynthesis() {
