@@ -10,6 +10,12 @@
 
 'use strict';
 
+const fs   = require('fs');
+const path = require('path');
+
+const SYNTHESIS_DIR    = path.join(__dirname, '../../memory/synthesis');
+const EXPLORE_ACTIONS  = new Set(['github_explore', 'web_research']);
+
 class DecisionContext {
     /**
      * @param {object} deps
@@ -45,6 +51,9 @@ class DecisionContext {
         const quietQueueSection    = this._buildQuietQueueSection();
         const pressureSection      = this._pressure.evaluate();
 
+        const hasExplore = Array.isArray(available) && available.some(a => EXPLORE_ACTIONS.has(a.id));
+        const synthesisSection = hasExplore ? this._readLatestSynthesis() : '';
+
         return {
             journalSummary,
             memorySection,
@@ -55,6 +64,7 @@ class DecisionContext {
             journalSearchSection,
             quietQueueSection,
             pressureSection,
+            synthesisSection,
         };
     }
 
@@ -143,6 +153,24 @@ class DecisionContext {
             }).join('\n');
         } catch (e) { /* 搜尋失敗不影響決策 */ }
         return '';
+    }
+
+    _readLatestSynthesis() {
+        try {
+            const files = fs.readdirSync(SYNTHESIS_DIR)
+                .filter(f => f.endsWith('.md'))
+                .map(f => ({ name: f, mtime: fs.statSync(path.join(SYNTHESIS_DIR, f)).mtimeMs }))
+                .sort((a, b) => b.mtime - a.mtime)
+                .slice(0, 2);
+            if (files.length === 0) return '';
+            const snippets = files.map(f => {
+                const raw = fs.readFileSync(path.join(SYNTHESIS_DIR, f.name), 'utf8');
+                return raw.substring(0, 500);
+            });
+            return '【近期思考歸納】\n' + snippets.join('\n\n---\n\n');
+        } catch (e) {
+            return '';
+        }
     }
 
     _buildQuietQueueSection() {

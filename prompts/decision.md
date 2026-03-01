@@ -16,6 +16,8 @@
 
 {{COLD_SECTION}}
 
+{{SYNTHESIS_SECTION}}
+
 {{MEMORY_SECTION}}
 
 【當前時間】{{TIME_STR}}
