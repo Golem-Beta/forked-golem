@@ -36,6 +36,8 @@ module.exports = function phase5(test, s) {
         ['ReactLoop',       'react-loop',       ['run', 'writeJournal']],
         ['DeployActions',   'deploy-actions',   ['runSmokeGate', 'deploy', 'drop', 'listPatches']],
         ['GoogleCommands',  'google-commands',  ['gmail', 'calendar', 'tasks', 'drive']],
+        ['GmailClient',     'google-gmail',     ['listUnread', 'readMessage']],
+        ['DriveClient',     'google-drive',     ['listFiles', 'findFile', 'uploadFile', 'updateFile', 'readFile']],
         ['MessageHandler',      'message-handler',          ['handleMessage']],
         ['MessageProcessor',    'message-processor',        ['process']],
         ['CallbackHandler',     'callback-handler',         ['handle']],

@@ -129,6 +129,8 @@ module.exports = function phase4(test) {
         ['callback-handler',    'src/callback-handler'],
         ['persona-manager',     'src/persona-manager'],
         ['skill-loader',        'src/skill-loader'],
+        ['google-gmail',        'src/google-gmail'],
+        ['google-drive',        'src/google-drive'],
     ];
     for (const [key, modPath] of coreModules) {
         test(`${key} is a class`, () => {
