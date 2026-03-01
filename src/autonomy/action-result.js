@@ -12,10 +12,12 @@
  * @param {number}  [opts.duration_ms]
  * @param {string}  [opts.model]     - 使用的 LLM model
  * @param {string}  [opts.target]    - 目標檔案（self_reflection 專用）
+ * @param {Array}   [opts.partial_outputs] - 部分成功時已完成的輸出
+ * @param {string}  [opts.final_error]  - 部分成功後的最終錯誤
  * @returns {ActionResult}
  */
-function ActionResult({ success, action, outcome, detail = '', duration_ms = 0, model = '', target = '' }) {
-    return { success: !!success, action, outcome, detail, duration_ms, model, target };
+function ActionResult({ success, action, outcome, detail = '', duration_ms = 0, model = '', target = '', partial_outputs = [], final_error = null }) {
+    return { success: !!success, action, outcome, detail, duration_ms, model, target, partial_outputs, final_error };
 }
 
 /** 快捷：成功 */
