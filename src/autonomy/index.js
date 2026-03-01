@@ -2,8 +2,9 @@
  * 🧬 AutonomyManager — Coordinator
  *
  * 組合 JournalManager, Notifier, DecisionEngine, ActionRunner。
- * 負責 lifecycle（start, schedule, manifestFreeWill）和外部介面代理。
- * 
+ * 負責 lifecycle（start, scheduleNextAwakening）和外部介面代理。
+ * Action dispatch 委派至 FreeWillRunner（free-will.js）。
+ *
  * 依賴注入：同原版，由 index.js 傳入。
  */
 const fs = require('fs');
@@ -16,6 +17,7 @@ const ActionRunner = require('./actions/index');
 const { FailureTracker } = require('./failure-tracker');
 const ExperienceMemoryLayer = require('../memory/index');
 const XPublisher = require('../x-publisher');
+const FreeWillRunner = require('./free-will');
 
 class AutonomyManager {
     /**
@@ -49,7 +51,7 @@ class AutonomyManager {
             decision: this.decision,
             brain: deps.brain,
             config: deps.CONFIG,
-            memory: deps.memory,       // 舊 ExperienceMemory（供 reflect-patch 追蹤 proposal）
+            memory: deps.memory,           // 舊 ExperienceMemory（供 reflect-patch 追蹤 proposal）
             memoryLayer: this.memoryLayer, // 新三層記憶召回
             skills: deps.skills,
             loadPrompt: deps.loadPrompt,
@@ -68,6 +70,14 @@ class AutonomyManager {
         this.nextWakeTime = null;
         this.quietMode = false;
         this._failureTracker = new FailureTracker(this.notifier);
+
+        this._freeWill = new FreeWillRunner({
+            decision: this.decision,
+            actions: this.actions,
+            journal: this.journal,
+            failureTracker: this._failureTracker,
+            getQuietMode: () => this.quietMode,
+        });
     }
 
     // === Lifecycle ===
@@ -128,100 +138,7 @@ class AutonomyManager {
 
     async manifestFreeWill() {
         this.nextWakeTime = null;
-        try {
-            const _heapBefore = process.memoryUsage();
-            console.log(`🧠 [Heap] 醒來: RSS=${(_heapBefore.rss/1024/1024).toFixed(0)}MB, Heap=${(_heapBefore.heapUsed/1024/1024).toFixed(0)}MB/${(_heapBefore.heapTotal/1024/1024).toFixed(0)}MB`);
-
-            let decision = await this.decision.makeDecision();
-
-            if (!decision) {
-                console.warn('😴 [Decision] 決策失敗 → 強制 rest');
-                decision = { action: 'rest', reason: 'fallback: 決策失敗，強制休息保護配額' };
-            }
-
-            if (decision.action !== 'rest') {
-                console.log('⏳ [Autonomy] 決策完成，等待 5 秒後執行行動...');
-                await new Promise(r => setTimeout(r, 5000));
-            }
-
-            const actionEmoji = {
-                'self_reflection': '🧬', 'github_explore': '🔍',
-                'spontaneous_chat': '💬', 'web_research': '🌐',
-                'digest': '📝', 'health_check': '🏥', 'rest': '😴',
-                'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦', 'moltbook_check': '🦞', 'moltbook_post': '🦞',
-            };
-            console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
-
-            let _actionResult = null;
-            switch (decision.action) {
-                case 'self_reflection':
-                    _actionResult = await this.actions.performSelfReflection();
-                    break;
-                case 'github_explore':
-                    _actionResult = await this.actions.performGitHubExplore();
-                    break;
-                case 'spontaneous_chat':
-                    if (this.quietMode) {
-                        console.log('🌙 [Autonomy] 靜音時段，跳過社交 → 改做 GitHub 探索');
-                        this.journal.append({ action: 'spontaneous_chat', outcome: 'skipped_quiet_mode' });
-                        _actionResult = await this.actions.performGitHubExplore();
-                    } else {
-                        _actionResult = await this.actions.performSpontaneousChat();
-                    }
-                    break;
-                case 'web_research':
-                    _actionResult = await this.actions.performWebResearch(decision.reason);
-                    break;
-                case 'morning_digest':
-                    _actionResult = await this.actions.performMorningDigest();
-                    break;
-                case 'digest':
-                    _actionResult = await this.actions.performDigest();
-                    break;
-                case 'health_check':
-                    _actionResult = await this.actions.performHealthCheck();
-                    if (_actionResult && _actionResult.needsReflection) {
-                        console.log('🏥 [HealthCheck] 發現異常，排程觸發 self_reflection');
-                        const needsReflection = _actionResult.needsReflection;
-                        setTimeout(() => this.actions.performSelfReflection({ trigger: 'health_check', ...needsReflection }), 5 * 60 * 1000);
-                    }
-                    break;
-                case 'gmail_check':
-                    _actionResult = await this.actions.performGoogleCheck();
-                    break;
-                case 'drive_sync':
-                    _actionResult = await this.actions.performDriveSync();
-                    break;
-                case 'x_post':
-                    _actionResult = await this.actions.performXPost();
-                    break;
-                case 'moltbook_check':
-                    _actionResult = await this.actions.performMoltbookCheck();
-                    break;
-                case 'moltbook_post':
-                    _actionResult = await this.actions.performMoltbookPost();
-                    break;
-                case 'rest':
-                    console.log('😴 [Autonomy] Golem 選擇繼續休息。');
-                    this.journal.append({
-                        action: 'rest',
-                        reason: decision.reason,
-                        outcome: '選擇不行動，繼續休息'
-                    });
-                    break;
-                default:
-                    // maintenance actions 自動路由
-                    if (this.actions.hasMaintenance(decision.action)) {
-                        _actionResult = await this.actions.performMaintenance(decision.action);
-                    } else {
-                        console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
-                    }
-            }
-            if (_actionResult) await this._failureTracker.record(_actionResult);
-        } catch (e) {
-            console.error('[錯誤] 自由意志執行失敗:', e.message || e);
-            this.journal.append({ action: 'error', error: e.message });
-        }
+        return this._freeWill.run();
     }
 
     // === 外部介面代理（保持向後相容）===

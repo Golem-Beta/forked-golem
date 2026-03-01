@@ -28,6 +28,7 @@ module.exports = function phase4(test) {
         ['actions/moltbook-check',   'src/autonomy/actions/moltbook-check'],
         ['actions/moltbook-post',    'src/autonomy/actions/moltbook-post'],
         ['context-pressure',         'src/autonomy/context-pressure'],
+        ['free-will',                'src/autonomy/free-will'],
     ];
     // moltbook-engagement 是純函式模組（非 class），單獨驗證
     test('actions/moltbook-engagement exports checkPostEngagement', () => {
