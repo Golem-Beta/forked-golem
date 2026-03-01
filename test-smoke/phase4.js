@@ -7,6 +7,7 @@ module.exports = function phase4(test) {
 
     const autonomySubmodules = [
         ['decision',               'src/autonomy/decision'],
+        ['decision-context',       'src/autonomy/decision-context'],
         ['decision-utils',         'src/autonomy/decision-utils'],
         ['action-filter',          'src/autonomy/action-filter'],
         ['notify',                 'src/autonomy/notify'],

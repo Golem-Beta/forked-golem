@@ -7,6 +7,7 @@ module.exports = function phase5(test, s) {
 
     const methodTests = [
         ['DecisionEngine', 'decision',        ['makeDecision', 'callLLM', 'getAvailableActions', 'readSoul', 'loadAutonomyConfig']],
+        ['DecisionContext', 'decision-context', ['build']],
         ['Notifier',       'notify',          ['sendToAdmin', 'setQuietMode', 'drainQuietQueue', 'isHardFailed']],
         ['JournalManager', 'journal',         ['append', 'readRecent']],
         ['ReflectAction',  'actions/reflect', ['performSelfReflection']],
