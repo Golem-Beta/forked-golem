@@ -18,6 +18,7 @@ class HealthCheckAction {
         const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
         console.log('🏥 [HealthCheck] 開始健康巡查...');
         this._checkIndexHealth();
+        this._cleanOrphanNodes();
         const data = {
             journal:     this._analyzer.analyzeJournal(cutoff),
             log:         this._analyzer.analyzeLog(cutoff),
@@ -36,6 +37,37 @@ class HealthCheckAction {
             ...(sent !== true && sent !== 'queued' && sent && sent.error ? { error: sent.error } : {})
         });
         return { success: true, action: 'health_check', needsReflection };
+    }
+
+    _cleanOrphanNodes() {
+        try {
+            const { execSync } = require('child_process');
+            const selfPid = process.pid;
+            const lines = execSync('ps -eo pid,etimes,comm,args --no-headers', { encoding: 'utf8' }).split('\n');
+            const killed = [];
+            for (const line of lines) {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length < 4) continue;
+                const pid = parseInt(parts[0]);
+                const etimes = parseInt(parts[1]); // 存活秒數
+                const comm = parts[2];
+                const args = parts.slice(3).join(' ');
+                if (comm !== 'node') continue;
+                if (pid === selfPid) continue;
+                if (args.includes('index.js') || args.includes('npm')) continue;
+                if (etimes < 1800) continue; // 小於 30 分鐘不管
+                try {
+                    process.kill(pid, 'SIGTERM');
+                    killed.push({ pid, etimes: Math.round(etimes / 60) + 'm', args: args.slice(0, 60) });
+                    console.log(`🧹 [HealthCheck] 清除孤兒 node process PID:${pid} (${Math.round(etimes/60)}m) ${args.slice(0,50)}`);
+                } catch {}
+            }
+            if (killed.length > 0) {
+                this.journal.append({ action: 'orphan_cleanup', killed, count: killed.length });
+            }
+        } catch (e) {
+            console.warn('[HealthCheck] 孤兒清理失敗:', e.message);
+        }
     }
 
     _checkIndexHealth() {
