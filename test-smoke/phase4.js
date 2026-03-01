@@ -131,6 +131,7 @@ module.exports = function phase4(test) {
         ['skill-loader',        'src/skill-loader'],
         ['google-gmail',        'src/google-gmail'],
         ['google-drive',        'src/google-drive'],
+        ['virtual-cmd-handler', 'src/virtual-cmd-handler'],
     ];
     for (const [key, modPath] of coreModules) {
         test(`${key} is a class`, () => {
