@@ -12,13 +12,12 @@
  *    - 使用 stdin raw mode 監聽按鍵，不依賴 blessed
  */
 const GOLEM_VERSION = require('../package.json').version;
-const blessed = require('blessed');
-const contrib = require('blessed-contrib');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const DashboardLog = require('./dashboard-log');
 const DashboardMonitor = require('./dashboard-monitor');
+const { createWidgets, setupScreenKeys, startStdinListener, stopStdinListener } = require('./dashboard-renderer');
 
 class DashboardPlugin {
     constructor() {
@@ -84,76 +83,18 @@ class DashboardPlugin {
     // =========================================================
     _buildUI() {
         this.isDetached = false;
-
-        // 建立螢幕
-        this.screen = blessed.screen({
-            smartCSR: true,
-            title: `🦞 Golem v${GOLEM_VERSION} 戰術控制台`,
-            fullUnicode: true
+        Object.assign(this, createWidgets(GOLEM_VERSION));
+        setupScreenKeys(this.screen, {
+            onExit: () => {
+                this._destroyUI();
+                console.log = this.originalLog;
+                console.error = this.originalError;
+                console.warn = this.originalWarn;
+                console.log("🛑 Golem 系統已完全終止。");
+                process.exit(0);
+            },
+            onDetach: () => this.detach(),
         });
-
-        // 建立網格 (12x12)
-        this.grid = new contrib.grid({ rows: 12, cols: 12, screen: this.screen });
-
-        // [左上] 系統負載 (RAM)
-        this.cpuLine = this.grid.set(0, 0, 4, 6, contrib.line, {
-            style: { line: "yellow", text: "green", baseline: "black" },
-            label: '⚡ 系統負載 (RAM)',
-            showLegend: true
-        });
-
-        // [右上] 狀態面板（含日期時間）
-        this.statusBox = this.grid.set(0, 6, 3, 6, contrib.markdown, {
-            label: '🧠 引擎狀態',
-            style: { border: { fg: 'cyan' } }
-        });
-
-        // [右中上] API Provider 狀態
-        this.providerBox = this.grid.set(3, 6, 3, 6, blessed.box, {
-            label: '🚀 API Providers',
-            tags: true,
-            style: { fg: 'cyan' }
-        });
-
-        // [右中] Autonomy / Chronos 雷達
-        this.radarLog = this.grid.set(6, 6, 2, 6, contrib.log, {
-            fg: "yellow",
-            selectedFg: "yellow",
-            label: '⏰ Autonomy / Chronos',
-            tags: true
-        });
-
-        // [左下] 核心日誌
-        this.logBox = this.grid.set(4, 0, 8, 6, contrib.log, {
-            fg: "green",
-            selectedFg: "lightgreen",
-            label: '📠 核心日誌 (Neuro-Link)',
-            tags: true
-        });
-
-        // [右下] 三流協定 + Queue
-        this.chatBox = this.grid.set(8, 6, 4, 6, contrib.log, {
-            fg: "white",
-            selectedFg: "cyan",
-            label: '💬 三流協定 / Queue',
-            tags: true
-        });
-
-        // 底部說明列
-        this.footer = blessed.box({
-            parent: this.screen,
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            height: 1,
-            content: ` {bold}F12{/bold}: Detach | {bold}Ctrl+C{/bold}: 停止 | {bold}v${GOLEM_VERSION}{/bold} `,
-            style: { fg: 'black', bg: 'cyan' },
-            tags: true
-        });
-
-        // 設定按鍵
-        this._setupScreenKeys();
-
         this.screen.render();
     }
 
@@ -176,75 +117,30 @@ class DashboardPlugin {
     }
 
     // =========================================================
-    // 按鍵監聽
+    // stdin 監聽（detach 狀態用）
     // =========================================================
-    _setupScreenKeys() {
-        // Ctrl+C / q = 完全停止
-        this.screen.key(['C-c', 'q'], () => {
-            this._destroyUI();
-            console.log = this.originalLog;
-            console.error = this.originalError;
-            console.warn = this.originalWarn;
-            console.log("🛑 Golem 系統已完全終止。");
-            process.exit(0);
-        });
-
-        // F12 = detach
-        this.screen.key(['f12'], () => {
-            this.detach();
-        });
-    }
-
     _startStdinListener() {
-        // 在 detach 狀態下，用 raw stdin 監聽 F12（ESC [ 24 ~）
-        if (this._stdinListener) return; // 避免重複綁定
-
-        const stdin = process.stdin;
-
-        // 確保 stdin 是 TTY 才能切 raw mode
-        if (!stdin.isTTY) {
-            this.originalLog('⚠️  非 TTY 環境，無法監聽 F12 reattach');
-            return;
-        }
-
-        stdin.setRawMode(true);
-        stdin.resume();
-        stdin.setEncoding('utf8');
-
-        this._stdinListener = (key) => {
-            // F12 的 ANSI escape sequence: ESC [ 24 ~
-            if (key === '\u001b[24~') {
-                this.reattach();
-            }
-            // Ctrl+C = 停止
-            if (key === '\u0003') {
+        if (this._stdinListener) return;  // 避免重複綁定
+        const handler = startStdinListener({
+            onReattach: () => this.reattach(),
+            onExit: () => {
                 console.log = this.originalLog;
                 console.error = this.originalError;
                 console.warn = this.originalWarn;
                 console.log("\n🛑 Golem 系統已完全終止。");
                 process.exit(0);
-            }
-        };
-
-        stdin.on('data', this._stdinListener);
+            },
+        });
+        if (!handler) {
+            this.originalLog('⚠️  非 TTY 環境，無法監聽 F12 reattach');
+            return;
+        }
+        this._stdinListener = handler;
     }
 
     _stopStdinListener() {
-        if (!this._stdinListener) return;
-
-        const stdin = process.stdin;
-        stdin.removeListener('data', this._stdinListener);
+        stopStdinListener(this._stdinListener);
         this._stdinListener = null;
-
-        // 把 stdin 還原回 normal mode
-        // 注意：blessed 重建 screen 時會自己接管 stdin
-        try {
-            if (stdin.isTTY) {
-                stdin.setRawMode(false);
-            }
-        } catch (e) {
-            // blessed 可能已經拿走了 stdin 控制權，忽略
-        }
     }
 
     // =========================================================

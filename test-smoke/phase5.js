@@ -137,6 +137,13 @@ module.exports = function phase5(test, s) {
         assert(typeof execute === 'function', 'execute 應是 function');
         assert(execute.constructor.name === 'AsyncFunction', 'execute 應是 async function');
     });
+    test('dashboard-renderer exports { createWidgets, setupScreenKeys, startStdinListener, stopStdinListener }', () => {
+        const r = require('../src/dashboard-renderer');
+        assert(typeof r.createWidgets === 'function', 'createWidgets 應是 function');
+        assert(typeof r.setupScreenKeys === 'function', 'setupScreenKeys 應是 function');
+        assert(typeof r.startStdinListener === 'function', 'startStdinListener 應是 function');
+        assert(typeof r.stopStdinListener === 'function', 'stopStdinListener 應是 function');
+    });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
         const auth = new GCPAuth();
