@@ -39,6 +39,8 @@ module.exports = function phase5(test, s) {
         ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],
         ['MoltbookCheckAction', 'actions/moltbook-check',   ['run', '_wrapExternal', '_askLLMForPlan', '_executePlan']],
         ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection']],
+        ['PersonaManager',      'persona-manager',          ['get', 'save', 'setName', 'setRole']],
+        ['SkillLoader',         'skill-loader',             ['loadSkill', 'getAutoLoadSkills', 'matchByKeywords', 'listSkills', 'reload']],
     ];
     for (const [className, key, methods] of methodTests) {
         for (const method of methods) {

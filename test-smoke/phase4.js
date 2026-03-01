@@ -116,6 +116,8 @@ module.exports = function phase4(test) {
         ['message-handler',     'src/message-handler'],
         ['message-processor',   'src/message-processor'],
         ['callback-handler',    'src/callback-handler'],
+        ['persona-manager',     'src/persona-manager'],
+        ['skill-loader',        'src/skill-loader'],
     ];
     for (const [key, modPath] of coreModules) {
         test(`${key} is a class`, () => {
