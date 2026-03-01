@@ -11,6 +11,8 @@
 
 {{PAST_SYNTH_SECTION}}
 
+{{GIT_LOG_SECTION}}
+
 【任務】
 根據以上素材，產出一份「消化歸納」文件。你可以自由選擇主題和形式。
 

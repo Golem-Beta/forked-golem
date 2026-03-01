@@ -61,6 +61,13 @@ class DigestAction {
                 }
             }
 
+            // git log：讓 Golem 看到所有人的 commit，不只靠自己的 journal
+            let recentGitLog = '（無法讀取）';
+            try {
+                const { execSync } = require('child_process');
+                recentGitLog = execSync('git log --oneline -15', { cwd: process.cwd() }).toString().trim();
+            } catch {}
+
             const journalLines = journal.map(j => {
                 const parts = [j.ts, j.action];
                 if (j.repo) parts.push(j.repo);
@@ -73,17 +80,20 @@ class DigestAction {
             const pastSynthSection = pastSynthContent
                 ? '【過去歸納摘要（找新角度，不要重複核心主題）】\n' + pastSynthContent
                 : '這是你第一次做消化歸納。';
+            const gitLogSection = `【最近 Git Commits（包含所有人的改動）】\n${recentGitLog}`;
             const prompt = (this.loadPrompt && this.loadPrompt('digest.md', {
                 SOUL: soul || '(無法讀取)',
                 JOURNAL_SECTION: `【最近經驗日誌（${journal.length} 條）】\n${journalLines}`,
                 REPO_SECTION: `【最近探索的 GitHub Repo（${exploredRepos.length} 個）】\n` + exploredRepos.map(r => (r.full_name || '?') + ' ★' + (r.stars || '?')).join('\n'),
                 REFLECTIONS_SECTION: '【最近的反思報告摘要】\n' + recentReflections.map(r => '--- ' + r.file + ' ---\n' + r.preview).join('\n\n'),
                 PAST_SYNTH_SECTION: pastSynthSection,
+                GIT_LOG_SECTION: gitLogSection,
             })) || [
                 soul || '(無法讀取 soul.md)',
                 `\n現在是你的「消化歸納」時間。\n\n【最近經驗日誌（${journal.length} 條）】\n${journalLines}`,
                 `\n【最近探索的 GitHub Repo（${exploredRepos.length} 個）】\n` + exploredRepos.map(r => (r.full_name || '?') + ' ★' + (r.stars || '?')).join('\n'),
                 '\n' + pastSynthSection,
+                '\n' + gitLogSection,
                 '\n【任務】\n根據以上素材，產出一份「消化歸納」文件。\n\n【輸出格式】\n用 Markdown 格式寫，第一行是 # 標題，最後加 ## 摘要。',
             ].join('');
 
