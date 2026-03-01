@@ -217,6 +217,17 @@ module.exports = function phase5(test, s) {
         // 一般郵件應 uncertain
         assert(classifyByRules({ from: 'someone@example.com', subject: 'Hello', snippet: 'How are you?' }) === 'uncertain');
     });
+    test('CodebaseIndexer 靜態方法存在', () => {
+        const CodebaseIndexer = require('../src/codebase-indexer');
+        for (const m of ['scan', 'lookup', 'extractSubmodules', 'save', 'load', 'isStale', 'generateSummary', 'rebuild']) {
+            assert(typeof CodebaseIndexer[m] === 'function', `CodebaseIndexer.${m} 應是 function`);
+        }
+    });
+    test('HealthCheckAction.prototype._checkIndexHealth 存在', () => {
+        const HealthCheckAction = require('../src/autonomy/actions/health-check');
+        assert(typeof HealthCheckAction.prototype._checkIndexHealth === 'function',
+            'HealthCheckAction.prototype._checkIndexHealth not found');
+    });
     test('failure-classifier 四個純函式行為正確', () => {
         const { isFailed, classifyFailure, classifyStreak, checkFailurePatterns } = require('../src/autonomy/failure-classifier');
         // isFailed

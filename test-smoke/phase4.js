@@ -5,35 +5,30 @@ module.exports = function phase4(test) {
     console.log('\n[Phase 4] 子模組 require 可達性');
     const s = {};
 
-    const autonomySubmodules = [
-        ['decision',               'src/autonomy/decision'],
-        ['decision-context',       'src/autonomy/decision-context'],
-        ['decision-utils',         'src/autonomy/decision-utils'],
-        ['action-filter',          'src/autonomy/action-filter'],
-        ['notify',                 'src/autonomy/notify'],
-        ['journal',                'src/autonomy/journal'],
-        ['pending-patches',        'src/autonomy/pending-patches'],
-        ['actions/index',          'src/autonomy/actions/index'],
-        ['actions/reflect',        'src/autonomy/actions/reflect'],
-        ['actions/reflect-diag',   'src/autonomy/actions/reflect-diag'],
-        ['actions/reflect-patch',          'src/autonomy/actions/reflect-patch'],
-        ['actions/reflect-patch-executor', 'src/autonomy/actions/reflect-patch-executor'],
-        ['actions/explore',        'src/autonomy/actions/explore'],
-        ['actions/web-research',   'src/autonomy/actions/web-research'],
-        ['actions/github-explore', 'src/autonomy/actions/github-explore'],
-        ['actions/digest',         'src/autonomy/actions/digest'],
-        ['actions/social',         'src/autonomy/actions/social'],
-        ['actions/health-check',    'src/autonomy/actions/health-check'],
-        ['actions/health-analyzer', 'src/autonomy/actions/health-analyzer'],
-        ['actions/drive-sync',       'src/autonomy/actions/drive-sync'],
-        ['actions/x-post',           'src/autonomy/actions/x-post'],
-        ['actions/moltbook-check',          'src/autonomy/actions/moltbook-check'],
-        ['actions/moltbook-check-executor', 'src/autonomy/actions/moltbook-check-executor'],
-        ['actions/moltbook-post',           'src/autonomy/actions/moltbook-post'],
-        ['actions/google-check',            'src/autonomy/actions/google-check'],
-        ['context-pressure',         'src/autonomy/context-pressure'],
-        ['free-will',                'src/autonomy/free-will'],
-    ];
+    // 從 codebase 索引動態生成 autonomy 子模組清單（有 class 的才列入「is a class」驗證）
+    let codebaseIndex;
+    try {
+        const CodebaseIndexer = require('../src/codebase-indexer');
+        try {
+            codebaseIndex = CodebaseIndexer.load();
+        } catch (e) {
+            codebaseIndex = CodebaseIndexer.rebuild();
+        }
+    } catch (e) {
+        throw new Error(`Codebase 索引不可用，無法執行動態測試: ${e.message}`);
+    }
+
+    const autonomySubmodules = Object.entries(codebaseIndex.symbols.files)
+        .filter(([f, info]) => {
+            if (!f.startsWith('src/autonomy/') || info.classes.length === 0) return false;
+            const exp = codebaseIndex.symbols.moduleExports[f];
+            return exp && exp.type === 'default'; // module.exports = ClassName 才列入 is-a-class 驗證
+        })
+        .map(([f]) => [
+            f.replace(/^src\/autonomy\//, '').replace(/\.js$/, ''),
+            f.replace(/\.js$/, ''),
+        ])
+        .sort((a, b) => a[0].localeCompare(b[0]));
     // moltbook-engagement 是純函式模組（非 class），單獨驗證
     test('actions/moltbook-engagement exports checkPostEngagement', () => {
         s['actions/moltbook-engagement'] = require('../src/autonomy/actions/moltbook-engagement');
@@ -139,6 +134,7 @@ module.exports = function phase4(test) {
     });
 
     const coreModules = [
+        ['codebase-indexer',    'src/codebase-indexer'],
         ['react-loop',          'src/react-loop'],
         ['deploy-actions',      'src/deploy-actions'],
         ['google-commands',     'src/google-commands'],

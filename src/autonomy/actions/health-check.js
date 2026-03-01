@@ -17,6 +17,7 @@ class HealthCheckAction {
     async run() {
         const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
         console.log('🏥 [HealthCheck] 開始健康巡查...');
+        this._checkIndexHealth();
         const data = {
             journal:     this._analyzer.analyzeJournal(cutoff),
             log:         this._analyzer.analyzeLog(cutoff),
@@ -35,6 +36,26 @@ class HealthCheckAction {
             ...(sent !== true && sent !== 'queued' && sent && sent.error ? { error: sent.error } : {})
         });
         return { success: true, action: 'health_check', needsReflection };
+    }
+
+    _checkIndexHealth() {
+        try {
+            const CodebaseIndexer = require('../codebase-indexer');
+            let needsRebuild = true;
+            try {
+                const idx = CodebaseIndexer.load();
+                needsRebuild = CodebaseIndexer.isStale(idx);
+            } catch (e) { /* 索引不存在 → 需要重建 */ }
+            if (needsRebuild) {
+                console.log('🔍 [HealthCheck] Codebase 索引過期，重建中...');
+                CodebaseIndexer.rebuild();
+                return 'rebuilt';
+            }
+            return 'ok';
+        } catch (e) {
+            console.warn('[HealthCheck] 索引檢查失敗:', e.message);
+            return 'error';
+        }
     }
 
     _shouldTriggerReflection(data) {
