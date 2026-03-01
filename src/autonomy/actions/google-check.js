@@ -71,7 +71,7 @@ async function classifyByLLM(emails, brain) {
     const prompt = [
         '以下是幾封電子郵件的摘要資訊。',
         '請判斷每封郵件對一個自主 AI Agent 的重要性。',
-        '只關注真正需要 Agent 採取行動或通知其主人的郵件。',
+        '只關注真正需要 Agent 採取行動或主動發出通知的郵件。',
         '',
         '判斷標準：',
         '- important：真人來信、需要回覆、服務異常、費用問題、安全事件',

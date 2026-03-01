@@ -7,11 +7,12 @@ const fs = require('fs');
 const path = require('path');
 
 class DigestAction {
-    constructor({ journal, notifier, decision, memoryLayer }) {
+    constructor({ journal, notifier, decision, memoryLayer, loadPrompt }) {
         this.journal = journal;
         this.notifier = notifier;
         this.decision = decision;
         this.memory = memoryLayer || null; // 三層記憶召回
+        this.loadPrompt = loadPrompt || null;
     }
 
     async performDigest() {
@@ -60,35 +61,31 @@ class DigestAction {
                 }
             }
 
-            const prompt = [
-                '你是 Golem Beta，一個運行在 ThinkPad X200 上的自律型 AI Agent。',
-                '現在是你的「消化歸納」時間 —— 回顧最近的經驗，產出有價值的洞察。',
-                '', '【靈魂文件】', soul || '(無法讀取)',
-                '', '【最近經驗日誌（' + journal.length + ' 條）】',
-                journal.map(j => {
-                    const parts = [j.ts, j.action];
-                    if (j.repo) parts.push(j.repo);
-                    if (j.topic) parts.push('topic:' + j.topic);
-                    if (j.outcome) parts.push('outcome:' + j.outcome);
-                    if (j.learning) parts.push('learning:' + j.learning);
-                    if (j.reason) parts.push('reason:' + j.reason);
-                    return parts.join(' | ');
-                }).join('\n'),
-                '', '【最近探索的 GitHub Repo（' + exploredRepos.length + ' 個）】',
-                exploredRepos.map(r => (r.full_name || '?') + ' ★' + (r.stars || '?')).join('\n'),
-                '', '【最近的反思報告摘要】',
-                recentReflections.map(r => '--- ' + r.file + ' ---\n' + r.preview).join('\n\n'),
-                '',
-                pastSynthContent
-                    ? '【過去歸納摘要（找新角度，不要重複核心主題）】\n' + pastSynthContent
-                    : '這是你第一次做消化歸納。',
-                '', '【任務】',
-                '根據以上素材，產出一份「消化歸納」文件。你可以自由選擇主題和形式。',
-                '', '【輸出格式】',
-                '用 Markdown 格式寫。第一行是 # 標題（簡潔描述主題）。',
-                '內容要有實質，不要寫廢話。用繁體中文。',
-                '最後加一個 ## 摘要 段落（2-3 句話濃縮核心發現）。',
-            ].join('\n');
+            const journalLines = journal.map(j => {
+                const parts = [j.ts, j.action];
+                if (j.repo) parts.push(j.repo);
+                if (j.topic) parts.push('topic:' + j.topic);
+                if (j.outcome) parts.push('outcome:' + j.outcome);
+                if (j.learning) parts.push('learning:' + j.learning);
+                if (j.reason) parts.push('reason:' + j.reason);
+                return parts.join(' | ');
+            }).join('\n');
+            const pastSynthSection = pastSynthContent
+                ? '【過去歸納摘要（找新角度，不要重複核心主題）】\n' + pastSynthContent
+                : '這是你第一次做消化歸納。';
+            const prompt = (this.loadPrompt && this.loadPrompt('digest.md', {
+                SOUL: soul || '(無法讀取)',
+                JOURNAL_SECTION: `【最近經驗日誌（${journal.length} 條）】\n${journalLines}`,
+                REPO_SECTION: `【最近探索的 GitHub Repo（${exploredRepos.length} 個）】\n` + exploredRepos.map(r => (r.full_name || '?') + ' ★' + (r.stars || '?')).join('\n'),
+                REFLECTIONS_SECTION: '【最近的反思報告摘要】\n' + recentReflections.map(r => '--- ' + r.file + ' ---\n' + r.preview).join('\n\n'),
+                PAST_SYNTH_SECTION: pastSynthSection,
+            })) || [
+                soul || '(無法讀取 soul.md)',
+                `\n現在是你的「消化歸納」時間。\n\n【最近經驗日誌（${journal.length} 條）】\n${journalLines}`,
+                `\n【最近探索的 GitHub Repo（${exploredRepos.length} 個）】\n` + exploredRepos.map(r => (r.full_name || '?') + ' ★' + (r.stars || '?')).join('\n'),
+                '\n' + pastSynthSection,
+                '\n【任務】\n根據以上素材，產出一份「消化歸納」文件。\n\n【輸出格式】\n用 Markdown 格式寫，第一行是 # 標題，最後加 ## 摘要。',
+            ].join('');
 
             const result = (await this.decision.callLLM(prompt, { maxOutputTokens: 2048, temperature: 0.7, intent: 'analysis' })).text;
 
@@ -159,20 +156,16 @@ class DigestAction {
                 const t = new Date(item.ts).toLocaleString('zh-TW', { hour12: false });
                 return '[' + (i + 1) + '] ' + t + NL + item.text;
             }).join(SEP);
-            const promptLines = [
-                '你是 Golem。以下是你在靜默時段（深夜/凌晨）完成的行動紀錄，現在請整理成一則給主人的晨間摘要。',
-                '',
-                '要求：',
-                '- 用輕鬆、自然的語氣，像朋友一樣告訴主人你昨晚做了什麼',
-                '- 重點是「發現了什麼」「學到了什麼」，而不是流水帳',
-                '- 如果有你認為主人可能感興趣的發現，特別點出來',
-                '- 結尾說：如果你對某個部分有興趣，可以回覆我詳細說說',
-                '- 控制在 300 字以內，不要太長',
-                '',
-                '【靜默時段行動紀錄】',
-                itemText
-            ];
-            const prompt = promptLines.join(NL);
+            const soul = this.decision.readSoul();
+            const prompt = (this.loadPrompt && this.loadPrompt('morning-digest.md', {
+                SOUL: soul || '(無法讀取)',
+                ITEM_COUNT: String(items.length),
+                ITEM_TEXT: itemText,
+            })) || [
+                soul || '(無法讀取 soul.md)',
+                `\n以下是你在靜默時段完成的行動紀錄（${items.length} 則），請整理成晨間摘要，300 字以內。`,
+                `\n\n【靜默時段行動紀錄】\n${itemText}`,
+            ].join('');
             const summary = (await this.decision.callLLM(prompt, {
                 intent: 'chat',
                 temperature: 0.7
