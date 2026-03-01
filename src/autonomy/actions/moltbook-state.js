@@ -103,4 +103,27 @@ function saveCheckReflection(memoryLayer, { feed, dms, mentions, plan, results }
     }
 }
 
-module.exports = { loadState, saveState, appendCapped, saveCheckReflection };
+/**
+ * 發文成功後寫入冷層記憶（語義記錄，避免重複話題）
+ * @param {object|null} memoryLayer
+ * @param {{ submolt, title, content }} data
+ */
+function savePostReflection(memoryLayer, { submolt, title, content }) {
+    if (!memoryLayer) return;
+    try {
+        const today    = new Date().toISOString().slice(0, 10);
+        const filename = `moltbook-post-${today}.txt`;
+        const reflDir  = path.join(process.cwd(), 'memory', 'reflections');
+        if (!fs.existsSync(reflDir)) fs.mkdirSync(reflDir, { recursive: true });
+
+        const entry = `\n=== 發文 ${new Date().toISOString()} ===\nSubmolt: ${submolt}\nTitle: ${title}\nContent:\n${content}\n`;
+        fs.appendFileSync(path.join(reflDir, filename), entry);
+
+        memoryLayer.addReflection(filename);
+        console.log(`🦞 [MoltbookPost] 冷層記憶更新: ${filename}`);
+    } catch (e) {
+        console.warn('🦞 [MoltbookPost] 冷層記憶寫入失敗:', e.message);
+    }
+}
+
+module.exports = { loadState, saveState, appendCapped, saveCheckReflection, savePostReflection };

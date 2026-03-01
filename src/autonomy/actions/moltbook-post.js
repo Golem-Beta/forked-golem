@@ -14,11 +14,8 @@
 
 'use strict';
 
-const fs   = require('fs');
-const path = require('path');
-
 const MoltbookClient = require('../../moltbook-client');
-const { loadState, saveState } = require('./moltbook-state');
+const { loadState, saveState, savePostReflection } = require('./moltbook-state');
 
 const COOLDOWN_MS = 31 * 60 * 1000; // 31 分鐘（比 API 限制多 1 分鐘緩衝）
 
@@ -102,7 +99,7 @@ class MoltbookPostAction {
         });
 
         // 7. 寫入冷層記憶（發文成功後才寫入）
-        this._saveToReflection({ submolt, title, content });
+        savePostReflection(this.memoryLayer, { submolt, title, content });
 
         console.log(`🦞 [MoltbookPost] 發文成功 [${submolt}] "${title}"`);
         return { success: true, submolt, title, post_id: result.post?.id };
@@ -199,26 +196,6 @@ ${memSection}
         } catch (e) {
             console.warn('🦞 [MoltbookPost] 解析失敗:', e.message);
             return {};
-        }
-    }
-
-    // ── 發文成功後寫入冷層記憶 ────────────────────────────────────────────
-
-    _saveToReflection({ submolt, title, content }) {
-        if (!this.memoryLayer) return;
-        try {
-            const today    = new Date().toISOString().slice(0, 10);
-            const filename = `moltbook-post-${today}.txt`;
-            const reflDir  = path.join(process.cwd(), 'memory', 'reflections');
-            if (!fs.existsSync(reflDir)) fs.mkdirSync(reflDir, { recursive: true });
-
-            const entry = `\n=== 發文 ${new Date().toISOString()} ===\nSubmolt: ${submolt}\nTitle: ${title}\nContent:\n${content}\n`;
-            fs.appendFileSync(path.join(reflDir, filename), entry);
-
-            this.memoryLayer.addReflection(filename);
-            console.log(`🦞 [MoltbookPost] 冷層記憶更新: ${filename}`);
-        } catch (e) {
-            console.warn('🦞 [MoltbookPost] 冷層記憶寫入失敗:', e.message);
         }
     }
 
