@@ -18,11 +18,29 @@
 {{JOURNAL_CONTEXT}}
 
 Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
-The "search" field must EXACTLY match a substring in the target code above.
-Include "file" field with the target file path (e.g. "src/brain.js").
-Include "affected_files" listing other src/ files that call the modified function/method.
-Include "confidence": 0.0-1.0，你對這個 patch 正確性的信心。
-Include "risk_level": "low" | "medium" | "high"，改動風險評估。
-Include "expected_outcome": 改完後預期行為變化（一句話）。
+
+**選擇正確的 patch 格式：**
+
+格式 A（優先使用）— AST 節點整體替換：
+適用條件：替換整個頂層函數、const/let/var 宣告、或 Foo.bar = ... 賦值。
+`target_node` 填入節點名稱（如 "myFunc"、"Foo.bar"），必須是檔案中唯一的頂層識別符。
+`replace` 填入完整的新版節點文字（從 function/const/let/var 或 Foo.bar 到結尾的 }）。
+優點：精準替換整個節點，不受縮排或空白差異影響，LLM 不需逐字對齊舊代碼。
+
+格式 B（備用）— 字串精確替換：
+適用條件：只修改函數內部幾行，不替換整個函數時才用此格式。
+`search` 必須是目標檔案中某段連續的精確子字串（不可省略、不可加省略號）。
+常見失敗：把函數簽名那一行放進 search、但 replace 是完整函數體 → 舊函數體殘留 → 語法錯誤。
+
+每個 patch 物件必須包含：
+- "mode": "core_patch"
+- "file"：目標檔案路徑（如 "src/brain.js"）
+- "target_node" 或 "search"（依上述規則選擇）
+- "replace"：替換後的完整文字
+- "affected_files"：其他 src/ 下呼叫被修改函數/方法的檔案清單
+- "confidence": 0.0-1.0，對這個 patch 正確性的信心
+- "risk_level": "low" | "medium" | "high"，改動風險評估
+- "expected_outcome": 改完後預期行為變化（一句話）
+
 Keep the patch small and focused. ONE change only.
 If you have no confident patch to propose, output exactly: []

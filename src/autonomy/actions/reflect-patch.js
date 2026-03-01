@@ -78,7 +78,7 @@ class ReflectPatch {
         }
 
         const proposal = proposals[0];
-        const mode = proposal.mode || (proposal.search ? 'core_patch' : 'unknown');
+        const mode = proposal.mode || ((proposal.search || proposal.target_node) ? 'core_patch' : 'unknown');
 
         // 模式一：技能擴展
         if (mode === 'skill_create') {
@@ -87,7 +87,7 @@ class ReflectPatch {
         }
 
         // 模式二：核心進化
-        if (mode === 'core_patch' || (proposal.search && proposal.replace !== undefined)) {
+        if (mode === 'core_patch' || ((proposal.search || proposal.target_node) && proposal.replace !== undefined)) {
             const cpResult = await this._handleCorePatch(proposal, reflectionFile, triggerCtx);
             return cpResult || { success: false, action: 'self_reflection', outcome: 'core_patch_failed', target: targetFile };
         }
@@ -134,7 +134,9 @@ class ReflectPatch {
     }
 
     async _handleCorePatch(proposal, reflectionFile, triggerCtx) {
-        if (typeof proposal.search !== 'string' || typeof proposal.replace !== 'string') {
+        const hasSearch = typeof proposal.search === 'string';
+        const hasTargetNode = typeof proposal.target_node === 'string' && !!proposal.target_node;
+        if ((!hasSearch && !hasTargetNode) || typeof proposal.replace !== 'string') {
             this.journal.append({ action: 'self_reflection', mode: 'core_patch', outcome: 'invalid_patch', reflection_file: reflectionFile });
             return;
         }
@@ -212,7 +214,9 @@ class ReflectPatch {
                 }
             }
             const truncLine = s => s.length > 80 ? s.substring(0, 80) + '...' : s;
-            const searchPreview = proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
+            const searchPreview = proposal.target_node
+                ? `- [AST: ${proposal.target_node}]`
+                : proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
             const replacePreview = proposal.replace.split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
             global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
             // 持久化到磁碟
