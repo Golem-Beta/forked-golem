@@ -15,6 +15,9 @@
 
 'use strict';
 
+const fs   = require('fs');
+const path = require('path');
+
 const MoltbookClient = require('../../moltbook-client');
 const { checkPostEngagement } = require('./moltbook-engagement');
 const { loadState, saveState, appendCapped } = require('./moltbook-state');
@@ -76,6 +79,8 @@ class MoltbookCheckAction {
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens,
         });
+
+        this._saveInteractionToReflection({ feed, dms, mentions, plan, results });
 
         console.log(`🦞 [MoltbookCheck] 完成 — ${summary}`);
         return { success: true, ...results };
@@ -246,6 +251,53 @@ ${externalBlock}
 
         saveState(state);
         return { upvoted, commented, dm_replied };
+    }
+
+    // ── 巡查完成後寫入冷層記憶（語義摘要，非操作記錄）────────────────────
+
+    _saveInteractionToReflection({ feed, dms, mentions, plan, results }) {
+        if (!this.memoryLayer) return;
+        if (feed.length === 0 && dms.length === 0 && mentions.length === 0) return;
+        try {
+            const today    = new Date().toISOString().slice(0, 10);
+            const filename = `moltbook-check-${today}.txt`;
+            const reflDir  = path.join(process.cwd(), 'memory', 'reflections');
+            if (!fs.existsSync(reflDir)) fs.mkdirSync(reflDir, { recursive: true });
+
+            const lines = [`\n=== 巡查 ${new Date().toISOString()} ===`];
+            lines.push(`互動統計: upvoted:${results.upvoted} commented:${results.commented} dm_replied:${results.dm_replied}`);
+
+            if (feed.length > 0) {
+                lines.push('Feed 話題（前5）:');
+                feed.slice(0, 5).forEach(p => {
+                    lines.push(`  - @${p.author?.name || '?'}: ${p.title || p.content?.slice(0, 80) || ''}`);
+                });
+            }
+
+            if ((plan.comments || []).length > 0) {
+                lines.push('已留言:');
+                for (const c of plan.comments) {
+                    lines.push(`  - post_id:${c.post_id}: "${c.content?.slice(0, 120)}"`);
+                }
+            }
+
+            if ((plan.dm_replies || []).length > 0) {
+                lines.push('DM 回覆:');
+                for (const dm of plan.dm_replies) {
+                    lines.push(`  - conv_id:${dm.conv_id}: "${dm.content?.slice(0, 80)}"`);
+                }
+            }
+
+            if (mentions.length > 0) {
+                lines.push(`Mentions: ${mentions.length} 則（有人提及 Beta）`);
+            }
+
+            fs.appendFileSync(path.join(reflDir, filename), lines.join('\n') + '\n');
+            this.memoryLayer.addReflection(filename);
+            console.log(`🦞 [MoltbookCheck] 冷層記憶更新: ${filename}`);
+        } catch (e) {
+            console.warn('🦞 [MoltbookCheck] 冷層記憶寫入失敗:', e.message);
+        }
     }
 
     // ── 基於歷史脈絡精煉 DM 回覆 ──────────────────────────────────────────
