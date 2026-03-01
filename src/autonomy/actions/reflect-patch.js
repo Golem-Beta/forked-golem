@@ -2,36 +2,30 @@
  * @module reflect-patch
  * @role Self-reflection Phase 2 — 根據診斷結果產生 patch 並送審
  * @when-to-modify 調整 patch 格式、skill_create/core_patch 處理邏輯、或驗證流程時
+ *
+ * 執行端（自動部署 / Telegram 送審）委派至 reflect-patch-executor.js（PatchExecutor）。
  */
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+'use strict';
 
-async function runSmokeGate() {
-    return new Promise((resolve) => {
-        const child = spawn('node', ['test-smoke.js'], { cwd: process.cwd(), stdio: 'pipe' });
-        let output = '';
-        child.stdout.on('data', d => { output += d.toString(); });
-        child.stderr.on('data', d => { output += d.toString(); });
-        child.on('close', code => resolve({ ok: code === 0, output }));
-        child.on('error', err => resolve({ ok: false, output: err.message }));
-    });
-}
+const fs   = require('fs');
+const path = require('path');
+const PatchExecutor = require('./reflect-patch-executor');
 
 class ReflectPatch {
     constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices, loadPrompt }) {
-        this.journal = journal;
-        this.notifier = notifier;
-        this.decision = decision;
-        this.skills = skills;
-        this.config = config;
-        this.memory = memory;
-        this.PatchManager = PatchManager;
+        this.journal        = journal;
+        this.notifier       = notifier;
+        this.decision       = decision;
+        this.skills         = skills;
+        this.config         = config;
+        this.memory         = memory;
+        this.PatchManager   = PatchManager;
         this.ResponseParser = ResponseParser;
-        this.InputFile = InputFile;
+        this.InputFile      = InputFile;
         this.PendingPatches = PendingPatches;
         this.googleServices = googleServices || null;
-        this.loadPrompt = loadPrompt || null;
+        this.loadPrompt     = loadPrompt || null;
+        this.executor = new PatchExecutor({ journal, notifier, decision, config, InputFile, PendingPatches, googleServices });
     }
 
     /**
@@ -42,7 +36,7 @@ class ReflectPatch {
      * @param {object|null} triggerCtx - Telegram context（手動觸發時）
      */
     async run(diag, diagFile, journalContext, triggerCtx) {
-        const targetFile = diag.target_file || 'src/autonomy/actions.js';
+        const targetFile  = diag.target_file || 'src/autonomy/actions.js';
         const codeSnippet = this.decision.extractCodeSection(targetFile);
 
         if (!codeSnippet || codeSnippet.length < 10) {
@@ -63,7 +57,7 @@ class ReflectPatch {
         if (!patchPrompt) throw new Error('self-reflection-patch.md 載入失敗');
 
         console.log('🧬 [Reflection] Phase 2: 生成 patch（' + codeSnippet.length + ' chars context）...');
-        const raw = (await this.decision.callLLM(patchPrompt, { intent: 'code_edit', temperature: 0.2 })).text;
+        const raw            = (await this.decision.callLLM(patchPrompt, { intent: 'code_edit', temperature: 0.2 })).text;
         const reflectionFile = this.decision.saveReflection('self_reflection', raw);
 
         let proposals = this.ResponseParser.extractJson(raw);
@@ -98,7 +92,7 @@ class ReflectPatch {
 
     async _handleSkillCreate(proposal, reflectionFile) {
         const skillName = proposal.skill_name;
-        const content = proposal.content;
+        const content   = proposal.content;
         if (!skillName || !content) {
             this.journal.append({ action: 'self_reflection', mode: 'skill_create', outcome: 'invalid_proposal', reflection_file: reflectionFile });
             return;
@@ -109,7 +103,6 @@ class ReflectPatch {
             return { success: false, action: 'self_reflection', outcome: 'skill_already_exists' };
         }
         fs.writeFileSync(skillPath, content);
-        // Tasks 閉環：記錄新技能建立
         if (this.googleServices?._auth?.isAuthenticated()) {
             try {
                 await this.googleServices.createTask({
@@ -119,7 +112,7 @@ class ReflectPatch {
             } catch (e) { console.warn('[Reflect] Tasks 寫入失敗:', e.message); }
         }
         const msgText = '🧩 **新技能已建立**: ' + skillName + '\n' + (proposal.description || '') + '\n原因: ' + (proposal.reason || '');
-        const sentSC = await this.notifier.sendToAdmin(msgText);
+        const sentSC  = await this.notifier.sendToAdmin(msgText);
         console.log('[SelfReflection/skill_create] sendToAdmin:', sentSC === true ? '✅ OK' : '❌ FAILED');
         this.journal.append({
             action: 'self_reflection', mode: 'skill_create',
@@ -134,7 +127,7 @@ class ReflectPatch {
     }
 
     async _handleCorePatch(proposal, reflectionFile, triggerCtx) {
-        const hasSearch = typeof proposal.search === 'string';
+        const hasSearch     = typeof proposal.search === 'string';
         const hasTargetNode = typeof proposal.target_node === 'string' && !!proposal.target_node;
         if ((!hasSearch && !hasTargetNode) || typeof proposal.replace !== 'string') {
             this.journal.append({ action: 'self_reflection', mode: 'core_patch', outcome: 'invalid_patch', reflection_file: reflectionFile });
@@ -179,134 +172,12 @@ class ReflectPatch {
 
         const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
         if (confidence >= 0.85 && (proposal.risk_level || 'medium') === 'low') {
-            const autoResult = await this._autoDeploy(proposal, testFile, targetPath, targetName, proposalType, reflectionFile);
+            const autoResult = await this.executor.autoDeploy(proposal, testFile, targetPath, targetName, proposalType, reflectionFile);
             if (autoResult) return autoResult;
             // null → 意外例外，降級為送審
         }
 
-        return this._sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx);
-    }
-
-    // ── 自動部署（高信心低風險路徑）─────────────────────────────────────────
-    // 成功/smoke_gate_failed 回傳 ActionResult；意外例外回傳 null（呼叫端降級為送審）
-
-    async _autoDeploy(proposal, testFile, targetPath, targetName, proposalType, reflectionFile) {
-        const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
-        const riskLevel = proposal.risk_level || 'medium';
-        const expectedOutcome = proposal.expected_outcome || '';
-        try {
-            const smoke = await runSmokeGate();
-            if (!smoke.ok) {
-                try { fs.unlinkSync(testFile); } catch (_) {}
-                const tail = smoke.output.slice(-600);
-                await this.notifier.sendToAdmin('❌ 自動部署中止（Smoke gate 未通過）\n目標：' + targetName + '\n```\n' + tail + '\n```');
-                this.journal.append({ action: 'self_reflection', outcome: 'smoke_gate_failed', target: targetName, reflection_file: reflectionFile });
-                return { success: false, action: 'self_reflection', outcome: 'smoke_gate_failed', target: targetName };
-            }
-            fs.copyFileSync(targetPath, targetPath + '.bak-' + Date.now());
-            fs.writeFileSync(targetPath, fs.readFileSync(testFile));
-            fs.unlinkSync(testFile);
-            if (this.googleServices?._auth?.isAuthenticated()) {
-                try {
-                    await this.googleServices.createTask({
-                        title: `[反思待辦] 已部署：${targetName}`,
-                        notes: (proposal.description || '').substring(0, 500),
-                    });
-                } catch (e) { console.warn('[Reflect] Tasks 寫入失敗:', e.message); }
-            }
-            const autoMsg = '🤖 **核心進化已自動部署** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n信心: ' + (confidence * 100).toFixed(0) + '% | 風險: ' + riskLevel + '\n預期: ' + expectedOutcome;
-            const sentAuto = await this.notifier.sendToAdmin(autoMsg);
-            console.log('[SelfReflection/auto_deploy] sendToAdmin:', sentAuto === true ? '✅ OK' : '❌ FAILED');
-            this.journal.append({
-                action: 'self_reflection', mode: 'core_patch',
-                proposal: proposalType, target: targetName,
-                description: proposal.description,
-                outcome: 'auto_deployed',
-                confidence, risk_level: riskLevel, expected_outcome: expectedOutcome,
-                reflection_file: reflectionFile,
-                model: this.decision.lastModel,
-                tokens: this.decision.lastTokens
-            });
-            return { success: true, action: 'self_reflection', outcome: 'auto_deployed', target: targetName };
-        } catch (autoErr) {
-            console.error('[SelfReflection/auto_deploy] 自動部署失敗，降級為送審:', autoErr.message);
-            return null;
-        }
-    }
-
-    // ── 送審（建 diff preview、存 PendingPatches、發 Telegram inline button）
-
-    async _sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx) {
-        const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
-        const truncLine = s => s.length > 80 ? s.substring(0, 80) + '...' : s;
-        const searchPreview = proposal.target_node
-            ? `- [AST: ${proposal.target_node}]`
-            : proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
-        const replacePreview = proposal.replace.split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
-        global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
-        if (this.PendingPatches) {
-            const pendingId = this.PendingPatches.add({
-                testFile, target: targetPath, name: targetName,
-                description: proposal.description || '', proposalType,
-                diffPreview: searchPreview + '\n' + replacePreview,
-            });
-            global.pendingPatch.pendingId = pendingId;
-        }
-        const diffBlock = '```\n' + searchPreview + '\n' + replacePreview + '\n```';
-        const infoParts = [];
-        if (proposal.risk_level) infoParts.push('風險: ' + proposal.risk_level);
-        if (typeof proposal.confidence === 'number') infoParts.push('信心: ' + (confidence * 100).toFixed(0) + '%');
-        if (proposal.expected_outcome) infoParts.push('預期: ' + proposal.expected_outcome);
-        const infoLine = infoParts.length > 0 ? '\n' + infoParts.join(' | ') : '';
-        const msgText = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine;
-        const options = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
-        let sentCP = false;
-        let sentCPError = null;
-        try {
-            if (triggerCtx) {
-                await triggerCtx.reply(msgText, options);
-                await triggerCtx.sendDocument(testFile);
-                sentCP = true;
-            } else if (this.config.ADMIN_IDS && this.config.ADMIN_IDS[0]) {
-                const { tgBot } = this.notifier;
-                if (tgBot) {
-                    await tgBot.api.sendMessage(this.config.ADMIN_IDS[0], msgText, options);
-                    await tgBot.api.sendDocument(this.config.ADMIN_IDS[0], new this.InputFile(testFile));
-                    sentCP = true;
-                }
-            }
-        } catch (sendErr) {
-            console.error('[SelfReflection/core_patch] send FAILED:', sendErr.message);
-            sentCPError = sendErr.message;
-        }
-        console.log('[SelfReflection/core_patch] send:', sentCP ? '✅ OK' : '❌ FAILED');
-        if (this.googleServices?._auth?.isAuthenticated()) {
-            try {
-                await this.googleServices.createTask({
-                    title: `[反思待辦] 待審核 patch：${targetName}`,
-                    notes: ((proposal.description || '') + '\n類型: ' + proposalType).substring(0, 500),
-                });
-            } catch (e) { console.warn('[Reflect] Tasks 寫入失敗:', e.message); }
-        }
-        const metaFields = {};
-        if (typeof proposal.confidence === 'number') metaFields.confidence = proposal.confidence;
-        if (proposal.risk_level) metaFields.risk_level = proposal.risk_level;
-        if (proposal.expected_outcome) metaFields.expected_outcome = proposal.expected_outcome;
-        const proposedTs = new Date().toISOString();
-        this.journal.append({
-            action: 'self_reflection', mode: 'core_patch',
-            proposal: proposalType, target: targetName,
-            description: proposal.description,
-            ts: proposedTs,
-            outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed',
-            ...metaFields,
-            reflection_file: reflectionFile,
-            model: this.decision.lastModel,
-            tokens: this.decision.lastTokens,
-            ...(sentCP !== true && sentCP !== 'queued' && sentCPError ? { error: sentCPError } : {})
-        });
-        if (global.pendingPatch) global.pendingPatch.proposedTs = proposedTs;
-        return { success: sentCP === true, action: 'self_reflection', outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed', target: targetName };
+        return this.executor.sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx);
     }
 }
 
