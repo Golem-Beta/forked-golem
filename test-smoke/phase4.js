@@ -18,6 +18,8 @@ module.exports = function phase4(test) {
         ['actions/reflect-patch',          'src/autonomy/actions/reflect-patch'],
         ['actions/reflect-patch-executor', 'src/autonomy/actions/reflect-patch-executor'],
         ['actions/explore',        'src/autonomy/actions/explore'],
+        ['actions/web-research',   'src/autonomy/actions/web-research'],
+        ['actions/github-explore', 'src/autonomy/actions/github-explore'],
         ['actions/digest',         'src/autonomy/actions/digest'],
         ['actions/social',         'src/autonomy/actions/social'],
         ['actions/health-check',   'src/autonomy/actions/health-check'],
