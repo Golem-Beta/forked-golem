@@ -30,6 +30,7 @@ module.exports = function phase5(test, s) {
         ['DeployActions',   'deploy-actions',   ['runSmokeGate', 'deploy', 'drop', 'listPatches']],
         ['GoogleCommands',  'google-commands',  ['gmail', 'calendar', 'tasks', 'drive']],
         ['MessageHandler',      'message-handler',          ['handleMessage']],
+        ['MessageProcessor',    'message-processor',        ['process']],
         ['CallbackHandler',     'callback-handler',         ['handle']],
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
         ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],

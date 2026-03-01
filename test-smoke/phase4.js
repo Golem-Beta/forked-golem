@@ -107,11 +107,12 @@ module.exports = function phase4(test) {
     });
 
     const coreModules = [
-        ['react-loop',       'src/react-loop'],
-        ['deploy-actions',   'src/deploy-actions'],
-        ['google-commands',  'src/google-commands'],
-        ['message-handler',  'src/message-handler'],
-        ['callback-handler', 'src/callback-handler'],
+        ['react-loop',          'src/react-loop'],
+        ['deploy-actions',      'src/deploy-actions'],
+        ['google-commands',     'src/google-commands'],
+        ['message-handler',     'src/message-handler'],
+        ['message-processor',   'src/message-processor'],
+        ['callback-handler',    'src/callback-handler'],
     ];
     for (const [key, modPath] of coreModules) {
         test(`${key} is a class`, () => {
