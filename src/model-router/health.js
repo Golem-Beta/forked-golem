@@ -38,6 +38,8 @@ class ProviderHealth {
             lastSuccess: 0,
             rpdLimits: rpdLimits,  // per-model limits
             modelUsed,             // per-model 獨立 used 計數
+            avgLatency: 1000,      // EMA 延遲（ms），初始假設 1 秒
+            callCount: 0,          // 成功呼叫次數（用於 dashboard ranking）
         });
     }
 
@@ -73,24 +75,27 @@ class ProviderHealth {
     }
 
     /**
-     * 計算健康分數：RPD 餘量 × 可靠度
+     * 計算健康分數：RPD 餘量 × 可靠度 × 延遲係數
+     * 延遲懲罰：avgLatency / 5000 最多扣 40% 分
      */
     score(provider, model) {
         const h = this.providers.get(provider);
         if (!h) return 0;
+        const latencyPenalty = Math.min(1, (h.avgLatency || 1000) / 5000) * 0.4;
+        const latencyFactor  = 1 - latencyPenalty;
         if (model && h.rpdLimits[model] !== undefined) {
             const limit = h.rpdLimits[model];
-            if (limit === Infinity) return h.reliability;
+            if (limit === Infinity) return h.reliability * latencyFactor;
             const used = h.modelUsed[model] || 0;
-            return (1 - used / limit) * h.reliability;
+            return (1 - used / limit) * h.reliability * latencyFactor;
         }
-        if (h.rpd.limit === Infinity) return h.reliability;
-        return (1 - h.rpd.used / h.rpd.limit) * h.reliability;
+        if (h.rpd.limit === Infinity) return h.reliability * latencyFactor;
+        return (1 - h.rpd.used / h.rpd.limit) * h.reliability * latencyFactor;
     }
 
     // --- 狀態更新 ---
 
-    onSuccess(provider, model) {
+    onSuccess(provider, model, latencyMs) {
         const h = this.providers.get(provider);
         if (!h) return;
         h.rpd.used++;
@@ -98,8 +103,13 @@ class ProviderHealth {
             h.modelUsed[model]++;
         }
         h.lastSuccess = Date.now();
+        h.callCount = (h.callCount || 0) + 1;
         // reliability 緩慢恢復（指數移動平均）
         h.reliability = Math.min(1.0, h.reliability * 0.9 + 0.1);
+        // 延遲 EMA（alpha=0.2，新資料佔 20%）
+        if (typeof latencyMs === 'number' && latencyMs > 0) {
+            h.avgLatency = h.avgLatency * 0.8 + latencyMs * 0.2;
+        }
         this._debounceSave();
     }
 

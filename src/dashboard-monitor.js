@@ -83,8 +83,23 @@ class DashboardMonitor {
                         if (m.includes('qwen3-coder'))          return 'qwen3';
                         return m.split('/').pop().split(':')[0].slice(-8);
                     };
+                    // Gemini 固定第 1，其餘按 score 降序排列
+                    const providerEntries = [...mr.health.providers.entries()]
+                        .filter(([, h]) => h.hasKey);
+                    const geminiEntry = providerEntries.find(([n]) => n === 'gemini');
+                    const otherEntries = providerEntries
+                        .filter(([n]) => n !== 'gemini')
+                        .sort(([nA, hA], [nB, hB]) => {
+                            const sA = mr.health.score(nA);
+                            const sB = mr.health.score(nB);
+                            return sB - sA;
+                        });
+                    const sortedEntries = geminiEntry
+                        ? [geminiEntry, ...otherEntries]
+                        : otherEntries;
+
                     const pLines = [];
-                    for (const [name, h] of mr.health.providers) {
+                    for (const [name, h] of sortedEntries) {
                         if (!h.hasKey) continue;
                         const adapter = mr.adapters.get(name);
                         // Key-level 狀態
@@ -139,7 +154,14 @@ class DashboardMonitor {
                             if (bal) extraInfo = ' │ \x24' + bal.total.toFixed(2);
                         }
                         const rpdLabel = isMultiModel ? '' : 'RPD ';
-                        pLines.push(`${pIcon} ${name}: ${keyStatus} │ ${rpdLabel}${rpdStr}${extraInfo}`);
+                        // 延遲顯示（只在有成功呼叫後才顯示）
+                        const latStr = h.callCount > 0
+                            ? ` │ ${Math.round(h.avgLatency)}ms`
+                            : '';
+                        // ranking 位置（gemini 固定 #1，其餘動態）
+                        const rankIdx = sortedEntries.findIndex(([n]) => n === name);
+                        const rankTag = name === 'gemini' ? '{cyan-fg}#1{/}' : `#${rankIdx + 1}`;
+                        pLines.push(`${rankTag} ${pIcon} ${name}: ${keyStatus} │ ${rpdLabel}${rpdStr}${extraInfo}${latStr}`);
                     }
                     const snap = pLines.join('\n');
                     if (snap !== this._d._lastProviderSnap) {
