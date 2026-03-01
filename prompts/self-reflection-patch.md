@@ -23,19 +23,19 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 
 格式 A（優先使用）— AST 節點整體替換：
 適用條件：替換整個頂層函數、const/let/var 宣告、或 Foo.bar = ... 賦值。
-`target_node` 填入節點名稱（如 "myFunc"、"Foo.bar"），必須是檔案中唯一的頂層識別符。
+`target_node` 格式：`ClassName.methodName`（如 "DecisionEngine.makeDecision"）或頂層識別符（如 "isFailed"）。
 `replace` 填入完整的新版節點文字（從 function/const/let/var 或 Foo.bar 到結尾的 }）。
-優點：精準替換整個節點，不受縮排或空白差異影響，LLM 不需逐字對齊舊代碼。
+優點：精準替換，不需指定 "file"（系統自動從 codebase 索引解析路徑）。
 
 格式 B（備用）— 字串精確替換：
 適用條件：只修改函數內部幾行，不替換整個函數時才用此格式。
 `search` 必須是目標檔案中某段連續的精確子字串（不可省略、不可加省略號）。
+`file` 必須填入（如 "src/brain.js"）。格式 A 不需要 "file"。
 常見失敗：把函數簽名那一行放進 search、但 replace 是完整函數體 → 舊函數體殘留 → 語法錯誤。
 
 每個 patch 物件必須包含：
 - "mode": "core_patch"
-- "file"：目標檔案路徑（如 "src/brain.js"）
-- "target_node" 或 "search"（依上述規則選擇）
+- "target_node"（格式 A）或 "search" + "file"（格式 B）
 - "replace"：替換後的完整文字
 - "affected_files"：其他 src/ 下呼叫被修改函數/方法的檔案清單
 - "confidence": 0.0-1.0，對這個 patch 正確性的信心

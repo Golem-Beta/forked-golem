@@ -136,6 +136,31 @@ class ReflectPatch {
         const proposalType = proposal.type || 'unknown';
         this.memory.recordProposal(proposalType);
 
+        // target_node 索引驗證：若索引存在，用索引解析並覆蓋 LLM 提供的 file 路徑
+        if (hasTargetNode) {
+            try {
+                const CodebaseIndexer = require('../../codebase-indexer');
+                let idx = null;
+                try { idx = CodebaseIndexer.load(); } catch (e) { /* 索引不存在 → 略過驗證 */ }
+                if (idx) {
+                    const found = CodebaseIndexer.lookup(idx, proposal.target_node);
+                    if (!found) {
+                        this.journal.append({
+                            action: 'self_reflection', mode: 'core_patch',
+                            outcome: 'target_node_not_found',
+                            target_node: proposal.target_node,
+                            reflection_file: reflectionFile,
+                        });
+                        console.warn(`🧬 [Reflection] target_node "${proposal.target_node}" 不在索引，跳過`);
+                        return { success: false, action: 'self_reflection', outcome: 'target_node_not_found', target: proposal.target_node };
+                    }
+                    proposal.file = found.file; // 索引解析路徑，覆蓋 LLM 可能填錯的 file
+                }
+            } catch (e) {
+                console.warn('[Reflection] 索引驗證失敗，繼續原有流程:', e.message);
+            }
+        }
+
         const validFiles = ['index.js', 'skills.js'];
         const srcDir = path.join(process.cwd(), 'src');
         if (fs.existsSync(srcDir)) {
