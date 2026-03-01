@@ -39,6 +39,15 @@ module.exports = function phase4(test) {
         assert(typeof s['actions/moltbook-engagement'] === 'object');
         assert(typeof s['actions/moltbook-engagement'].checkPostEngagement === 'function');
     });
+    // failure-classifier 是純函式模組（非 class），單獨驗證
+    test('failure-classifier exports { isFailed, classifyFailure, classifyStreak, checkFailurePatterns }', () => {
+        s['failure-classifier'] = require('../src/autonomy/failure-classifier');
+        assert(typeof s['failure-classifier'] === 'object');
+        assert(typeof s['failure-classifier'].isFailed === 'function');
+        assert(typeof s['failure-classifier'].classifyFailure === 'function');
+        assert(typeof s['failure-classifier'].classifyStreak === 'function');
+        assert(typeof s['failure-classifier'].checkFailurePatterns === 'function');
+    });
     for (const [key, modPath] of autonomySubmodules) {
         test(`autonomy/${key} is a class`, () => {
             s[key] = require(`../${modPath}`);

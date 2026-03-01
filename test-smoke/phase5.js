@@ -44,7 +44,7 @@ module.exports = function phase5(test, s) {
         ['MessageProcessor',    'message-processor',        ['process']],
         ['CallbackHandler',     'callback-handler',         ['handle']],
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
-        ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],
+        ['ContextPressure',     'context-pressure',          ['evaluate']],
         ['FreeWillRunner',      'free-will',                 ['run']],
         ['MoltbookCheckAction',    'actions/moltbook-check',          ['run', '_wrapExternal', '_askLLMForPlan']],
         ['MoltbookCheckExecutor',  'actions/moltbook-check-executor', ['execute']],
@@ -194,5 +194,27 @@ module.exports = function phase5(test, s) {
                          '{{TARGET_FILE}}', '{{CODE_SNIPPET}}', '{{JOURNAL_CONTEXT}}']) {
             assert(content.includes(v), `缺少佔位符 ${v}`);
         }
+    });
+    test('failure-classifier 四個純函式行為正確', () => {
+        const { isFailed, classifyFailure, classifyStreak, checkFailurePatterns } = require('../src/autonomy/failure-classifier');
+        // isFailed
+        assert(isFailed({ outcome: 'send_failed' }) === true);
+        assert(isFailed({ outcome: 'success' }) === false);
+        assert(isFailed({ action: 'error' }) === true);
+        // classifyFailure
+        assert(classifyFailure({ outcome: 'send_failed' }) === 'external');
+        assert(classifyFailure({ outcome: 'verification_failed' }) === 'config');
+        assert(classifyFailure({ outcome: 'unknown_issue' }) === 'general');
+        // classifyStreak
+        const extEntries = [{ outcome: 'send_failed' }, { outcome: 'timeout' }, { outcome: 'network_err' }];
+        assert(classifyStreak(extEntries) === 'external');
+        // checkFailurePatterns
+        const signals = checkFailurePatterns([
+            { action: 'notify', outcome: 'send_failed' },
+            { action: 'notify', outcome: 'send_failed' },
+            { action: 'notify', outcome: 'send_failed' },
+        ]);
+        assert(Array.isArray(signals));
+        assert(signals.length > 0, '連續 3 次失敗應產生壓力訊號');
     });
 };

@@ -13,6 +13,7 @@
 
 const fs   = require('fs');
 const path = require('path');
+const { checkFailurePatterns } = require('./failure-classifier');
 
 // 重要行動的閒置警告閾值（毫秒）
 const IDLE_THRESHOLDS = {
@@ -43,7 +44,7 @@ class ContextPressure {
         try {
             const recent = this.journal.readRecent(30);
             const signals = [
-                ...this._checkFailurePatterns(recent),
+                ...checkFailurePatterns(recent),
                 ...this._checkIdleActions(),
                 ...this._checkExternalSignals(recent),
                 ...this._checkConsecutiveRest(recent),
@@ -53,82 +54,6 @@ class ContextPressure {
         } catch (e) {
             return ''; // 壓力分析失敗不影響決策主流程
         }
-    }
-
-    // ── 失敗模式偵測 ────────────────────────────────────────────────────────
-
-    _checkFailurePatterns(entries) {
-        const signals = [];
-        const nonRest = entries.filter(e => e.action !== 'rest');
-        if (nonRest.length === 0) return signals;
-
-        // 連續失敗（分類後給出不同建議）
-        let streak = 0;
-        for (let i = nonRest.length - 1; i >= 0; i--) {
-            if (this._isFailed(nonRest[i])) streak++;
-            else break;
-        }
-        if (streak >= 3) {
-            const failType = this._classifyStreak(nonRest.slice(-streak));
-            if (failType === 'external') {
-                signals.push(`⚠️ 最近 ${streak} 次行動連續外部依賴失敗（網路/API），建議稍待後重試`);
-            } else if (failType === 'config') {
-                signals.push(`⚠️ 最近 ${streak} 次行動連續設定/程式問題，建議執行 self_reflection 或回報主人`);
-            } else {
-                signals.push(`⚠️ 最近 ${streak} 次行動連續失敗，建議換策略或執行 health_check`);
-            }
-        }
-
-        // 特定 action 高失敗率（最近 20 筆，需至少 3 次嘗試）
-        const stats = {};
-        for (const e of nonRest.slice(-20)) {
-            if (!stats[e.action]) stats[e.action] = { t: 0, f: 0, extF: 0, cfgF: 0 };
-            stats[e.action].t++;
-            if (this._isFailed(e)) {
-                stats[e.action].f++;
-                const ft = this._classifyFailure(e);
-                if (ft === 'external') stats[e.action].extF++;
-                else if (ft === 'config') stats[e.action].cfgF++;
-            }
-        }
-        for (const [act, s] of Object.entries(stats)) {
-            if (s.t >= 3 && s.f / s.t >= 0.6) {
-                const pct = Math.round(s.f / s.t * 100);
-                if (s.extF >= s.cfgF && s.extF > 0) {
-                    signals.push(`⚠️ ${act} 外部依賴失敗率 ${pct}%（${s.f}/${s.t}），暫時等待避免消耗配額`);
-                } else if (s.cfgF > s.extF) {
-                    signals.push(`⚠️ ${act} 設定/程式問題失敗率 ${pct}%（${s.f}/${s.t}），需要診斷或主人介入`);
-                } else {
-                    signals.push(`⚠️ ${act} 近期失敗率 ${pct}%（${s.f}/${s.t}），暫時迴避`);
-                }
-            }
-        }
-        return signals;
-    }
-
-    _isFailed(e) {
-        const o = e.outcome || '';
-        return o.includes('fail') || o.includes('error') || e.action === 'error';
-    }
-
-    // 判斷單一失敗條目的根因類型
-    _classifyFailure(e) {
-        const o = (e.outcome || '').toLowerCase();
-        const EXTERNAL = ['send_failed', 'fetch_failed', 'network', 'timeout', 'rate_limited', 'connection'];
-        const CONFIG   = ['folder_missing', 'verification_failed', 'config', 'not_found', 'missing'];
-        if (EXTERNAL.some(k => o.includes(k))) return 'external';
-        if (CONFIG.some(k => o.includes(k)))   return 'config';
-        return 'general';
-    }
-
-    // 判斷連續失敗片段的主導類型（外部 vs 程式/設定）
-    _classifyStreak(entries) {
-        const types = entries.filter(e => this._isFailed(e)).map(e => this._classifyFailure(e));
-        const ext = types.filter(t => t === 'external').length;
-        const cfg = types.filter(t => t === 'config').length;
-        if (ext >= cfg && ext >= Math.ceil(types.length * 0.6)) return 'external';
-        if (cfg > ext  && cfg >= Math.ceil(types.length * 0.6)) return 'config';
-        return 'general';
     }
 
     // ── 重要行動閒置偵測 ────────────────────────────────────────────────────
