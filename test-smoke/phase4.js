@@ -30,6 +30,7 @@ module.exports = function phase4(test) {
         ['actions/moltbook-check',          'src/autonomy/actions/moltbook-check'],
         ['actions/moltbook-check-executor', 'src/autonomy/actions/moltbook-check-executor'],
         ['actions/moltbook-post',           'src/autonomy/actions/moltbook-post'],
+        ['actions/google-check',            'src/autonomy/actions/google-check'],
         ['context-pressure',         'src/autonomy/context-pressure'],
         ['free-will',                'src/autonomy/free-will'],
     ];
@@ -47,6 +48,13 @@ module.exports = function phase4(test) {
         assert(typeof s['failure-classifier'].classifyFailure === 'function');
         assert(typeof s['failure-classifier'].classifyStreak === 'function');
         assert(typeof s['failure-classifier'].checkFailurePatterns === 'function');
+    });
+    // google-classifier 是純函式模組（非 class），單獨驗證
+    test('actions/google-classifier exports { classifyByRules, classifyByLLM }', () => {
+        s['actions/google-classifier'] = require('../src/autonomy/actions/google-classifier');
+        assert(typeof s['actions/google-classifier'] === 'object');
+        assert(typeof s['actions/google-classifier'].classifyByRules === 'function');
+        assert(typeof s['actions/google-classifier'].classifyByLLM === 'function');
     });
     for (const [key, modPath] of autonomySubmodules) {
         test(`autonomy/${key} is a class`, () => {

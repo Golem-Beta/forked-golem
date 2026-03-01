@@ -49,6 +49,7 @@ module.exports = function phase5(test, s) {
         ['MoltbookCheckAction',    'actions/moltbook-check',          ['run', '_wrapExternal', '_askLLMForPlan']],
         ['MoltbookCheckExecutor',  'actions/moltbook-check-executor', ['execute']],
         ['MoltbookPostAction',     'actions/moltbook-post',           ['run', '_generatePost']],
+        ['GoogleCheckAction',     'actions/google-check',            ['run']],
         ['PersonaManager',      'persona-manager',          ['get', 'save', 'setName', 'setRole']],
         ['SkillLoader',         'skill-loader',             ['loadSkill', 'getAutoLoadSkills', 'matchByKeywords', 'listSkills', 'reload']],
     ];
@@ -194,6 +195,17 @@ module.exports = function phase5(test, s) {
                          '{{TARGET_FILE}}', '{{CODE_SNIPPET}}', '{{JOURNAL_CONTEXT}}']) {
             assert(content.includes(v), `缺少佔位符 ${v}`);
         }
+    });
+    test('google-classifier classifyByRules 規則分類行為正確', () => {
+        const { classifyByRules } = require('../src/autonomy/actions/google-classifier');
+        // Google platform — 非影響服務的應 ignore
+        assert(classifyByRules({ from: 'no-reply@accounts.google.com', subject: 'New sign-in', snippet: '' }) === 'ignore');
+        // 含 billing keyword 應 notify
+        assert(classifyByRules({ from: 'billing@example.com', subject: 'Invoice due', snippet: '' }) === 'notify');
+        // GitHub security alert 應 notify
+        assert(classifyByRules({ from: 'noreply@github.com', subject: 'security alert', snippet: '' }) === 'notify');
+        // 一般郵件應 uncertain
+        assert(classifyByRules({ from: 'someone@example.com', subject: 'Hello', snippet: 'How are you?' }) === 'uncertain');
     });
     test('failure-classifier 四個純函式行為正確', () => {
         const { isFailed, classifyFailure, classifyStreak, checkFailurePatterns } = require('../src/autonomy/failure-classifier');
