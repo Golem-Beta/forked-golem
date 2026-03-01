@@ -15,17 +15,14 @@
 
 'use strict';
 
-const fs   = require('fs');
-const path = require('path');
-
 const MoltbookClient = require('../../moltbook-client');
 const { checkPostEngagement } = require('./moltbook-engagement');
+const { loadState, saveState, appendCapped } = require('./moltbook-state');
 
 const MAX_UPVOTES_PER_CHECK    = 3;
 const MAX_COMMENTS_PER_CHECK   = 2;
 const MAX_DM_REPLIES_PER_CHECK = 2;
 const MAX_STATE_IDS            = 200; // upvotedPostIds / commentedPostIds 上限
-const STATE_FILE = path.join(__dirname, '../../../data/moltbook-state.json');
 
 class MoltbookCheckAction {
     constructor({ journal, notifier, decision, brain, memoryLayer, memory, loadPrompt }) {
@@ -61,7 +58,7 @@ class MoltbookCheckAction {
 
         console.log(`🦞 [MoltbookCheck] feed:${feed.length} DMs:${dms.length} mentions:${mentions.length}`);
 
-        const state = this._loadState();
+        const state = loadState();
         state.lastHomeTimestamp = Date.now();
 
         // 效果學習迴路：追蹤已發貼文的互動變化，寫入 journal 供下次發文參考
@@ -202,7 +199,7 @@ ${externalBlock}
             const r = await this.client.post(`/posts/${postId}/upvote`, {});
             if (r.success) {
                 upvoted++;
-                state.upvotedPostIds = _appendCapped(state.upvotedPostIds, String(postId), MAX_STATE_IDS);
+                state.upvotedPostIds = appendCapped(state.upvotedPostIds, String(postId), MAX_STATE_IDS);
             } else {
                 console.warn(`🦞 upvote ${postId} 失敗:`, r.error);
             }
@@ -218,7 +215,7 @@ ${externalBlock}
             const r = await this.client.post(`/posts/${c.post_id}/comments`, body);
             if (r.success) {
                 commented++;
-                state.commentedPostIds = _appendCapped(state.commentedPostIds, String(c.post_id), MAX_STATE_IDS);
+                state.commentedPostIds = appendCapped(state.commentedPostIds, String(c.post_id), MAX_STATE_IDS);
             } else if (r.rateLimited) {
                 console.warn(`🦞 comment rate limited, retry_after: ${r.retry_after}s`);
                 break;
@@ -247,7 +244,7 @@ ${externalBlock}
             }
         }
 
-        this._saveState(state);
+        saveState(state);
         return { upvoted, commented, dm_replied };
     }
 
@@ -273,38 +270,6 @@ ${draft}
         }
     }
 
-    // ── State 管理 ────────────────────────────────────────────────────────
-
-    _loadState() {
-        try {
-            if (fs.existsSync(STATE_FILE)) {
-                const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-                // 補齊新欄位的預設值（向後兼容舊 state）
-                return Object.assign(
-                    { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {}, postStats: {} },
-                    parsed
-                );
-            }
-        } catch {}
-        return { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {}, postStats: {} };
-    }
-
-    _saveState(state) {
-        try {
-            const dir = path.dirname(STATE_FILE);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-        } catch (e) {
-            console.warn('🦞 [MoltbookCheck] state 儲存失敗:', e.message);
-        }
-    }
-}
-
-// ── 模組工具：將 item 加入陣列，超過 maxLen 時截斷最舊的 ──────────────────
-function _appendCapped(arr, item, maxLen) {
-    const list = arr ? [...arr] : [];
-    if (!list.includes(item)) list.push(item);
-    return list.length > maxLen ? list.slice(-maxLen) : list;
 }
 
 module.exports = MoltbookCheckAction;

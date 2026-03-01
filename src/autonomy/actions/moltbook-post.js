@@ -18,9 +18,9 @@ const fs   = require('fs');
 const path = require('path');
 
 const MoltbookClient = require('../../moltbook-client');
+const { loadState, saveState } = require('./moltbook-state');
 
 const COOLDOWN_MS = 31 * 60 * 1000; // 31 分鐘（比 API 限制多 1 分鐘緩衝）
-const STATE_FILE  = path.join(__dirname, '../../../data/moltbook-state.json');
 
 class MoltbookPostAction {
     constructor({ journal, decision, brain, memoryLayer, memory, loadPrompt }) {
@@ -48,11 +48,11 @@ class MoltbookPostAction {
         }
 
         // 2. 首次執行：生成並設定 bio
-        const state = this._loadState();
+        const state = loadState();
         if (!state.bioSet) {
             await this._initBio();
             state.bioSet = true;
-            this._saveState(state);
+            saveState(state);
         }
 
         // 3. Cooldown 檢查
@@ -89,7 +89,7 @@ class MoltbookPostAction {
 
         // 6. 更新 state 與 journal
         state.lastPostAt = Date.now();
-        this._saveState(state);
+        saveState(state);
 
         this.journal.append({
             action: 'moltbook_post',
@@ -222,31 +222,7 @@ ${memSection}
         }
     }
 
-    // ── State 管理 ────────────────────────────────────────────────────────
-
-    _loadState() {
-        try {
-            if (fs.existsSync(STATE_FILE)) {
-                const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-                // 補齊新欄位（向後兼容舊 state）
-                return Object.assign(
-                    { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {} },
-                    parsed
-                );
-            }
-        } catch {}
-        return { bioSet: false, lastPostAt: null, upvotedPostIds: [], commentedPostIds: [], lastHomeTimestamp: null, dmHistory: {} };
-    }
-
-    _saveState(state) {
-        try {
-            const dir = path.dirname(STATE_FILE);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-        } catch (e) {
-            console.warn('🦞 [MoltbookPost] state 儲存失敗:', e.message);
-        }
-    }
 }
+
 
 module.exports = MoltbookPostAction;

@@ -33,7 +33,7 @@ module.exports = function phase5(test, s) {
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
         ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],
         ['MoltbookCheckAction', 'actions/moltbook-check',   ['run', '_wrapExternal', '_askLLMForPlan', '_executePlan']],
-        ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection', '_loadState', '_saveState']],
+        ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection']],
     ];
     for (const [className, key, methods] of methodTests) {
         for (const method of methods) {
@@ -77,11 +77,13 @@ module.exports = function phase5(test, s) {
         // async function 的 return value 是 Promise（instance of Function）
         assert(checkPostEngagement.constructor.name === 'AsyncFunction');
     });
-    test('MoltbookCheckAction._loadState 回傳含 postStats 欄位', () => {
-        const MoltbookCheckAction = require('../src/autonomy/actions/moltbook-check');
-        const inst = new MoltbookCheckAction({ journal: { readRecent: () => [] }, notifier: null, decision: null, brain: null });
-        const state = inst._loadState();
-        assert('postStats' in state, 'postStats 欄位應在 _loadState 預設值中');
+    test('moltbook-state.loadState 回傳含 postStats 欄位', () => {
+        const { loadState, saveState, appendCapped } = require('../src/autonomy/actions/moltbook-state');
+        assert(typeof loadState === 'function', 'loadState 應是 function');
+        assert(typeof saveState === 'function', 'saveState 應是 function');
+        assert(typeof appendCapped === 'function', 'appendCapped 應是 function');
+        const state = loadState();
+        assert('postStats' in state, 'postStats 欄位應在 loadState 預設值中');
         assert(typeof state.postStats === 'object');
     });
     test('HealthCheckAction._shouldTriggerReflection 無異常回傳 null', () => {
