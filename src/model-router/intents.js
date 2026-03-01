@@ -41,6 +41,9 @@ const INTENT_REQUIREMENTS = {
     // 工具任務：HallucinationGuard、格式判斷等單句任務
     utility:    { requires: [],           priority: 'speed',   defaultMaxTokens: 256  },
 
+    // 社交互動：moltbook_check、moltbook_post 等 AI 社群互動，純文字輸出
+    social:     { requires: [],           priority: 'quality', defaultMaxTokens: 512  },
+
     // ── 特殊能力 intent ───────────────────────────────────────────
     // 視覺：圖片分析，需要 vision 能力
     vision:     { requires: ['vision'],   priority: 'quality', defaultMaxTokens: 1024 },
