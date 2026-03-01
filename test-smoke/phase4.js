@@ -25,8 +25,9 @@ module.exports = function phase4(test) {
         ['actions/health-check',   'src/autonomy/actions/health-check'],
         ['actions/drive-sync',       'src/autonomy/actions/drive-sync'],
         ['actions/x-post',           'src/autonomy/actions/x-post'],
-        ['actions/moltbook-check',   'src/autonomy/actions/moltbook-check'],
-        ['actions/moltbook-post',    'src/autonomy/actions/moltbook-post'],
+        ['actions/moltbook-check',          'src/autonomy/actions/moltbook-check'],
+        ['actions/moltbook-check-executor', 'src/autonomy/actions/moltbook-check-executor'],
+        ['actions/moltbook-post',           'src/autonomy/actions/moltbook-post'],
         ['context-pressure',         'src/autonomy/context-pressure'],
         ['free-will',                'src/autonomy/free-will'],
     ];

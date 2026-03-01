@@ -38,8 +38,9 @@ module.exports = function phase5(test, s) {
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
         ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],
         ['FreeWillRunner',      'free-will',                 ['run']],
-        ['MoltbookCheckAction', 'actions/moltbook-check',   ['run', '_wrapExternal', '_askLLMForPlan', '_executePlan']],
-        ['MoltbookPostAction',  'actions/moltbook-post',    ['run', '_generatePost', '_saveToReflection']],
+        ['MoltbookCheckAction',    'actions/moltbook-check',          ['run', '_wrapExternal', '_askLLMForPlan', '_saveInteractionToReflection']],
+        ['MoltbookCheckExecutor',  'actions/moltbook-check-executor', ['execute']],
+        ['MoltbookPostAction',     'actions/moltbook-post',           ['run', '_generatePost', '_saveToReflection']],
         ['PersonaManager',      'persona-manager',          ['get', 'save', 'setName', 'setRole']],
         ['SkillLoader',         'skill-loader',             ['loadSkill', 'getAutoLoadSkills', 'matchByKeywords', 'listSkills', 'reload']],
     ];

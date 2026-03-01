@@ -1,7 +1,7 @@
 /**
  * @module actions/moltbook-check
- * @role Moltbook 定期巡查 — feed/DM/通知，LLM 判斷互動優先序，Taint 保護防注入
- * @when-to-modify 調整互動策略、LLM prompt、或 Taint 標記範圍時
+ * @role Moltbook 定期巡查協調器 — fetch home、LLM 互動計畫、委派執行、冷層記憶
+ * @when-to-modify 調整互動策略、LLM prompt、Taint 標記範圍、或記憶摘要格式時
  *
  * 安全設計（方案 B）：
  *   外部 feed/DM 內容以 [EXTERNAL_CONTENT]...[/EXTERNAL_CONTENT] 包裝後傳 LLM
@@ -9,8 +9,8 @@
  *
  * 記憶整合：
  *   _askLLMForPlan() 透過 memoryLayer.recall('moltbook interaction') 補入三層記憶
- *   _executePlan() 執行後將 upvote/comment 紀錄寫回 moltbook-state.json
- *   DM 回覆前從 dmHistory 補入歷史上下文，回覆後更新 dmHistory
+ *   執行後 _saveInteractionToReflection() 寫入冷層（語義摘要，非操作記錄）
+ *   DM 回覆歷史由 MoltbookCheckExecutor 維護（moltbook-state.json dmHistory）
  */
 
 'use strict';
@@ -18,14 +18,16 @@
 const fs   = require('fs');
 const path = require('path');
 
-const MoltbookClient = require('../../moltbook-client');
+const MoltbookClient         = require('../../moltbook-client');
 const { checkPostEngagement } = require('./moltbook-engagement');
-const { loadState, saveState, appendCapped } = require('./moltbook-state');
+const { loadState }           = require('./moltbook-state');
+const MoltbookCheckExecutor   = require('./moltbook-check-executor');
 
-const MAX_UPVOTES_PER_CHECK    = 3;
-const MAX_COMMENTS_PER_CHECK   = 2;
-const MAX_DM_REPLIES_PER_CHECK = 2;
-const MAX_STATE_IDS            = 200; // upvotedPostIds / commentedPostIds 上限
+const {
+    MAX_UPVOTES_PER_CHECK,
+    MAX_COMMENTS_PER_CHECK,
+    MAX_DM_REPLIES_PER_CHECK,
+} = MoltbookCheckExecutor;
 
 class MoltbookCheckAction {
     constructor({ journal, notifier, decision, brain, memoryLayer, memory, loadPrompt }) {
@@ -38,6 +40,7 @@ class MoltbookCheckAction {
 
         const apiKey = process.env.MOLTBOOK_API_KEY;
         this.client  = apiKey ? new MoltbookClient(apiKey) : null;
+        this.executor = new MoltbookCheckExecutor({ client: this.client, decision: this.decision });
     }
 
     async run() {
@@ -68,8 +71,8 @@ class MoltbookCheckAction {
         await checkPostEngagement({ client: this.client, journal: this.journal, state });
 
         const externalBlock = this._wrapExternal({ feed, dms, mentions, state });
-        const plan = await this._askLLMForPlan(externalBlock);
-        const results = await this._executePlan(plan, state);
+        const plan    = await this._askLLMForPlan(externalBlock);
+        const results = await this.executor.execute(plan, state);
 
         const summary = `upvoted:${results.upvoted} commented:${results.commented} dm_replied:${results.dm_replied}`;
         this.journal.append({
@@ -188,71 +191,6 @@ ${externalBlock}
         }
     }
 
-    // ── 執行互動計畫（過濾已互動、更新 state）────────────────────────────
-
-    async _executePlan(plan, state) {
-        const upvotedSet   = new Set((state.upvotedPostIds || []).map(String));
-        const commentedSet = new Set((state.commentedPostIds || []).map(String));
-        let upvoted = 0, commented = 0, dm_replied = 0;
-
-        // Upvotes（過濾已互動）
-        const pendingUpvotes = (plan.upvotes || [])
-            .filter(id => !upvotedSet.has(String(id)))
-            .slice(0, MAX_UPVOTES_PER_CHECK);
-
-        for (const postId of pendingUpvotes) {
-            const r = await this.client.post(`/posts/${postId}/upvote`, {});
-            if (r.success) {
-                upvoted++;
-                state.upvotedPostIds = appendCapped(state.upvotedPostIds, String(postId), MAX_STATE_IDS);
-            } else {
-                console.warn(`🦞 upvote ${postId} 失敗:`, r.error);
-            }
-        }
-
-        // Comments（過濾已留言）
-        const pendingComments = (plan.comments || [])
-            .filter(c => !commentedSet.has(String(c.post_id)))
-            .slice(0, MAX_COMMENTS_PER_CHECK);
-        for (const c of pendingComments) {
-            const body = { content: c.content };
-            if (c.parent_id) body.parent_id = c.parent_id;
-            const r = await this.client.post(`/posts/${c.post_id}/comments`, body);
-            if (r.success) {
-                commented++;
-                state.commentedPostIds = appendCapped(state.commentedPostIds, String(c.post_id), MAX_STATE_IDS);
-            } else if (r.rateLimited) {
-                console.warn(`🦞 comment rate limited, retry_after: ${r.retry_after}s`);
-                break;
-            } else {
-                console.warn(`🦞 comment 失敗:`, r.error);
-            }
-            if (commented < pendingComments.length) {
-                await new Promise(resolve => setTimeout(resolve, 21000));
-            }
-        }
-
-        // DM replies（補入歷史脈絡後執行）
-        for (const dm of (plan.dm_replies || []).slice(0, MAX_DM_REPLIES_PER_CHECK)) {
-            const convId  = String(dm.conv_id);
-            const history = (state.dmHistory || {})[convId] || [];
-            const content = history.length > 0
-                ? await this._refineDMReply(convId, dm.content, history)
-                : dm.content;
-            const r = await this.client.post(`/messages/${convId}`, { content });
-            if (r.success) {
-                dm_replied++;
-                state.dmHistory = state.dmHistory || {};
-                state.dmHistory[convId] = [...history, { role: 'me', text: content }].slice(-3);
-            } else {
-                console.warn(`🦞 DM reply 失敗:`, r.error);
-            }
-        }
-
-        saveState(state);
-        return { upvoted, commented, dm_replied };
-    }
-
     // ── 巡查完成後寫入冷層記憶（語義摘要，非操作記錄）────────────────────
 
     _saveInteractionToReflection({ feed, dms, mentions, plan, results }) {
@@ -297,28 +235,6 @@ ${externalBlock}
             console.log(`🦞 [MoltbookCheck] 冷層記憶更新: ${filename}`);
         } catch (e) {
             console.warn('🦞 [MoltbookCheck] 冷層記憶寫入失敗:', e.message);
-        }
-    }
-
-    // ── 基於歷史脈絡精煉 DM 回覆 ──────────────────────────────────────────
-
-    async _refineDMReply(convId, draft, history) {
-        try {
-            const historyText = history.map(h => `${h.role}: ${h.text}`).join('\n');
-            const prompt = `你是 GolemBeta，正在回覆 Moltbook DM（conv_id: ${convId}）。
-
-對話歷史：
-${historyText}
-
-草稿回覆：
-${draft}
-
-請根據對話歷史確認或微調草稿，使回覆更符合上下文脈絡。
-只輸出最終回覆文字，不要其他說明。`;
-            const { text } = await this.decision.callLLM(prompt, { temperature: 0.6, intent: 'social' });
-            return text?.trim() || draft;
-        } catch (e) {
-            return draft; // 失敗就用原草稿
         }
     }
 
