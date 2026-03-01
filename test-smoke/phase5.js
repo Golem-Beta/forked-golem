@@ -132,6 +132,11 @@ module.exports = function phase5(test, s) {
         assert(typeof doGenerate === 'function', 'doGenerate 應是 function');
         assert(doGenerate.constructor.name === 'AsyncFunction', 'doGenerate 應是 async function');
     });
+    test('router-execute.execute 是 async function', () => {
+        const { execute } = require('../src/model-router/router-execute');
+        assert(typeof execute === 'function', 'execute 應是 function');
+        assert(execute.constructor.name === 'AsyncFunction', 'execute 應是 async function');
+    });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
         const auth = new GCPAuth();

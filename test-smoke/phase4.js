@@ -56,6 +56,7 @@ module.exports = function phase4(test) {
         ['router/adapters/gemini',         'src/model-router/adapters/gemini'],
         ['router/adapters/gemini-generate','src/model-router/adapters/gemini-generate'],
         ['router/selector',              'src/model-router/selector'],
+        ['router/router-execute',        'src/model-router/router-execute'],
     ];
     for (const [key, modPath] of routerSubmodules) {
         test(`model-router ${key} loadable`, () => {

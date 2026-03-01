@@ -16,6 +16,7 @@ const ProviderHealth = require('./health');
 const ModelSelector = require('./selector');
 const GeminiAdapter = require('./adapters/gemini');
 const OpenAICompatAdapter = require('./adapters/openai-compat');
+const { execute } = require('./router-execute');
 
 class ModelRouter {
     constructor() {
@@ -93,8 +94,8 @@ class ModelRouter {
     }
 
     /**
-     * 主要呼叫入口
-     * 
+     * 主要呼叫入口（委派至 router-execute）
+     *
      * @param {object} opts
      * @param {string} opts.intent - 任務意圖：decision/chat/analysis/reflection/utility/vision
      * @param {Array}  opts.messages - [{ role: 'user', content: '...' }]
@@ -107,72 +108,7 @@ class ModelRouter {
      * @param {Array}  [opts.chatHistory] - Gemini 對話歷史（contents 格式）
      */
     async complete(opts) {
-        const { intent = 'chat' } = opts;
-        const startTime = Date.now();
-
-        const candidates = this._selector.select(intent);
-        if (candidates.length === 0) {
-            throw new Error(`[ModelRouter] intent "${intent}" 無可用 provider`);
-        }
-
-        let lastError = null;
-        const failLog = [];
-
-        for (const candidate of candidates) {
-            const { provider, model } = candidate;
-            const adapter = this.adapters.get(provider);
-            if (!adapter) continue;
-
-            try {
-                const result = await adapter.complete({ ...opts, model });
-                const latency = Date.now() - startTime;
-
-                console.log(`✅ [ModelRouter] ${provider}/${model} (${latency}ms, intent=${intent})`);
-
-                // 更新健康狀態
-                this.health.onSuccess(provider, model);
-
-                return {
-                    text: result.text,
-                    usage: result.usage,
-                    grounding: result.grounding || null,
-                    rawParts: result.rawParts || null,
-                    meta: {
-                        provider,
-                        model,
-                        latency,
-                        intent,
-                    },
-                };
-
-            } catch (e) {
-                lastError = e;
-                const errType = e.providerError || 'error';
-                failLog.push(`${provider}: ${(e.message || errType).substring(0, 60)}`);
-
-                // 更新健康狀態
-                if (errType === 'fatal') {
-                    this.health.onFatal(provider);
-                } else if (errType === '429') {
-                    this.health.on429(provider, e.retryAfterMs || 90000);
-                } else if (errType === '503') {
-                    this.health.on503(provider);
-                } else {
-                    this.health.onError(provider);
-                }
-
-                console.warn(`⚠️ [ModelRouter] ${provider}/${model} failed (${errType}): ${e.message}`);
-
-                // 還有下一個候選，繼續嘗試
-                if (candidates.indexOf(candidate) < candidates.length - 1) {
-                    console.log(`🔄 [ModelRouter] failover to next candidate...`);
-                    continue;
-                }
-            }
-        }
-
-        const detail = failLog.length > 0 ? failLog.join(', ') : '未知錯誤';
-        throw new Error(`[ModelRouter] 所有 provider 均失敗 (intent: ${intent}) — ${detail}`);
+        return execute(this.adapters, this.health, this._selector, opts);
     }
 
     // --- 相容性介面 ---
