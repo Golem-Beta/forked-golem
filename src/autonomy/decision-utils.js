@@ -59,12 +59,13 @@ class DecisionUtils {
         else if (day === 0 || day === 6) period = '週末假日，語氣輕鬆';
         else if (hour > 22) period = '深夜時段，提醒休息';
         else if (hour > 18) period = '傍晚';
+        const displayBase = now.toLocaleString('zh-TW', {
+            weekday: 'long', year: 'numeric', month: 'long',
+            day: 'numeric', hour: '2-digit', minute: '2-digit',
+            hour12: false
+        });
         return {
-            display: now.toLocaleString('zh-TW', {
-                weekday: 'long', year: 'numeric', month: 'long',
-                day: 'numeric', hour: '2-digit', minute: '2-digit',
-                hour12: false
-            }),
+            display: displayBase + '（' + period + '）',
             weekday: weekdays[day],
             hour, day,
             isWeekend: day === 0 || day === 6,

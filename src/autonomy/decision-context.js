@@ -57,6 +57,7 @@ class DecisionContext {
 
         const hasReflect     = Array.isArray(available) && available.some(a => a.id === 'self_reflection');
         const codebaseSummary = hasReflect ? this._readCodebaseSummary() : '';
+        const internalState   = this._buildInternalStateSection();
 
         return {
             journalSummary,
@@ -70,6 +71,7 @@ class DecisionContext {
             pressureSection,
             synthesisSection,
             codebaseSummary,
+            internalState,
         };
     }
 
@@ -183,6 +185,29 @@ class DecisionContext {
                 return raw.substring(0, 500);
             });
             return '【近期思考歸納】\n' + snippets.join('\n\n---\n\n');
+        } catch (e) {
+            return '';
+        }
+    }
+
+    _buildInternalStateSection() {
+        try {
+            const rpdPath = path.join(process.cwd(), 'memory', 'rpd-state.json');
+            if (!fs.existsSync(rpdPath)) return '';
+            const rpd = JSON.parse(fs.readFileSync(rpdPath, 'utf8'));
+            const today = new Date().toDateString();
+            const lines = ['【自身狀態】'];
+            for (const [provider, data] of Object.entries(rpd)) {
+                if (!data || data.date !== today) continue;
+                const used = data.used || 0;
+                if (used === 0) continue;
+                // 找主要使用的 model
+                const topModel = Object.entries(data.modelUsed || {})
+                    .sort((a, b) => b[1] - a[1])[0];
+                const modelStr = topModel && topModel[1] > 0 ? ' (' + topModel[0].split('/').pop().replace('gemini-','').replace('-instruct','') + ')' : '';
+                lines.push(provider + ': 今日已用 ' + used + ' 次' + modelStr);
+            }
+            return lines.length > 1 ? lines.join('\n') : '';
         } catch (e) {
             return '';
         }
