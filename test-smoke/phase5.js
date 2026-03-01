@@ -23,6 +23,7 @@ module.exports = function phase5(test, s) {
         ['HealthReporter', 'router/health-reporter', ['fetchDeepSeekBalance', 'getDeepSeekBalance', 'getSummary']],
         ['ModelSelector',  'router/selector', ['select']],
         ['ProviderAdapter','router/adapters/base', ['complete', 'isAvailable']],
+        // openai-http 是純函式模組，單獨驗證（見下方）
         ['ExperienceMemoryLayer', 'memory/index', ['recall', 'addReflection']],
         ['DashboardLog',          'dashboard-log',     ['setupOverride']],
         ['DashboardMonitor',      'dashboard-monitor', ['startMonitoring']],
@@ -120,6 +121,10 @@ module.exports = function phase5(test, s) {
         assert(Array.isArray(r.failedActions), 'r.failedActions 應為陣列');
         assert(typeof r.errorType === 'string', 'r.errorType 應為字串');
         assert(r.errorType === 'config', 'verification_failed 應分類為 config');
+    });
+    test('openai-http.doRequest 是 function', () => {
+        const { doRequest } = require('../src/model-router/adapters/openai-http');
+        assert(typeof doRequest === 'function', 'doRequest 應是 function');
     });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
