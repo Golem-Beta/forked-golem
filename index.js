@@ -121,6 +121,22 @@ const messageHandler = new MessageHandler({
         return;
     }
 
+    // ─── Phase 0：Codebase 索引重建（非阻塞，失敗不中止啟動）──────
+    try {
+        const CodebaseIndexer = require('./src/codebase-indexer');
+        let needRebuild = true;
+        try {
+            const idx = CodebaseIndexer.load();
+            needRebuild = CodebaseIndexer.isStale(idx);
+        } catch (e) { /* 索引不存在 → 直接 rebuild */ }
+        if (needRebuild) {
+            console.log('🔍 [Indexer] 建立 codebase 索引...');
+            CodebaseIndexer.rebuild();
+        }
+    } catch (e) {
+        console.warn('⚠️ [Indexer] 索引建立失敗（不影響啟動）:', e.message);
+    }
+
     await brain.init();
     autonomy.start();
     console.log(`📡 Golem v${GOLEM_VERSION} is Online.`);

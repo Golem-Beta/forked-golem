@@ -1,0 +1,5162 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-03-01T06:50:30.659Z",
+  "gitHead": "b0c6d482cf6a709df12e3d1f63840c6196923ca6",
+  "symbols": {
+    "files": {
+      "src/autonomy/action-filter.js": {
+        "path": "src/autonomy/action-filter.js",
+        "lines": 120,
+        "classes": [
+          "ActionFilter"
+        ],
+        "functions": []
+      },
+      "src/autonomy/action-result.js": {
+        "path": "src/autonomy/action-result.js",
+        "lines": 32,
+        "classes": [],
+        "functions": [
+          "ActionResult"
+        ]
+      },
+      "src/autonomy/actions/digest.js": {
+        "path": "src/autonomy/actions/digest.js",
+        "lines": 204,
+        "classes": [
+          "DigestAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/drive-sync.js": {
+        "path": "src/autonomy/actions/drive-sync.js",
+        "lines": 121,
+        "classes": [
+          "DriveSyncAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/explore.js": {
+        "path": "src/autonomy/actions/explore.js",
+        "lines": 29,
+        "classes": [
+          "ExploreAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/github-explore.js": {
+        "path": "src/autonomy/actions/github-explore.js",
+        "lines": 173,
+        "classes": [
+          "GitHubExploreAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/google-check.js": {
+        "path": "src/autonomy/actions/google-check.js",
+        "lines": 118,
+        "classes": [
+          "GoogleCheckAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/google-classifier.js": {
+        "path": "src/autonomy/actions/google-classifier.js",
+        "lines": 101,
+        "classes": [],
+        "functions": [
+          "classifyByRules",
+          "classifyByLLM"
+        ]
+      },
+      "src/autonomy/actions/health-analyzer.js": {
+        "path": "src/autonomy/actions/health-analyzer.js",
+        "lines": 171,
+        "classes": [
+          "HealthAnalyzer"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/health-check.js": {
+        "path": "src/autonomy/actions/health-check.js",
+        "lines": 60,
+        "classes": [
+          "HealthCheckAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/index.js": {
+        "path": "src/autonomy/actions/index.js",
+        "lines": 171,
+        "classes": [
+          "ActionRunner"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/maintenance/base.js": {
+        "path": "src/autonomy/actions/maintenance/base.js",
+        "lines": 33,
+        "classes": [
+          "MaintenanceAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/maintenance/index.js": {
+        "path": "src/autonomy/actions/maintenance/index.js",
+        "lines": 51,
+        "classes": [
+          "MaintenanceRunner"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/maintenance/journal-stats.js": {
+        "path": "src/autonomy/actions/maintenance/journal-stats.js",
+        "lines": 66,
+        "classes": [
+          "JournalStatsAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/maintenance/patch-cleanup.js": {
+        "path": "src/autonomy/actions/maintenance/patch-cleanup.js",
+        "lines": 53,
+        "classes": [
+          "PatchCleanupAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/maintenance/process-audit.js": {
+        "path": "src/autonomy/actions/maintenance/process-audit.js",
+        "lines": 79,
+        "classes": [
+          "ProcessAuditAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/maintenance/rss-fetch.js": {
+        "path": "src/autonomy/actions/maintenance/rss-fetch.js",
+        "lines": 62,
+        "classes": [
+          "RssFetchAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/moltbook-check-executor.js": {
+        "path": "src/autonomy/actions/moltbook-check-executor.js",
+        "lines": 110,
+        "classes": [
+          "MoltbookCheckExecutor"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/moltbook-check.js": {
+        "path": "src/autonomy/actions/moltbook-check.js",
+        "lines": 180,
+        "classes": [
+          "MoltbookCheckAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/moltbook-engagement.js": {
+        "path": "src/autonomy/actions/moltbook-engagement.js",
+        "lines": 76,
+        "classes": [],
+        "functions": [
+          "checkPostEngagement"
+        ]
+      },
+      "src/autonomy/actions/moltbook-post.js": {
+        "path": "src/autonomy/actions/moltbook-post.js",
+        "lines": 206,
+        "classes": [
+          "MoltbookPostAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/moltbook-state.js": {
+        "path": "src/autonomy/actions/moltbook-state.js",
+        "lines": 130,
+        "classes": [],
+        "functions": [
+          "loadState",
+          "saveState",
+          "appendCapped",
+          "saveCheckReflection",
+          "savePostReflection"
+        ]
+      },
+      "src/autonomy/actions/reflect-diag.js": {
+        "path": "src/autonomy/actions/reflect-diag.js",
+        "lines": 126,
+        "classes": [
+          "ReflectDiag"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/reflect-patch-executor.js": {
+        "path": "src/autonomy/actions/reflect-patch-executor.js",
+        "lines": 166,
+        "classes": [
+          "PatchExecutor"
+        ],
+        "functions": [
+          "runSmokeGate"
+        ]
+      },
+      "src/autonomy/actions/reflect-patch.js": {
+        "path": "src/autonomy/actions/reflect-patch.js",
+        "lines": 185,
+        "classes": [
+          "ReflectPatch"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/reflect.js": {
+        "path": "src/autonomy/actions/reflect.js",
+        "lines": 53,
+        "classes": [
+          "ReflectAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/social.js": {
+        "path": "src/autonomy/actions/social.js",
+        "lines": 115,
+        "classes": [
+          "SocialAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/web-research.js": {
+        "path": "src/autonomy/actions/web-research.js",
+        "lines": 104,
+        "classes": [
+          "WebResearchAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/actions/x-post.js": {
+        "path": "src/autonomy/actions/x-post.js",
+        "lines": 77,
+        "classes": [
+          "XPostAction"
+        ],
+        "functions": []
+      },
+      "src/autonomy/context-pressure.js": {
+        "path": "src/autonomy/context-pressure.js",
+        "lines": 136,
+        "classes": [
+          "ContextPressure"
+        ],
+        "functions": []
+      },
+      "src/autonomy/decision-context.js": {
+        "path": "src/autonomy/decision-context.js",
+        "lines": 185,
+        "classes": [
+          "DecisionContext"
+        ],
+        "functions": []
+      },
+      "src/autonomy/decision-utils.js": {
+        "path": "src/autonomy/decision-utils.js",
+        "lines": 159,
+        "classes": [
+          "DecisionUtils"
+        ],
+        "functions": []
+      },
+      "src/autonomy/decision.js": {
+        "path": "src/autonomy/decision.js",
+        "lines": 169,
+        "classes": [
+          "DecisionEngine"
+        ],
+        "functions": []
+      },
+      "src/autonomy/failure-classifier.js": {
+        "path": "src/autonomy/failure-classifier.js",
+        "lines": 90,
+        "classes": [],
+        "functions": [
+          "isFailed",
+          "classifyFailure",
+          "classifyStreak",
+          "checkFailurePatterns"
+        ]
+      },
+      "src/autonomy/failure-tracker.js": {
+        "path": "src/autonomy/failure-tracker.js",
+        "lines": 69,
+        "classes": [
+          "FailureTracker"
+        ],
+        "functions": []
+      },
+      "src/autonomy/free-will.js": {
+        "path": "src/autonomy/free-will.js",
+        "lines": 126,
+        "classes": [
+          "FreeWillRunner"
+        ],
+        "functions": []
+      },
+      "src/autonomy/index.js": {
+        "path": "src/autonomy/index.js",
+        "lines": 176,
+        "classes": [
+          "AutonomyManager"
+        ],
+        "functions": []
+      },
+      "src/autonomy/journal.js": {
+        "path": "src/autonomy/journal.js",
+        "lines": 208,
+        "classes": [
+          "JournalManager"
+        ],
+        "functions": []
+      },
+      "src/autonomy/notify.js": {
+        "path": "src/autonomy/notify.js",
+        "lines": 186,
+        "classes": [
+          "Notifier"
+        ],
+        "functions": []
+      },
+      "src/autonomy/pending-patches.js": {
+        "path": "src/autonomy/pending-patches.js",
+        "lines": 82,
+        "classes": [
+          "PendingPatches"
+        ],
+        "functions": []
+      },
+      "src/brain.js": {
+        "path": "src/brain.js",
+        "lines": 126,
+        "classes": [
+          "GolemBrain"
+        ],
+        "functions": [
+          "getSystemFingerprint"
+        ]
+      },
+      "src/callback-handler.js": {
+        "path": "src/callback-handler.js",
+        "lines": 113,
+        "classes": [
+          "CallbackHandler"
+        ],
+        "functions": []
+      },
+      "src/chronos.js": {
+        "path": "src/chronos.js",
+        "lines": 130,
+        "classes": [
+          "ChronosManager"
+        ],
+        "functions": []
+      },
+      "src/codebase-indexer.js": {
+        "path": "src/codebase-indexer.js",
+        "lines": 363,
+        "classes": [
+          "CodebaseIndexer"
+        ],
+        "functions": []
+      },
+      "src/config.js": {
+        "path": "src/config.js",
+        "lines": 53,
+        "classes": [],
+        "functions": [
+          "cleanEnv",
+          "isPlaceholder"
+        ]
+      },
+      "src/context.js": {
+        "path": "src/context.js",
+        "lines": 136,
+        "classes": [
+          "UniversalContext"
+        ],
+        "functions": []
+      },
+      "src/dashboard-log.js": {
+        "path": "src/dashboard-log.js",
+        "lines": 152,
+        "classes": [
+          "DashboardLog"
+        ],
+        "functions": []
+      },
+      "src/dashboard-monitor.js": {
+        "path": "src/dashboard-monitor.js",
+        "lines": 157,
+        "classes": [
+          "DashboardMonitor"
+        ],
+        "functions": []
+      },
+      "src/dashboard-renderer.js": {
+        "path": "src/dashboard-renderer.js",
+        "lines": 126,
+        "classes": [],
+        "functions": [
+          "createWidgets",
+          "setupScreenKeys",
+          "startStdinListener",
+          "stopStdinListener"
+        ]
+      },
+      "src/dashboard.js": {
+        "path": "src/dashboard.js",
+        "lines": 206,
+        "classes": [
+          "DashboardPlugin"
+        ],
+        "functions": []
+      },
+      "src/deploy-actions.js": {
+        "path": "src/deploy-actions.js",
+        "lines": 146,
+        "classes": [
+          "DeployActions"
+        ],
+        "functions": []
+      },
+      "src/executor.js": {
+        "path": "src/executor.js",
+        "lines": 88,
+        "classes": [
+          "Executor"
+        ],
+        "functions": []
+      },
+      "src/gcp-auth.js": {
+        "path": "src/gcp-auth.js",
+        "lines": 210,
+        "classes": [
+          "GCPAuth"
+        ],
+        "functions": []
+      },
+      "src/google-commands.js": {
+        "path": "src/google-commands.js",
+        "lines": 115,
+        "classes": [
+          "GoogleCommands"
+        ],
+        "functions": []
+      },
+      "src/google-drive.js": {
+        "path": "src/google-drive.js",
+        "lines": 114,
+        "classes": [
+          "DriveClient"
+        ],
+        "functions": []
+      },
+      "src/google-gmail.js": {
+        "path": "src/google-gmail.js",
+        "lines": 78,
+        "classes": [
+          "GmailClient"
+        ],
+        "functions": []
+      },
+      "src/google-services.js": {
+        "path": "src/google-services.js",
+        "lines": 131,
+        "classes": [
+          "GoogleServices"
+        ],
+        "functions": []
+      },
+      "src/memory/cold-index.js": {
+        "path": "src/memory/cold-index.js",
+        "lines": 130,
+        "classes": [
+          "ColdIndex"
+        ],
+        "functions": [
+          "decayScore"
+        ]
+      },
+      "src/memory/index.js": {
+        "path": "src/memory/index.js",
+        "lines": 99,
+        "classes": [
+          "ExperienceMemoryLayer"
+        ],
+        "functions": []
+      },
+      "src/memory-drivers.js": {
+        "path": "src/memory-drivers.js",
+        "lines": 156,
+        "classes": [
+          "ExperienceMemory",
+          "SystemQmdDriver",
+          "SystemNativeDriver"
+        ],
+        "functions": []
+      },
+      "src/message-buffer.js": {
+        "path": "src/message-buffer.js",
+        "lines": 89,
+        "classes": [
+          "MessageBuffer"
+        ],
+        "functions": []
+      },
+      "src/message-handler.js": {
+        "path": "src/message-handler.js",
+        "lines": 132,
+        "classes": [
+          "MessageHandler"
+        ],
+        "functions": []
+      },
+      "src/message-manager.js": {
+        "path": "src/message-manager.js",
+        "lines": 50,
+        "classes": [
+          "MessageManager"
+        ],
+        "functions": []
+      },
+      "src/message-processor.js": {
+        "path": "src/message-processor.js",
+        "lines": 216,
+        "classes": [
+          "MessageProcessor"
+        ],
+        "functions": []
+      },
+      "src/model-router/adapters/base.js": {
+        "path": "src/model-router/adapters/base.js",
+        "lines": 80,
+        "classes": [
+          "ProviderAdapter"
+        ],
+        "functions": []
+      },
+      "src/model-router/adapters/gemini-generate.js": {
+        "path": "src/model-router/adapters/gemini-generate.js",
+        "lines": 107,
+        "classes": [],
+        "functions": [
+          "doGenerate"
+        ]
+      },
+      "src/model-router/adapters/gemini.js": {
+        "path": "src/model-router/adapters/gemini.js",
+        "lines": 180,
+        "classes": [
+          "GeminiAdapter"
+        ],
+        "functions": []
+      },
+      "src/model-router/adapters/openai-compat.js": {
+        "path": "src/model-router/adapters/openai-compat.js",
+        "lines": 155,
+        "classes": [
+          "OpenAICompatAdapter"
+        ],
+        "functions": []
+      },
+      "src/model-router/adapters/openai-http.js": {
+        "path": "src/model-router/adapters/openai-http.js",
+        "lines": 150,
+        "classes": [],
+        "functions": [
+          "doRequest"
+        ]
+      },
+      "src/model-router/configs.js": {
+        "path": "src/model-router/configs.js",
+        "lines": 117,
+        "classes": [],
+        "functions": []
+      },
+      "src/model-router/health-reporter.js": {
+        "path": "src/model-router/health-reporter.js",
+        "lines": 76,
+        "classes": [
+          "HealthReporter"
+        ],
+        "functions": []
+      },
+      "src/model-router/health.js": {
+        "path": "src/model-router/health.js",
+        "lines": 222,
+        "classes": [
+          "ProviderHealth"
+        ],
+        "functions": []
+      },
+      "src/model-router/index.js": {
+        "path": "src/model-router/index.js",
+        "lines": 164,
+        "classes": [
+          "ModelRouter"
+        ],
+        "functions": []
+      },
+      "src/model-router/intents.js": {
+        "path": "src/model-router/intents.js",
+        "lines": 50,
+        "classes": [],
+        "functions": []
+      },
+      "src/model-router/router-execute.js": {
+        "path": "src/model-router/router-execute.js",
+        "lines": 79,
+        "classes": [],
+        "functions": [
+          "execute"
+        ]
+      },
+      "src/model-router/selector.js": {
+        "path": "src/model-router/selector.js",
+        "lines": 80,
+        "classes": [
+          "ModelSelector"
+        ],
+        "functions": []
+      },
+      "src/moltbook-client.js": {
+        "path": "src/moltbook-client.js",
+        "lines": 99,
+        "classes": [
+          "MoltbookClient"
+        ],
+        "functions": []
+      },
+      "src/node-router.js": {
+        "path": "src/node-router.js",
+        "lines": 47,
+        "classes": [
+          "NodeRouter"
+        ],
+        "functions": []
+      },
+      "src/optic-nerve.js": {
+        "path": "src/optic-nerve.js",
+        "lines": 43,
+        "classes": [
+          "OpticNerve"
+        ],
+        "functions": []
+      },
+      "src/parsers.js": {
+        "path": "src/parsers.js",
+        "lines": 161,
+        "classes": [
+          "TriStreamParser",
+          "ResponseParser"
+        ],
+        "functions": [
+          "dbg"
+        ]
+      },
+      "src/persona-manager.js": {
+        "path": "src/persona-manager.js",
+        "lines": 60,
+        "classes": [
+          "PersonaManager"
+        ],
+        "functions": []
+      },
+      "src/prompt-loader.js": {
+        "path": "src/prompt-loader.js",
+        "lines": 41,
+        "classes": [],
+        "functions": [
+          "loadPrompt",
+          "loadFeedbackPrompt"
+        ]
+      },
+      "src/react-loop.js": {
+        "path": "src/react-loop.js",
+        "lines": 113,
+        "classes": [
+          "ReactLoop"
+        ],
+        "functions": []
+      },
+      "src/security.js": {
+        "path": "src/security.js",
+        "lines": 103,
+        "classes": [
+          "SecurityManager"
+        ],
+        "functions": []
+      },
+      "src/skill-loader.js": {
+        "path": "src/skill-loader.js",
+        "lines": 148,
+        "classes": [
+          "SkillLoader"
+        ],
+        "functions": []
+      },
+      "src/skills.js": {
+        "path": "src/skills.js",
+        "lines": 89,
+        "classes": [],
+        "functions": [
+          "CORE_DEFINITION"
+        ]
+      },
+      "src/task-controller.js": {
+        "path": "src/task-controller.js",
+        "lines": 151,
+        "classes": [
+          "TaskController"
+        ],
+        "functions": []
+      },
+      "src/tools.js": {
+        "path": "src/tools.js",
+        "lines": 61,
+        "classes": [
+          "ToolScanner",
+          "HelpManager"
+        ],
+        "functions": []
+      },
+      "src/upgrader.js": {
+        "path": "src/upgrader.js",
+        "lines": 195,
+        "classes": [
+          "Introspection",
+          "PatchManager",
+          "SystemUpgrader"
+        ],
+        "functions": []
+      },
+      "src/virtual-cmd-handler.js": {
+        "path": "src/virtual-cmd-handler.js",
+        "lines": 66,
+        "classes": [
+          "VirtualCmdHandler"
+        ],
+        "functions": []
+      },
+      "src/x-publisher.js": {
+        "path": "src/x-publisher.js",
+        "lines": 79,
+        "classes": [
+          "XPublisher"
+        ],
+        "functions": []
+      }
+    },
+    "classMethods": {
+      "ActionFilter.HARD_LIMITS": {
+        "file": "src/autonomy/action-filter.js",
+        "className": "ActionFilter",
+        "methodName": "HARD_LIMITS",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 18
+      },
+      "ActionFilter.getAvailableActions": {
+        "file": "src/autonomy/action-filter.js",
+        "className": "ActionFilter",
+        "methodName": "getAvailableActions",
+        "isAsync": false,
+        "lineStart": 20,
+        "lineEnd": 116
+      },
+      "DigestAction.constructor": {
+        "file": "src/autonomy/actions/digest.js",
+        "className": "DigestAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 16
+      },
+      "DigestAction.performDigest": {
+        "file": "src/autonomy/actions/digest.js",
+        "className": "DigestAction",
+        "methodName": "performDigest",
+        "isAsync": true,
+        "lineStart": 18,
+        "lineEnd": 140
+      },
+      "DigestAction.performMorningDigest": {
+        "file": "src/autonomy/actions/digest.js",
+        "className": "DigestAction",
+        "methodName": "performMorningDigest",
+        "isAsync": true,
+        "lineStart": 145,
+        "lineEnd": 200
+      },
+      "DriveSyncAction.constructor": {
+        "file": "src/autonomy/actions/drive-sync.js",
+        "className": "DriveSyncAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 20,
+        "lineEnd": 22
+      },
+      "DriveSyncAction.run": {
+        "file": "src/autonomy/actions/drive-sync.js",
+        "className": "DriveSyncAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 24,
+        "lineEnd": 87
+      },
+      "DriveSyncAction._getLatestReflections": {
+        "file": "src/autonomy/actions/drive-sync.js",
+        "className": "DriveSyncAction",
+        "methodName": "_getLatestReflections",
+        "isAsync": false,
+        "lineStart": 89,
+        "lineEnd": 100
+      },
+      "DriveSyncAction._syncFile": {
+        "file": "src/autonomy/actions/drive-sync.js",
+        "className": "DriveSyncAction",
+        "methodName": "_syncFile",
+        "isAsync": true,
+        "lineStart": 102,
+        "lineEnd": 117
+      },
+      "ExploreAction.constructor": {
+        "file": "src/autonomy/actions/explore.js",
+        "className": "ExploreAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 17
+      },
+      "ExploreAction.performWebResearch": {
+        "file": "src/autonomy/actions/explore.js",
+        "className": "ExploreAction",
+        "methodName": "performWebResearch",
+        "isAsync": true,
+        "lineStart": 19,
+        "lineEnd": 21
+      },
+      "ExploreAction.performGitHubExplore": {
+        "file": "src/autonomy/actions/explore.js",
+        "className": "ExploreAction",
+        "methodName": "performGitHubExplore",
+        "isAsync": true,
+        "lineStart": 23,
+        "lineEnd": 25
+      },
+      "GitHubExploreAction.constructor": {
+        "file": "src/autonomy/actions/github-explore.js",
+        "className": "GitHubExploreAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 11,
+        "lineEnd": 19
+      },
+      "GitHubExploreAction._getExploredRepos": {
+        "file": "src/autonomy/actions/github-explore.js",
+        "className": "GitHubExploreAction",
+        "methodName": "_getExploredRepos",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 27
+      },
+      "GitHubExploreAction._saveExploredRepo": {
+        "file": "src/autonomy/actions/github-explore.js",
+        "className": "GitHubExploreAction",
+        "methodName": "_saveExploredRepo",
+        "isAsync": false,
+        "lineStart": 29,
+        "lineEnd": 34
+      },
+      "GitHubExploreAction.performGitHubExplore": {
+        "file": "src/autonomy/actions/github-explore.js",
+        "className": "GitHubExploreAction",
+        "methodName": "performGitHubExplore",
+        "isAsync": true,
+        "lineStart": 36,
+        "lineEnd": 169
+      },
+      "GoogleCheckAction.constructor": {
+        "file": "src/autonomy/actions/google-check.js",
+        "className": "GoogleCheckAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 15
+      },
+      "GoogleCheckAction.run": {
+        "file": "src/autonomy/actions/google-check.js",
+        "className": "GoogleCheckAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 17,
+        "lineEnd": 114
+      },
+      "HealthAnalyzer.constructor": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 11,
+        "lineEnd": 13
+      },
+      "HealthAnalyzer.analyzeJournal": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "analyzeJournal",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 38
+      },
+      "HealthAnalyzer.analyzeLog": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "analyzeLog",
+        "isAsync": false,
+        "lineStart": 40,
+        "lineEnd": 68
+      },
+      "HealthAnalyzer.analyzeRestartLog": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "analyzeRestartLog",
+        "isAsync": false,
+        "lineStart": 70,
+        "lineEnd": 80
+      },
+      "HealthAnalyzer.analyzeProviders": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "analyzeProviders",
+        "isAsync": false,
+        "lineStart": 82,
+        "lineEnd": 106
+      },
+      "HealthAnalyzer.analyzeReflections": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "analyzeReflections",
+        "isAsync": false,
+        "lineStart": 108,
+        "lineEnd": 128
+      },
+      "HealthAnalyzer.formatReport": {
+        "file": "src/autonomy/actions/health-analyzer.js",
+        "className": "HealthAnalyzer",
+        "methodName": "formatReport",
+        "isAsync": false,
+        "lineStart": 130,
+        "lineEnd": 167
+      },
+      "HealthCheckAction.constructor": {
+        "file": "src/autonomy/actions/health-check.js",
+        "className": "HealthCheckAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 15
+      },
+      "HealthCheckAction.run": {
+        "file": "src/autonomy/actions/health-check.js",
+        "className": "HealthCheckAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 17,
+        "lineEnd": 38
+      },
+      "HealthCheckAction._shouldTriggerReflection": {
+        "file": "src/autonomy/actions/health-check.js",
+        "className": "HealthCheckAction",
+        "methodName": "_shouldTriggerReflection",
+        "isAsync": false,
+        "lineStart": 40,
+        "lineEnd": 56
+      },
+      "ActionRunner.constructor": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 46,
+        "lineEnd": 59
+      },
+      "ActionRunner.performSpontaneousChat": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performSpontaneousChat",
+        "isAsync": true,
+        "lineStart": 62,
+        "lineEnd": 62
+      },
+      "ActionRunner.onAdminReply": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "onAdminReply",
+        "isAsync": false,
+        "lineStart": 63,
+        "lineEnd": 63
+      },
+      "ActionRunner.performWebResearch": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performWebResearch",
+        "isAsync": true,
+        "lineStart": 66,
+        "lineEnd": 66
+      },
+      "ActionRunner.performSelfReflection": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performSelfReflection",
+        "isAsync": true,
+        "lineStart": 69,
+        "lineEnd": 75
+      },
+      "ActionRunner.performGitHubExplore": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performGitHubExplore",
+        "isAsync": true,
+        "lineStart": 78,
+        "lineEnd": 82
+      },
+      "ActionRunner.performDigest": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performDigest",
+        "isAsync": true,
+        "lineStart": 85,
+        "lineEnd": 85
+      },
+      "ActionRunner.performMorningDigest": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performMorningDigest",
+        "isAsync": true,
+        "lineStart": 86,
+        "lineEnd": 86
+      },
+      "ActionRunner.performHealthCheck": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performHealthCheck",
+        "isAsync": true,
+        "lineStart": 89,
+        "lineEnd": 93
+      },
+      "ActionRunner.performGoogleCheck": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performGoogleCheck",
+        "isAsync": true,
+        "lineStart": 96,
+        "lineEnd": 104
+      },
+      "ActionRunner.performDriveSync": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performDriveSync",
+        "isAsync": true,
+        "lineStart": 107,
+        "lineEnd": 115
+      },
+      "ActionRunner.performXPost": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performXPost",
+        "isAsync": true,
+        "lineStart": 118,
+        "lineEnd": 124
+      },
+      "ActionRunner._logToCalendar": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "_logToCalendar",
+        "isAsync": true,
+        "lineStart": 127,
+        "lineEnd": 141
+      },
+      "ActionRunner.performMoltbookCheck": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performMoltbookCheck",
+        "isAsync": true,
+        "lineStart": 143,
+        "lineEnd": 149
+      },
+      "ActionRunner.performMoltbookPost": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performMoltbookPost",
+        "isAsync": true,
+        "lineStart": 151,
+        "lineEnd": 157
+      },
+      "ActionRunner.hasMaintenance": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "hasMaintenance",
+        "isAsync": false,
+        "lineStart": 160,
+        "lineEnd": 160
+      },
+      "ActionRunner.performMaintenance": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performMaintenance",
+        "isAsync": true,
+        "lineStart": 161,
+        "lineEnd": 167
+      },
+      "MaintenanceAction.constructor": {
+        "file": "src/autonomy/actions/maintenance/base.js",
+        "className": "MaintenanceAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 19
+      },
+      "MaintenanceAction.run": {
+        "file": "src/autonomy/actions/maintenance/base.js",
+        "className": "MaintenanceAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 22,
+        "lineEnd": 24
+      },
+      "MaintenanceAction._record": {
+        "file": "src/autonomy/actions/maintenance/base.js",
+        "className": "MaintenanceAction",
+        "methodName": "_record",
+        "isAsync": false,
+        "lineStart": 27,
+        "lineEnd": 29
+      },
+      "MaintenanceRunner.constructor": {
+        "file": "src/autonomy/actions/maintenance/index.js",
+        "className": "MaintenanceRunner",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 16,
+        "lineEnd": 20
+      },
+      "MaintenanceRunner._load": {
+        "file": "src/autonomy/actions/maintenance/index.js",
+        "className": "MaintenanceRunner",
+        "methodName": "_load",
+        "isAsync": false,
+        "lineStart": 22,
+        "lineEnd": 35
+      },
+      "MaintenanceRunner.has": {
+        "file": "src/autonomy/actions/maintenance/index.js",
+        "className": "MaintenanceRunner",
+        "methodName": "has",
+        "isAsync": false,
+        "lineStart": 38,
+        "lineEnd": 40
+      },
+      "MaintenanceRunner.run": {
+        "file": "src/autonomy/actions/maintenance/index.js",
+        "className": "MaintenanceRunner",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 43,
+        "lineEnd": 47
+      },
+      "JournalStatsAction.constructor": {
+        "file": "src/autonomy/actions/maintenance/journal-stats.js",
+        "className": "JournalStatsAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 15
+      },
+      "JournalStatsAction.run": {
+        "file": "src/autonomy/actions/maintenance/journal-stats.js",
+        "className": "JournalStatsAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 17,
+        "lineEnd": 62
+      },
+      "PatchCleanupAction.constructor": {
+        "file": "src/autonomy/actions/maintenance/patch-cleanup.js",
+        "className": "PatchCleanupAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 15
+      },
+      "PatchCleanupAction.run": {
+        "file": "src/autonomy/actions/maintenance/patch-cleanup.js",
+        "className": "PatchCleanupAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 17,
+        "lineEnd": 49
+      },
+      "ProcessAuditAction.constructor": {
+        "file": "src/autonomy/actions/maintenance/process-audit.js",
+        "className": "ProcessAuditAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 17,
+        "lineEnd": 17
+      },
+      "ProcessAuditAction.run": {
+        "file": "src/autonomy/actions/maintenance/process-audit.js",
+        "className": "ProcessAuditAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 19,
+        "lineEnd": 75
+      },
+      "RssFetchAction.constructor": {
+        "file": "src/autonomy/actions/maintenance/rss-fetch.js",
+        "className": "RssFetchAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 18,
+        "lineEnd": 18
+      },
+      "RssFetchAction.run": {
+        "file": "src/autonomy/actions/maintenance/rss-fetch.js",
+        "className": "RssFetchAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 20,
+        "lineEnd": 38
+      },
+      "RssFetchAction._fetch": {
+        "file": "src/autonomy/actions/maintenance/rss-fetch.js",
+        "className": "RssFetchAction",
+        "methodName": "_fetch",
+        "isAsync": false,
+        "lineStart": 40,
+        "lineEnd": 51
+      },
+      "RssFetchAction._extractTitles": {
+        "file": "src/autonomy/actions/maintenance/rss-fetch.js",
+        "className": "RssFetchAction",
+        "methodName": "_extractTitles",
+        "isAsync": false,
+        "lineStart": 53,
+        "lineEnd": 58
+      },
+      "MoltbookCheckExecutor.constructor": {
+        "file": "src/autonomy/actions/moltbook-check-executor.js",
+        "className": "MoltbookCheckExecutor",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 17,
+        "lineEnd": 20
+      },
+      "MoltbookCheckExecutor.execute": {
+        "file": "src/autonomy/actions/moltbook-check-executor.js",
+        "className": "MoltbookCheckExecutor",
+        "methodName": "execute",
+        "isAsync": true,
+        "lineStart": 22,
+        "lineEnd": 83
+      },
+      "MoltbookCheckExecutor._refineDMReply": {
+        "file": "src/autonomy/actions/moltbook-check-executor.js",
+        "className": "MoltbookCheckExecutor",
+        "methodName": "_refineDMReply",
+        "isAsync": true,
+        "lineStart": 85,
+        "lineEnd": 103
+      },
+      "MoltbookCheckAction.constructor": {
+        "file": "src/autonomy/actions/moltbook-check.js",
+        "className": "MoltbookCheckAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 30,
+        "lineEnd": 41
+      },
+      "MoltbookCheckAction.run": {
+        "file": "src/autonomy/actions/moltbook-check.js",
+        "className": "MoltbookCheckAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 43,
+        "lineEnd": 87
+      },
+      "MoltbookCheckAction._wrapExternal": {
+        "file": "src/autonomy/actions/moltbook-check.js",
+        "className": "MoltbookCheckAction",
+        "methodName": "_wrapExternal",
+        "isAsync": false,
+        "lineStart": 91,
+        "lineEnd": 129
+      },
+      "MoltbookCheckAction._askLLMForPlan": {
+        "file": "src/autonomy/actions/moltbook-check.js",
+        "className": "MoltbookCheckAction",
+        "methodName": "_askLLMForPlan",
+        "isAsync": true,
+        "lineStart": 133,
+        "lineEnd": 174
+      },
+      "MoltbookPostAction.constructor": {
+        "file": "src/autonomy/actions/moltbook-post.js",
+        "className": "MoltbookPostAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 32
+      },
+      "MoltbookPostAction.run": {
+        "file": "src/autonomy/actions/moltbook-post.js",
+        "className": "MoltbookPostAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 34,
+        "lineEnd": 106
+      },
+      "MoltbookPostAction._initBio": {
+        "file": "src/autonomy/actions/moltbook-post.js",
+        "className": "MoltbookPostAction",
+        "methodName": "_initBio",
+        "isAsync": true,
+        "lineStart": 110,
+        "lineEnd": 139
+      },
+      "MoltbookPostAction._generatePost": {
+        "file": "src/autonomy/actions/moltbook-post.js",
+        "className": "MoltbookPostAction",
+        "methodName": "_generatePost",
+        "isAsync": true,
+        "lineStart": 143,
+        "lineEnd": 200
+      },
+      "ReflectDiag.constructor": {
+        "file": "src/autonomy/actions/reflect-diag.js",
+        "className": "ReflectDiag",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 9,
+        "lineEnd": 16
+      },
+      "ReflectDiag.run": {
+        "file": "src/autonomy/actions/reflect-diag.js",
+        "className": "ReflectDiag",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 24,
+        "lineEnd": 122
+      },
+      "PatchExecutor.constructor": {
+        "file": "src/autonomy/actions/reflect-patch-executor.js",
+        "className": "PatchExecutor",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 27,
+        "lineEnd": 35
+      },
+      "PatchExecutor.autoDeploy": {
+        "file": "src/autonomy/actions/reflect-patch-executor.js",
+        "className": "PatchExecutor",
+        "methodName": "autoDeploy",
+        "isAsync": true,
+        "lineStart": 40,
+        "lineEnd": 82
+      },
+      "PatchExecutor.sendForReview": {
+        "file": "src/autonomy/actions/reflect-patch-executor.js",
+        "className": "PatchExecutor",
+        "methodName": "sendForReview",
+        "isAsync": true,
+        "lineStart": 86,
+        "lineEnd": 162
+      },
+      "ReflectPatch.constructor": {
+        "file": "src/autonomy/actions/reflect-patch.js",
+        "className": "ReflectPatch",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 29
+      },
+      "ReflectPatch.run": {
+        "file": "src/autonomy/actions/reflect-patch.js",
+        "className": "ReflectPatch",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 38,
+        "lineEnd": 91
+      },
+      "ReflectPatch._handleSkillCreate": {
+        "file": "src/autonomy/actions/reflect-patch.js",
+        "className": "ReflectPatch",
+        "methodName": "_handleSkillCreate",
+        "isAsync": true,
+        "lineStart": 93,
+        "lineEnd": 127
+      },
+      "ReflectPatch._handleCorePatch": {
+        "file": "src/autonomy/actions/reflect-patch.js",
+        "className": "ReflectPatch",
+        "methodName": "_handleCorePatch",
+        "isAsync": true,
+        "lineStart": 129,
+        "lineEnd": 181
+      },
+      "ReflectAction.constructor": {
+        "file": "src/autonomy/actions/reflect.js",
+        "className": "ReflectAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 14
+      },
+      "ReflectAction.performSelfReflection": {
+        "file": "src/autonomy/actions/reflect.js",
+        "className": "ReflectAction",
+        "methodName": "performSelfReflection",
+        "isAsync": true,
+        "lineStart": 16,
+        "lineEnd": 49
+      },
+      "SocialAction.constructor": {
+        "file": "src/autonomy/actions/social.js",
+        "className": "SocialAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 8,
+        "lineEnd": 16
+      },
+      "SocialAction.performSpontaneousChat": {
+        "file": "src/autonomy/actions/social.js",
+        "className": "SocialAction",
+        "methodName": "performSpontaneousChat",
+        "isAsync": true,
+        "lineStart": 18,
+        "lineEnd": 90
+      },
+      "SocialAction.onAdminReply": {
+        "file": "src/autonomy/actions/social.js",
+        "className": "SocialAction",
+        "methodName": "onAdminReply",
+        "isAsync": false,
+        "lineStart": 95,
+        "lineEnd": 111
+      },
+      "WebResearchAction.constructor": {
+        "file": "src/autonomy/actions/web-research.js",
+        "className": "WebResearchAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 8,
+        "lineEnd": 14
+      },
+      "WebResearchAction.performWebResearch": {
+        "file": "src/autonomy/actions/web-research.js",
+        "className": "WebResearchAction",
+        "methodName": "performWebResearch",
+        "isAsync": true,
+        "lineStart": 16,
+        "lineEnd": 100
+      },
+      "XPostAction.constructor": {
+        "file": "src/autonomy/actions/x-post.js",
+        "className": "XPostAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 8,
+        "lineEnd": 13
+      },
+      "XPostAction.performXPost": {
+        "file": "src/autonomy/actions/x-post.js",
+        "className": "XPostAction",
+        "methodName": "performXPost",
+        "isAsync": true,
+        "lineStart": 15,
+        "lineEnd": 73
+      },
+      "ContextPressure.constructor": {
+        "file": "src/autonomy/context-pressure.js",
+        "className": "ContextPressure",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 34,
+        "lineEnd": 37
+      },
+      "ContextPressure.evaluate": {
+        "file": "src/autonomy/context-pressure.js",
+        "className": "ContextPressure",
+        "methodName": "evaluate",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 57
+      },
+      "ContextPressure._checkIdleActions": {
+        "file": "src/autonomy/context-pressure.js",
+        "className": "ContextPressure",
+        "methodName": "_checkIdleActions",
+        "isAsync": false,
+        "lineStart": 61,
+        "lineEnd": 83
+      },
+      "ContextPressure._checkExternalSignals": {
+        "file": "src/autonomy/context-pressure.js",
+        "className": "ContextPressure",
+        "methodName": "_checkExternalSignals",
+        "isAsync": false,
+        "lineStart": 87,
+        "lineEnd": 120
+      },
+      "ContextPressure._checkConsecutiveRest": {
+        "file": "src/autonomy/context-pressure.js",
+        "className": "ContextPressure",
+        "methodName": "_checkConsecutiveRest",
+        "isAsync": false,
+        "lineStart": 124,
+        "lineEnd": 132
+      },
+      "DecisionContext.constructor": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 28,
+        "lineEnd": 34
+      },
+      "DecisionContext.build": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "build",
+        "isAsync": true,
+        "lineStart": 44,
+        "lineEnd": 69
+      },
+      "DecisionContext._buildJournalSummary": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_buildJournalSummary",
+        "isAsync": false,
+        "lineStart": 73,
+        "lineEnd": 79
+      },
+      "DecisionContext._recallBrainMemory": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_recallBrainMemory",
+        "isAsync": true,
+        "lineStart": 81,
+        "lineEnd": 97
+      },
+      "DecisionContext._buildDiversitySection": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_buildDiversitySection",
+        "isAsync": false,
+        "lineStart": 99,
+        "lineEnd": 116
+      },
+      "DecisionContext._recallThreeLayers": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_recallThreeLayers",
+        "isAsync": true,
+        "lineStart": 118,
+        "lineEnd": 135
+      },
+      "DecisionContext._bm25Search": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_bm25Search",
+        "isAsync": false,
+        "lineStart": 137,
+        "lineEnd": 156
+      },
+      "DecisionContext._readLatestSynthesis": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_readLatestSynthesis",
+        "isAsync": false,
+        "lineStart": 158,
+        "lineEnd": 174
+      },
+      "DecisionContext._buildQuietQueueSection": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_buildQuietQueueSection",
+        "isAsync": false,
+        "lineStart": 176,
+        "lineEnd": 181
+      },
+      "DecisionUtils.loadAutonomyConfig": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "loadAutonomyConfig",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 35
+      },
+      "DecisionUtils.readSoul": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "readSoul",
+        "isAsync": false,
+        "lineStart": 39,
+        "lineEnd": 49
+      },
+      "DecisionUtils.getTimeContext": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "getTimeContext",
+        "isAsync": false,
+        "lineStart": 51,
+        "lineEnd": 74
+      },
+      "DecisionUtils._parseJSDocHeader": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "_parseJSDocHeader",
+        "isAsync": false,
+        "lineStart": 76,
+        "lineEnd": 81
+      },
+      "DecisionUtils.getProjectFileList": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "getProjectFileList",
+        "isAsync": false,
+        "lineStart": 83,
+        "lineEnd": 115
+      },
+      "DecisionUtils.extractCodeSection": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "extractCodeSection",
+        "isAsync": false,
+        "lineStart": 122,
+        "lineEnd": 139
+      },
+      "DecisionUtils.saveReflection": {
+        "file": "src/autonomy/decision-utils.js",
+        "className": "DecisionUtils",
+        "methodName": "saveReflection",
+        "isAsync": false,
+        "lineStart": 141,
+        "lineEnd": 154
+      },
+      "DecisionEngine.constructor": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 36
+      },
+      "DecisionEngine.loadAutonomyConfig": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "loadAutonomyConfig",
+        "isAsync": false,
+        "lineStart": 40,
+        "lineEnd": 40
+      },
+      "DecisionEngine.readSoul": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "readSoul",
+        "isAsync": false,
+        "lineStart": 41,
+        "lineEnd": 41
+      },
+      "DecisionEngine.getTimeContext": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "getTimeContext",
+        "isAsync": false,
+        "lineStart": 42,
+        "lineEnd": 42
+      },
+      "DecisionEngine.getProjectFileList": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "getProjectFileList",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 43
+      },
+      "DecisionEngine.extractCodeSection": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "extractCodeSection",
+        "isAsync": false,
+        "lineStart": 44,
+        "lineEnd": 44
+      },
+      "DecisionEngine.saveReflection": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "saveReflection",
+        "isAsync": false,
+        "lineStart": 45,
+        "lineEnd": 45
+      },
+      "DecisionEngine.getAvailableActions": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "getAvailableActions",
+        "isAsync": false,
+        "lineStart": 46,
+        "lineEnd": 46
+      },
+      "DecisionEngine.callLLM": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "callLLM",
+        "isAsync": true,
+        "lineStart": 51,
+        "lineEnd": 68
+      },
+      "DecisionEngine.lastModel": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "lastModel",
+        "isAsync": false,
+        "lineStart": 70,
+        "lineEnd": 73
+      },
+      "DecisionEngine.lastTokens": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "lastTokens",
+        "isAsync": false,
+        "lineStart": 75,
+        "lineEnd": 77
+      },
+      "DecisionEngine.makeDecision": {
+        "file": "src/autonomy/decision.js",
+        "className": "DecisionEngine",
+        "methodName": "makeDecision",
+        "isAsync": true,
+        "lineStart": 81,
+        "lineEnd": 165
+      },
+      "FailureTracker.constructor": {
+        "file": "src/autonomy/failure-tracker.js",
+        "className": "FailureTracker",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 14
+      },
+      "FailureTracker.record": {
+        "file": "src/autonomy/failure-tracker.js",
+        "className": "FailureTracker",
+        "methodName": "record",
+        "isAsync": true,
+        "lineStart": 20,
+        "lineEnd": 47
+      },
+      "FailureTracker.isCooling": {
+        "file": "src/autonomy/failure-tracker.js",
+        "className": "FailureTracker",
+        "methodName": "isCooling",
+        "isAsync": false,
+        "lineStart": 50,
+        "lineEnd": 54
+      },
+      "FailureTracker.getSummary": {
+        "file": "src/autonomy/failure-tracker.js",
+        "className": "FailureTracker",
+        "methodName": "getSummary",
+        "isAsync": false,
+        "lineStart": 57,
+        "lineEnd": 65
+      },
+      "FreeWillRunner.constructor": {
+        "file": "src/autonomy/free-will.js",
+        "className": "FreeWillRunner",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 25
+      },
+      "FreeWillRunner.run": {
+        "file": "src/autonomy/free-will.js",
+        "className": "FreeWillRunner",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 27,
+        "lineEnd": 122
+      },
+      "AutonomyManager.constructor": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 26,
+        "lineEnd": 81
+      },
+      "AutonomyManager.start": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "start",
+        "isAsync": false,
+        "lineStart": 85,
+        "lineEnd": 100
+      },
+      "AutonomyManager.scheduleNextAwakening": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "scheduleNextAwakening",
+        "isAsync": false,
+        "lineStart": 102,
+        "lineEnd": 137
+      },
+      "AutonomyManager.manifestFreeWill": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "manifestFreeWill",
+        "isAsync": true,
+        "lineStart": 139,
+        "lineEnd": 142
+      },
+      "AutonomyManager.appendJournal": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "appendJournal",
+        "isAsync": false,
+        "lineStart": 147,
+        "lineEnd": 147
+      },
+      "AutonomyManager.readRecentJournal": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "readRecentJournal",
+        "isAsync": false,
+        "lineStart": 149,
+        "lineEnd": 149
+      },
+      "AutonomyManager.searchJournal": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "searchJournal",
+        "isAsync": false,
+        "lineStart": 151,
+        "lineEnd": 151
+      },
+      "AutonomyManager.buildJournalStats": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "buildJournalStats",
+        "isAsync": false,
+        "lineStart": 153,
+        "lineEnd": 153
+      },
+      "AutonomyManager.sendNotification": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "sendNotification",
+        "isAsync": false,
+        "lineStart": 155,
+        "lineEnd": 155
+      },
+      "AutonomyManager._drainAndSend": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "_drainAndSend",
+        "isAsync": true,
+        "lineStart": 157,
+        "lineEnd": 169
+      },
+      "AutonomyManager.onAdminReply": {
+        "file": "src/autonomy/index.js",
+        "className": "AutonomyManager",
+        "methodName": "onAdminReply",
+        "isAsync": false,
+        "lineStart": 172,
+        "lineEnd": 172
+      },
+      "JournalManager.constructor": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 18
+      },
+      "JournalManager._ensureSaneSize": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "_ensureSaneSize",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 38
+      },
+      "JournalManager.rebuildIndex": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "rebuildIndex",
+        "isAsync": false,
+        "lineStart": 42,
+        "lineEnd": 61
+      },
+      "JournalManager.search": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "search",
+        "isAsync": false,
+        "lineStart": 63,
+        "lineEnd": 72
+      },
+      "JournalManager.readRecent": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "readRecent",
+        "isAsync": false,
+        "lineStart": 76,
+        "lineEnd": 93
+      },
+      "JournalManager.appendLoopResult": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "appendLoopResult",
+        "isAsync": false,
+        "lineStart": 99,
+        "lineEnd": 101
+      },
+      "JournalManager.append": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "append",
+        "isAsync": false,
+        "lineStart": 103,
+        "lineEnd": 122
+      },
+      "JournalManager.buildStats": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "buildStats",
+        "isAsync": false,
+        "lineStart": 126,
+        "lineEnd": 188
+      },
+      "JournalManager.hasActionToday": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "hasActionToday",
+        "isAsync": false,
+        "lineStart": 190,
+        "lineEnd": 194
+      },
+      "JournalManager._toSearchText": {
+        "file": "src/autonomy/journal.js",
+        "className": "JournalManager",
+        "methodName": "_toSearchText",
+        "isAsync": false,
+        "lineStart": 198,
+        "lineEnd": 204
+      },
+      "Notifier.constructor": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 24,
+        "lineEnd": 34
+      },
+      "Notifier.setQuietMode": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "setQuietMode",
+        "isAsync": false,
+        "lineStart": 39,
+        "lineEnd": 41
+      },
+      "Notifier.drainQuietQueue": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "drainQuietQueue",
+        "isAsync": false,
+        "lineStart": 46,
+        "lineEnd": 51
+      },
+      "Notifier.isHardFailed": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "isHardFailed",
+        "isAsync": false,
+        "lineStart": 57,
+        "lineEnd": 59
+      },
+      "Notifier._loadQuietQueueFromDisk": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "_loadQuietQueueFromDisk",
+        "isAsync": false,
+        "lineStart": 64,
+        "lineEnd": 78
+      },
+      "Notifier._saveQuietQueue": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "_saveQuietQueue",
+        "isAsync": false,
+        "lineStart": 83,
+        "lineEnd": 90
+      },
+      "Notifier.sendToAdmin": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "sendToAdmin",
+        "isAsync": true,
+        "lineStart": 95,
+        "lineEnd": 164
+      },
+      "Notifier.sendNotification": {
+        "file": "src/autonomy/notify.js",
+        "className": "Notifier",
+        "methodName": "sendNotification",
+        "isAsync": true,
+        "lineStart": 169,
+        "lineEnd": 182
+      },
+      "PendingPatches.constructor": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 9,
+        "lineEnd": 11
+      },
+      "PendingPatches._read": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "_read",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 18
+      },
+      "PendingPatches._write": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "_write",
+        "isAsync": false,
+        "lineStart": 20,
+        "lineEnd": 24
+      },
+      "PendingPatches.add": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "add",
+        "isAsync": false,
+        "lineStart": 27,
+        "lineEnd": 44
+      },
+      "PendingPatches.listPending": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "listPending",
+        "isAsync": false,
+        "lineStart": 47,
+        "lineEnd": 49
+      },
+      "PendingPatches.getById": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "getById",
+        "isAsync": false,
+        "lineStart": 52,
+        "lineEnd": 54
+      },
+      "PendingPatches.resolve": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "resolve",
+        "isAsync": false,
+        "lineStart": 57,
+        "lineEnd": 65
+      },
+      "PendingPatches.updateNotified": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "updateNotified",
+        "isAsync": false,
+        "lineStart": 68,
+        "lineEnd": 73
+      },
+      "PendingPatches.pendingCount": {
+        "file": "src/autonomy/pending-patches.js",
+        "className": "PendingPatches",
+        "methodName": "pendingCount",
+        "isAsync": false,
+        "lineStart": 76,
+        "lineEnd": 78
+      },
+      "GolemBrain.constructor": {
+        "file": "src/brain.js",
+        "className": "GolemBrain",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 18,
+        "lineEnd": 32
+      },
+      "GolemBrain.init": {
+        "file": "src/brain.js",
+        "className": "GolemBrain",
+        "methodName": "init",
+        "isAsync": true,
+        "lineStart": 34,
+        "lineEnd": 62
+      },
+      "GolemBrain.recall": {
+        "file": "src/brain.js",
+        "className": "GolemBrain",
+        "methodName": "recall",
+        "isAsync": true,
+        "lineStart": 64,
+        "lineEnd": 73
+      },
+      "GolemBrain.memorize": {
+        "file": "src/brain.js",
+        "className": "GolemBrain",
+        "methodName": "memorize",
+        "isAsync": true,
+        "lineStart": 75,
+        "lineEnd": 82
+      },
+      "GolemBrain.sendMessage": {
+        "file": "src/brain.js",
+        "className": "GolemBrain",
+        "methodName": "sendMessage",
+        "isAsync": true,
+        "lineStart": 84,
+        "lineEnd": 122
+      },
+      "CallbackHandler.constructor": {
+        "file": "src/callback-handler.js",
+        "className": "CallbackHandler",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 17
+      },
+      "CallbackHandler.handle": {
+        "file": "src/callback-handler.js",
+        "className": "CallbackHandler",
+        "methodName": "handle",
+        "isAsync": true,
+        "lineStart": 19,
+        "lineEnd": 109
+      },
+      "ChronosManager.constructor": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 16
+      },
+      "ChronosManager._load": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "_load",
+        "isAsync": false,
+        "lineStart": 18,
+        "lineEnd": 30
+      },
+      "ChronosManager._save": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "_save",
+        "isAsync": false,
+        "lineStart": 32,
+        "lineEnd": 40
+      },
+      "ChronosManager.rebuild": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "rebuild",
+        "isAsync": false,
+        "lineStart": 42,
+        "lineEnd": 62
+      },
+      "ChronosManager._arm": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "_arm",
+        "isAsync": false,
+        "lineStart": 64,
+        "lineEnd": 69
+      },
+      "ChronosManager._fire": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "_fire",
+        "isAsync": false,
+        "lineStart": 71,
+        "lineEnd": 85
+      },
+      "ChronosManager.add": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "add",
+        "isAsync": false,
+        "lineStart": 87,
+        "lineEnd": 104
+      },
+      "ChronosManager.list": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "list",
+        "isAsync": false,
+        "lineStart": 106,
+        "lineEnd": 116
+      },
+      "ChronosManager.cancel": {
+        "file": "src/chronos.js",
+        "className": "ChronosManager",
+        "methodName": "cancel",
+        "isAsync": false,
+        "lineStart": 118,
+        "lineEnd": 126
+      },
+      "CodebaseIndexer.scan": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "scan",
+        "isAsync": false,
+        "lineStart": 34,
+        "lineEnd": 76
+      },
+      "CodebaseIndexer.lookup": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "lookup",
+        "isAsync": false,
+        "lineStart": 84,
+        "lineEnd": 99
+      },
+      "CodebaseIndexer.extractSubmodules": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "extractSubmodules",
+        "isAsync": false,
+        "lineStart": 107,
+        "lineEnd": 122
+      },
+      "CodebaseIndexer.save": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "save",
+        "isAsync": false,
+        "lineStart": 129,
+        "lineEnd": 133
+      },
+      "CodebaseIndexer.load": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "load",
+        "isAsync": false,
+        "lineStart": 140,
+        "lineEnd": 142
+      },
+      "CodebaseIndexer.isStale": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "isStale",
+        "isAsync": false,
+        "lineStart": 149,
+        "lineEnd": 156
+      },
+      "CodebaseIndexer.generateSummary": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "generateSummary",
+        "isAsync": false,
+        "lineStart": 163,
+        "lineEnd": 197
+      },
+      "CodebaseIndexer.rebuild": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "rebuild",
+        "isAsync": false,
+        "lineStart": 204,
+        "lineEnd": 211
+      },
+      "CodebaseIndexer._gitHead": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "_gitHead",
+        "isAsync": false,
+        "lineStart": 215,
+        "lineEnd": 217
+      },
+      "CodebaseIndexer._collectFiles": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "_collectFiles",
+        "isAsync": false,
+        "lineStart": 219,
+        "lineEnd": 235
+      },
+      "CodebaseIndexer._parseFile": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "_parseFile",
+        "isAsync": false,
+        "lineStart": 237,
+        "lineEnd": 320
+      },
+      "CodebaseIndexer._extractClass": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "_extractClass",
+        "isAsync": false,
+        "lineStart": 322,
+        "lineEnd": 340
+      },
+      "CodebaseIndexer._lineOf": {
+        "file": "src/codebase-indexer.js",
+        "className": "CodebaseIndexer",
+        "methodName": "_lineOf",
+        "isAsync": false,
+        "lineStart": 342,
+        "lineEnd": 349
+      },
+      "UniversalContext.constructor": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 18,
+        "lineEnd": 22
+      },
+      "UniversalContext.userId": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "userId",
+        "isAsync": false,
+        "lineStart": 24,
+        "lineEnd": 30
+      },
+      "UniversalContext.chatId": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "chatId",
+        "isAsync": false,
+        "lineStart": 32,
+        "lineEnd": 37
+      },
+      "UniversalContext.text": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "text",
+        "isAsync": false,
+        "lineStart": 39,
+        "lineEnd": 45
+      },
+      "UniversalContext.replyText": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "replyText",
+        "isAsync": false,
+        "lineStart": 47,
+        "lineEnd": 54
+      },
+      "UniversalContext.messageTime": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "messageTime",
+        "isAsync": false,
+        "lineStart": 56,
+        "lineEnd": 64
+      },
+      "UniversalContext.getAttachment": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "getAttachment",
+        "isAsync": true,
+        "lineStart": 66,
+        "lineEnd": 95
+      },
+      "UniversalContext.isAdmin": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "isAdmin",
+        "isAsync": false,
+        "lineStart": 97,
+        "lineEnd": 100
+      },
+      "UniversalContext.reply": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "reply",
+        "isAsync": true,
+        "lineStart": 102,
+        "lineEnd": 104
+      },
+      "UniversalContext.sendDocument": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "sendDocument",
+        "isAsync": true,
+        "lineStart": 106,
+        "lineEnd": 122
+      },
+      "UniversalContext.sendTyping": {
+        "file": "src/context.js",
+        "className": "UniversalContext",
+        "methodName": "sendTyping",
+        "isAsync": true,
+        "lineStart": 124,
+        "lineEnd": 131
+      },
+      "DashboardLog.constructor": {
+        "file": "src/dashboard-log.js",
+        "className": "DashboardLog",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 9,
+        "lineEnd": 11
+      },
+      "DashboardLog.setupOverride": {
+        "file": "src/dashboard-log.js",
+        "className": "DashboardLog",
+        "methodName": "setupOverride",
+        "isAsync": false,
+        "lineStart": 16,
+        "lineEnd": 110
+      },
+      "DashboardLog._initLogStream": {
+        "file": "src/dashboard-log.js",
+        "className": "DashboardLog",
+        "methodName": "_initLogStream",
+        "isAsync": false,
+        "lineStart": 115,
+        "lineEnd": 130
+      },
+      "DashboardLog._writeLog": {
+        "file": "src/dashboard-log.js",
+        "className": "DashboardLog",
+        "methodName": "_writeLog",
+        "isAsync": false,
+        "lineStart": 132,
+        "lineEnd": 148
+      },
+      "DashboardMonitor.constructor": {
+        "file": "src/dashboard-monitor.js",
+        "className": "DashboardMonitor",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 8,
+        "lineEnd": 11
+      },
+      "DashboardMonitor._formatCountdown": {
+        "file": "src/dashboard-monitor.js",
+        "className": "DashboardMonitor",
+        "methodName": "_formatCountdown",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 30
+      },
+      "DashboardMonitor.startMonitoring": {
+        "file": "src/dashboard-monitor.js",
+        "className": "DashboardMonitor",
+        "methodName": "startMonitoring",
+        "isAsync": false,
+        "lineStart": 35,
+        "lineEnd": 153
+      },
+      "DashboardPlugin.constructor": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 70
+      },
+      "DashboardPlugin.inject": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "inject",
+        "isAsync": false,
+        "lineStart": 76,
+        "lineEnd": 79
+      },
+      "DashboardPlugin._buildUI": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "_buildUI",
+        "isAsync": false,
+        "lineStart": 84,
+        "lineEnd": 99
+      },
+      "DashboardPlugin._destroyUI": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "_destroyUI",
+        "isAsync": false,
+        "lineStart": 101,
+        "lineEnd": 117
+      },
+      "DashboardPlugin._startStdinListener": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "_startStdinListener",
+        "isAsync": false,
+        "lineStart": 122,
+        "lineEnd": 139
+      },
+      "DashboardPlugin._stopStdinListener": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "_stopStdinListener",
+        "isAsync": false,
+        "lineStart": 141,
+        "lineEnd": 144
+      },
+      "DashboardPlugin.detach": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "detach",
+        "isAsync": false,
+        "lineStart": 149,
+        "lineEnd": 175
+      },
+      "DashboardPlugin.reattach": {
+        "file": "src/dashboard.js",
+        "className": "DashboardPlugin",
+        "methodName": "reattach",
+        "isAsync": false,
+        "lineStart": 177,
+        "lineEnd": 196
+      },
+      "DeployActions.constructor": {
+        "file": "src/deploy-actions.js",
+        "className": "DeployActions",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 15
+      },
+      "DeployActions.runSmokeGate": {
+        "file": "src/deploy-actions.js",
+        "className": "DeployActions",
+        "methodName": "runSmokeGate",
+        "isAsync": true,
+        "lineStart": 17,
+        "lineEnd": 26
+      },
+      "DeployActions.deploy": {
+        "file": "src/deploy-actions.js",
+        "className": "DeployActions",
+        "methodName": "deploy",
+        "isAsync": true,
+        "lineStart": 28,
+        "lineEnd": 80
+      },
+      "DeployActions._generateSynthesis": {
+        "file": "src/deploy-actions.js",
+        "className": "DeployActions",
+        "methodName": "_generateSynthesis",
+        "isAsync": true,
+        "lineStart": 82,
+        "lineEnd": 105
+      },
+      "DeployActions.drop": {
+        "file": "src/deploy-actions.js",
+        "className": "DeployActions",
+        "methodName": "drop",
+        "isAsync": true,
+        "lineStart": 107,
+        "lineEnd": 118
+      },
+      "DeployActions.listPatches": {
+        "file": "src/deploy-actions.js",
+        "className": "DeployActions",
+        "methodName": "listPatches",
+        "isAsync": true,
+        "lineStart": 120,
+        "lineEnd": 142
+      },
+      "Executor.constructor": {
+        "file": "src/executor.js",
+        "className": "Executor",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 11,
+        "lineEnd": 25
+      },
+      "Executor.run": {
+        "file": "src/executor.js",
+        "className": "Executor",
+        "methodName": "run",
+        "isAsync": false,
+        "lineStart": 27,
+        "lineEnd": 75
+      },
+      "Executor.getWorkspace": {
+        "file": "src/executor.js",
+        "className": "Executor",
+        "methodName": "getWorkspace",
+        "isAsync": false,
+        "lineStart": 77,
+        "lineEnd": 77
+      },
+      "Executor.cleanup": {
+        "file": "src/executor.js",
+        "className": "Executor",
+        "methodName": "cleanup",
+        "isAsync": false,
+        "lineStart": 79,
+        "lineEnd": 84
+      },
+      "GCPAuth.constructor": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 36
+      },
+      "GCPAuth._ensureConfigDir": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "_ensureConfigDir",
+        "isAsync": false,
+        "lineStart": 40,
+        "lineEnd": 45
+      },
+      "GCPAuth.saveTokens": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "saveTokens",
+        "isAsync": false,
+        "lineStart": 49,
+        "lineEnd": 53
+      },
+      "GCPAuth.loadTokens": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "loadTokens",
+        "isAsync": false,
+        "lineStart": 55,
+        "lineEnd": 66
+      },
+      "GCPAuth._clearTokens": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "_clearTokens",
+        "isAsync": false,
+        "lineStart": 68,
+        "lineEnd": 76
+      },
+      "GCPAuth.isAuthenticated": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "isAuthenticated",
+        "isAsync": false,
+        "lineStart": 83,
+        "lineEnd": 86
+      },
+      "GCPAuth.ensureAuthenticated": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "ensureAuthenticated",
+        "isAsync": true,
+        "lineStart": 92,
+        "lineEnd": 111
+      },
+      "GCPAuth.getClient": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "getClient",
+        "isAsync": true,
+        "lineStart": 117,
+        "lineEnd": 126
+      },
+      "GCPAuth.startLoopbackFlow": {
+        "file": "src/gcp-auth.js",
+        "className": "GCPAuth",
+        "methodName": "startLoopbackFlow",
+        "isAsync": true,
+        "lineStart": 133,
+        "lineEnd": 206
+      },
+      "GoogleCommands.constructor": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 6,
+        "lineEnd": 9
+      },
+      "GoogleCommands._guard": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "_guard",
+        "isAsync": false,
+        "lineStart": 11,
+        "lineEnd": 17
+      },
+      "GoogleCommands._simplifyMime": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "_simplifyMime",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 30
+      },
+      "GoogleCommands.gmail": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "gmail",
+        "isAsync": true,
+        "lineStart": 32,
+        "lineEnd": 50
+      },
+      "GoogleCommands.calendar": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "calendar",
+        "isAsync": true,
+        "lineStart": 52,
+        "lineEnd": 71
+      },
+      "GoogleCommands.tasks": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "tasks",
+        "isAsync": true,
+        "lineStart": 73,
+        "lineEnd": 90
+      },
+      "GoogleCommands.drive": {
+        "file": "src/google-commands.js",
+        "className": "GoogleCommands",
+        "methodName": "drive",
+        "isAsync": true,
+        "lineStart": 92,
+        "lineEnd": 111
+      },
+      "DriveClient.constructor": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 13
+      },
+      "DriveClient._init": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "_init",
+        "isAsync": true,
+        "lineStart": 15,
+        "lineEnd": 19
+      },
+      "DriveClient.listFiles": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "listFiles",
+        "isAsync": true,
+        "lineStart": 22,
+        "lineEnd": 32
+      },
+      "DriveClient.findFile": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "findFile",
+        "isAsync": true,
+        "lineStart": 35,
+        "lineEnd": 46
+      },
+      "DriveClient.createFolder": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "createFolder",
+        "isAsync": true,
+        "lineStart": 48,
+        "lineEnd": 59
+      },
+      "DriveClient.uploadFile": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "uploadFile",
+        "isAsync": true,
+        "lineStart": 62,
+        "lineEnd": 75
+      },
+      "DriveClient.updateFile": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "updateFile",
+        "isAsync": true,
+        "lineStart": 78,
+        "lineEnd": 90
+      },
+      "DriveClient.readFile": {
+        "file": "src/google-drive.js",
+        "className": "DriveClient",
+        "methodName": "readFile",
+        "isAsync": true,
+        "lineStart": 93,
+        "lineEnd": 110
+      },
+      "GmailClient.constructor": {
+        "file": "src/google-gmail.js",
+        "className": "GmailClient",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 13
+      },
+      "GmailClient._init": {
+        "file": "src/google-gmail.js",
+        "className": "GmailClient",
+        "methodName": "_init",
+        "isAsync": true,
+        "lineStart": 15,
+        "lineEnd": 19
+      },
+      "GmailClient.listUnread": {
+        "file": "src/google-gmail.js",
+        "className": "GmailClient",
+        "methodName": "listUnread",
+        "isAsync": true,
+        "lineStart": 22,
+        "lineEnd": 33
+      },
+      "GmailClient._fetchMessageMeta": {
+        "file": "src/google-gmail.js",
+        "className": "GmailClient",
+        "methodName": "_fetchMessageMeta",
+        "isAsync": true,
+        "lineStart": 35,
+        "lineEnd": 43
+      },
+      "GmailClient.readMessage": {
+        "file": "src/google-gmail.js",
+        "className": "GmailClient",
+        "methodName": "readMessage",
+        "isAsync": true,
+        "lineStart": 46,
+        "lineEnd": 56
+      },
+      "GmailClient._extractBody": {
+        "file": "src/google-gmail.js",
+        "className": "GmailClient",
+        "methodName": "_extractBody",
+        "isAsync": false,
+        "lineStart": 58,
+        "lineEnd": 74
+      },
+      "GoogleServices.constructor": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 20
+      },
+      "GoogleServices._init": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "_init",
+        "isAsync": true,
+        "lineStart": 23,
+        "lineEnd": 28
+      },
+      "GoogleServices.listUnread": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "listUnread",
+        "isAsync": true,
+        "lineStart": 32,
+        "lineEnd": 32
+      },
+      "GoogleServices.readMessage": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "readMessage",
+        "isAsync": true,
+        "lineStart": 33,
+        "lineEnd": 33
+      },
+      "GoogleServices.listEvents": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "listEvents",
+        "isAsync": true,
+        "lineStart": 38,
+        "lineEnd": 57
+      },
+      "GoogleServices.createEvent": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "createEvent",
+        "isAsync": true,
+        "lineStart": 60,
+        "lineEnd": 71
+      },
+      "GoogleServices.listFiles": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "listFiles",
+        "isAsync": true,
+        "lineStart": 75,
+        "lineEnd": 75
+      },
+      "GoogleServices.findFile": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "findFile",
+        "isAsync": true,
+        "lineStart": 76,
+        "lineEnd": 76
+      },
+      "GoogleServices.createFolder": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "createFolder",
+        "isAsync": true,
+        "lineStart": 77,
+        "lineEnd": 77
+      },
+      "GoogleServices.uploadFile": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "uploadFile",
+        "isAsync": true,
+        "lineStart": 78,
+        "lineEnd": 78
+      },
+      "GoogleServices.updateFile": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "updateFile",
+        "isAsync": true,
+        "lineStart": 79,
+        "lineEnd": 79
+      },
+      "GoogleServices.readFile": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "readFile",
+        "isAsync": true,
+        "lineStart": 80,
+        "lineEnd": 80
+      },
+      "GoogleServices._getDefaultTaskListId": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "_getDefaultTaskListId",
+        "isAsync": true,
+        "lineStart": 84,
+        "lineEnd": 89
+      },
+      "GoogleServices.listTasks": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "listTasks",
+        "isAsync": true,
+        "lineStart": 92,
+        "lineEnd": 101
+      },
+      "GoogleServices.createTask": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "createTask",
+        "isAsync": true,
+        "lineStart": 104,
+        "lineEnd": 115
+      },
+      "GoogleServices.completeTask": {
+        "file": "src/google-services.js",
+        "className": "GoogleServices",
+        "methodName": "completeTask",
+        "isAsync": true,
+        "lineStart": 118,
+        "lineEnd": 127
+      },
+      "ColdIndex.constructor": {
+        "file": "src/memory/cold-index.js",
+        "className": "ColdIndex",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 37,
+        "lineEnd": 41
+      },
+      "ColdIndex._build": {
+        "file": "src/memory/cold-index.js",
+        "className": "ColdIndex",
+        "methodName": "_build",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 60
+      },
+      "ColdIndex._buildEntry": {
+        "file": "src/memory/cold-index.js",
+        "className": "ColdIndex",
+        "methodName": "_buildEntry",
+        "isAsync": false,
+        "lineStart": 62,
+        "lineEnd": 79
+      },
+      "ColdIndex.add": {
+        "file": "src/memory/cold-index.js",
+        "className": "ColdIndex",
+        "methodName": "add",
+        "isAsync": false,
+        "lineStart": 82,
+        "lineEnd": 89
+      },
+      "ColdIndex.search": {
+        "file": "src/memory/cold-index.js",
+        "className": "ColdIndex",
+        "methodName": "search",
+        "isAsync": false,
+        "lineStart": 97,
+        "lineEnd": 125
+      },
+      "ExperienceMemoryLayer.constructor": {
+        "file": "src/memory/index.js",
+        "className": "ExperienceMemoryLayer",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 26
+      },
+      "ExperienceMemoryLayer.addReflection": {
+        "file": "src/memory/index.js",
+        "className": "ExperienceMemoryLayer",
+        "methodName": "addReflection",
+        "isAsync": false,
+        "lineStart": 32,
+        "lineEnd": 34
+      },
+      "ExperienceMemoryLayer.recall": {
+        "file": "src/memory/index.js",
+        "className": "ExperienceMemoryLayer",
+        "methodName": "recall",
+        "isAsync": false,
+        "lineStart": 45,
+        "lineEnd": 54
+      },
+      "ExperienceMemoryLayer._recallHot": {
+        "file": "src/memory/index.js",
+        "className": "ExperienceMemoryLayer",
+        "methodName": "_recallHot",
+        "isAsync": false,
+        "lineStart": 58,
+        "lineEnd": 66
+      },
+      "ExperienceMemoryLayer._recallWarm": {
+        "file": "src/memory/index.js",
+        "className": "ExperienceMemoryLayer",
+        "methodName": "_recallWarm",
+        "isAsync": false,
+        "lineStart": 70,
+        "lineEnd": 95
+      },
+      "ExperienceMemory.constructor": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 11,
+        "lineEnd": 14
+      },
+      "ExperienceMemory._load": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "_load",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 18
+      },
+      "ExperienceMemory.save": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "save",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 19
+      },
+      "ExperienceMemory.recordProposal": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "recordProposal",
+        "isAsync": false,
+        "lineStart": 20,
+        "lineEnd": 20
+      },
+      "ExperienceMemory.recordRejection": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "recordRejection",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 29
+      },
+      "ExperienceMemory.recordSuccess": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "recordSuccess",
+        "isAsync": false,
+        "lineStart": 30,
+        "lineEnd": 30
+      },
+      "ExperienceMemory.getAdvice": {
+        "file": "src/memory-drivers.js",
+        "className": "ExperienceMemory",
+        "methodName": "getAdvice",
+        "isAsync": false,
+        "lineStart": 31,
+        "lineEnd": 34
+      },
+      "SystemQmdDriver.constructor": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemQmdDriver",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 38,
+        "lineEnd": 43
+      },
+      "SystemQmdDriver.init": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemQmdDriver",
+        "methodName": "init",
+        "isAsync": true,
+        "lineStart": 45,
+        "lineEnd": 87
+      },
+      "SystemQmdDriver.recall": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemQmdDriver",
+        "methodName": "recall",
+        "isAsync": true,
+        "lineStart": 89,
+        "lineEnd": 101
+      },
+      "SystemQmdDriver.memorize": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemQmdDriver",
+        "methodName": "memorize",
+        "isAsync": true,
+        "lineStart": 103,
+        "lineEnd": 112
+      },
+      "SystemNativeDriver.constructor": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemNativeDriver",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 116,
+        "lineEnd": 119
+      },
+      "SystemNativeDriver.init": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemNativeDriver",
+        "methodName": "init",
+        "isAsync": true,
+        "lineStart": 121,
+        "lineEnd": 123
+      },
+      "SystemNativeDriver.recall": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemNativeDriver",
+        "methodName": "recall",
+        "isAsync": true,
+        "lineStart": 125,
+        "lineEnd": 144
+      },
+      "SystemNativeDriver.memorize": {
+        "file": "src/memory-drivers.js",
+        "className": "SystemNativeDriver",
+        "methodName": "memorize",
+        "isAsync": true,
+        "lineStart": 146,
+        "lineEnd": 152
+      },
+      "MessageBuffer.constructor": {
+        "file": "src/message-buffer.js",
+        "className": "MessageBuffer",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 6,
+        "lineEnd": 10
+      },
+      "MessageBuffer.push": {
+        "file": "src/message-buffer.js",
+        "className": "MessageBuffer",
+        "methodName": "push",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 41
+      },
+      "MessageBuffer._flush": {
+        "file": "src/message-buffer.js",
+        "className": "MessageBuffer",
+        "methodName": "_flush",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 57
+      },
+      "MessageBuffer._enqueue": {
+        "file": "src/message-buffer.js",
+        "className": "MessageBuffer",
+        "methodName": "_enqueue",
+        "isAsync": false,
+        "lineStart": 59,
+        "lineEnd": 63
+      },
+      "MessageBuffer._processNext": {
+        "file": "src/message-buffer.js",
+        "className": "MessageBuffer",
+        "methodName": "_processNext",
+        "isAsync": true,
+        "lineStart": 65,
+        "lineEnd": 85
+      },
+      "MessageHandler.constructor": {
+        "file": "src/message-handler.js",
+        "className": "MessageHandler",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 18,
+        "lineEnd": 39
+      },
+      "MessageHandler._isStaleMessage": {
+        "file": "src/message-handler.js",
+        "className": "MessageHandler",
+        "methodName": "_isStaleMessage",
+        "isAsync": false,
+        "lineStart": 41,
+        "lineEnd": 45
+      },
+      "MessageHandler.handleMessage": {
+        "file": "src/message-handler.js",
+        "className": "MessageHandler",
+        "methodName": "handleMessage",
+        "isAsync": false,
+        "lineStart": 47,
+        "lineEnd": 64
+      },
+      "MessageHandler._handleMessageCore": {
+        "file": "src/message-handler.js",
+        "className": "MessageHandler",
+        "methodName": "_handleMessageCore",
+        "isAsync": true,
+        "lineStart": 66,
+        "lineEnd": 97
+      },
+      "MessageHandler._handlePatchCommand": {
+        "file": "src/message-handler.js",
+        "className": "MessageHandler",
+        "methodName": "_handlePatchCommand",
+        "isAsync": true,
+        "lineStart": 99,
+        "lineEnd": 128
+      },
+      "MessageManager.send": {
+        "file": "src/message-manager.js",
+        "className": "MessageManager",
+        "methodName": "send",
+        "isAsync": true,
+        "lineStart": 15,
+        "lineEnd": 46
+      },
+      "MessageProcessor.constructor": {
+        "file": "src/message-processor.js",
+        "className": "MessageProcessor",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 16,
+        "lineEnd": 22
+      },
+      "MessageProcessor.process": {
+        "file": "src/message-processor.js",
+        "className": "MessageProcessor",
+        "methodName": "process",
+        "isAsync": true,
+        "lineStart": 24,
+        "lineEnd": 61
+      },
+      "MessageProcessor._enrichInput": {
+        "file": "src/message-processor.js",
+        "className": "MessageProcessor",
+        "methodName": "_enrichInput",
+        "isAsync": true,
+        "lineStart": 65,
+        "lineEnd": 116
+      },
+      "MessageProcessor._processLLMResponse": {
+        "file": "src/message-processor.js",
+        "className": "MessageProcessor",
+        "methodName": "_processLLMResponse",
+        "isAsync": true,
+        "lineStart": 120,
+        "lineEnd": 179
+      },
+      "MessageProcessor._filterHallucinations": {
+        "file": "src/message-processor.js",
+        "className": "MessageProcessor",
+        "methodName": "_filterHallucinations",
+        "isAsync": true,
+        "lineStart": 183,
+        "lineEnd": 212
+      },
+      "ProviderAdapter.constructor": {
+        "file": "src/model-router/adapters/base.js",
+        "className": "ProviderAdapter",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 9,
+        "lineEnd": 13
+      },
+      "ProviderAdapter.complete": {
+        "file": "src/model-router/adapters/base.js",
+        "className": "ProviderAdapter",
+        "methodName": "complete",
+        "isAsync": true,
+        "lineStart": 27,
+        "lineEnd": 29
+      },
+      "ProviderAdapter.isAvailable": {
+        "file": "src/model-router/adapters/base.js",
+        "className": "ProviderAdapter",
+        "methodName": "isAvailable",
+        "isAsync": false,
+        "lineStart": 34,
+        "lineEnd": 36
+      },
+      "ProviderAdapter._keyId": {
+        "file": "src/model-router/adapters/base.js",
+        "className": "ProviderAdapter",
+        "methodName": "_keyId",
+        "isAsync": false,
+        "lineStart": 39,
+        "lineEnd": 41
+      },
+      "ProviderAdapter._loadCooldownFromDisk": {
+        "file": "src/model-router/adapters/base.js",
+        "className": "ProviderAdapter",
+        "methodName": "_loadCooldownFromDisk",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 59
+      },
+      "ProviderAdapter._saveCooldownToDisk": {
+        "file": "src/model-router/adapters/base.js",
+        "className": "ProviderAdapter",
+        "methodName": "_saveCooldownToDisk",
+        "isAsync": false,
+        "lineStart": 61,
+        "lineEnd": 76
+      },
+      "GeminiAdapter.constructor": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 31
+      },
+      "GeminiAdapter.isAvailable": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "isAvailable",
+        "isAsync": false,
+        "lineStart": 33,
+        "lineEnd": 35
+      },
+      "GeminiAdapter.complete": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "complete",
+        "isAsync": true,
+        "lineStart": 40,
+        "lineEnd": 99
+      },
+      "GeminiAdapter._getAvailableKey": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "_getAvailableKey",
+        "isAsync": false,
+        "lineStart": 103,
+        "lineEnd": 121
+      },
+      "GeminiAdapter._getKeyThrottled": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "_getKeyThrottled",
+        "isAsync": true,
+        "lineStart": 123,
+        "lineEnd": 135
+      },
+      "GeminiAdapter._isCooling": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "_isCooling",
+        "isAsync": false,
+        "lineStart": 137,
+        "lineEnd": 142
+      },
+      "GeminiAdapter._markCooldown": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "_markCooldown",
+        "isAsync": false,
+        "lineStart": 144,
+        "lineEnd": 149
+      },
+      "GeminiAdapter._markCooldownUntilReset": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "_markCooldownUntilReset",
+        "isAsync": false,
+        "lineStart": 151,
+        "lineEnd": 163
+      },
+      "GeminiAdapter.getStatus": {
+        "file": "src/model-router/adapters/gemini.js",
+        "className": "GeminiAdapter",
+        "methodName": "getStatus",
+        "isAsync": false,
+        "lineStart": 168,
+        "lineEnd": 176
+      },
+      "OpenAICompatAdapter.constructor": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 32
+      },
+      "OpenAICompatAdapter.isAvailable": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "isAvailable",
+        "isAsync": false,
+        "lineStart": 34,
+        "lineEnd": 36
+      },
+      "OpenAICompatAdapter._getAvailableKey": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "_getAvailableKey",
+        "isAsync": false,
+        "lineStart": 38,
+        "lineEnd": 58
+      },
+      "OpenAICompatAdapter._markCooldown": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "_markCooldown",
+        "isAsync": false,
+        "lineStart": 60,
+        "lineEnd": 65
+      },
+      "OpenAICompatAdapter.complete": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "complete",
+        "isAsync": true,
+        "lineStart": 67,
+        "lineEnd": 125
+      },
+      "OpenAICompatAdapter._doRequest": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "_doRequest",
+        "isAsync": false,
+        "lineStart": 127,
+        "lineEnd": 129
+      },
+      "OpenAICompatAdapter._msUntilPacificMidnight": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "_msUntilPacificMidnight",
+        "isAsync": false,
+        "lineStart": 131,
+        "lineEnd": 138
+      },
+      "OpenAICompatAdapter.getStatus": {
+        "file": "src/model-router/adapters/openai-compat.js",
+        "className": "OpenAICompatAdapter",
+        "methodName": "getStatus",
+        "isAsync": false,
+        "lineStart": 143,
+        "lineEnd": 151
+      },
+      "HealthReporter.constructor": {
+        "file": "src/model-router/health-reporter.js",
+        "className": "HealthReporter",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 17
+      },
+      "HealthReporter.fetchDeepSeekBalance": {
+        "file": "src/model-router/health-reporter.js",
+        "className": "HealthReporter",
+        "methodName": "fetchDeepSeekBalance",
+        "isAsync": true,
+        "lineStart": 23,
+        "lineEnd": 43
+      },
+      "HealthReporter.getDeepSeekBalance": {
+        "file": "src/model-router/health-reporter.js",
+        "className": "HealthReporter",
+        "methodName": "getDeepSeekBalance",
+        "isAsync": false,
+        "lineStart": 48,
+        "lineEnd": 50
+      },
+      "HealthReporter.getSummary": {
+        "file": "src/model-router/health-reporter.js",
+        "className": "HealthReporter",
+        "methodName": "getSummary",
+        "isAsync": false,
+        "lineStart": 57,
+        "lineEnd": 72
+      },
+      "ProviderHealth.constructor": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 16,
+        "lineEnd": 21
+      },
+      "ProviderHealth.register": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "register",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 42
+      },
+      "ProviderHealth.get": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "get",
+        "isAsync": false,
+        "lineStart": 49,
+        "lineEnd": 58
+      },
+      "ProviderHealth.isAvailable": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "isAvailable",
+        "isAsync": false,
+        "lineStart": 63,
+        "lineEnd": 73
+      },
+      "ProviderHealth.score": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "score",
+        "isAsync": false,
+        "lineStart": 78,
+        "lineEnd": 89
+      },
+      "ProviderHealth.onSuccess": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "onSuccess",
+        "isAsync": false,
+        "lineStart": 93,
+        "lineEnd": 104
+      },
+      "ProviderHealth.on429": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "on429",
+        "isAsync": false,
+        "lineStart": 106,
+        "lineEnd": 115
+      },
+      "ProviderHealth.on503": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "on503",
+        "isAsync": false,
+        "lineStart": 117,
+        "lineEnd": 123
+      },
+      "ProviderHealth.onError": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "onError",
+        "isAsync": false,
+        "lineStart": 125,
+        "lineEnd": 134
+      },
+      "ProviderHealth.onFatal": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "onFatal",
+        "isAsync": false,
+        "lineStart": 136,
+        "lineEnd": 142
+      },
+      "ProviderHealth.resetAllRpd": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "resetAllRpd",
+        "isAsync": false,
+        "lineStart": 147,
+        "lineEnd": 157
+      },
+      "ProviderHealth.fetchDeepSeekBalance": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "fetchDeepSeekBalance",
+        "isAsync": true,
+        "lineStart": 161,
+        "lineEnd": 161
+      },
+      "ProviderHealth.getDeepSeekBalance": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "getDeepSeekBalance",
+        "isAsync": false,
+        "lineStart": 162,
+        "lineEnd": 162
+      },
+      "ProviderHealth.getSummary": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "getSummary",
+        "isAsync": false,
+        "lineStart": 163,
+        "lineEnd": 163
+      },
+      "ProviderHealth._debounceSave": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "_debounceSave",
+        "isAsync": false,
+        "lineStart": 168,
+        "lineEnd": 175
+      },
+      "ProviderHealth.saveToDisk": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "saveToDisk",
+        "isAsync": false,
+        "lineStart": 180,
+        "lineEnd": 191
+      },
+      "ProviderHealth.loadFromDisk": {
+        "file": "src/model-router/health.js",
+        "className": "ProviderHealth",
+        "methodName": "loadFromDisk",
+        "isAsync": false,
+        "lineStart": 196,
+        "lineEnd": 218
+      },
+      "ModelRouter.constructor": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 22,
+        "lineEnd": 54
+      },
+      "ModelRouter._initAdapters": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "_initAdapters",
+        "isAsync": false,
+        "lineStart": 56,
+        "lineEnd": 73
+      },
+      "ModelRouter._scheduleRpdReset": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "_scheduleRpdReset",
+        "isAsync": false,
+        "lineStart": 78,
+        "lineEnd": 94
+      },
+      "ModelRouter.complete": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "complete",
+        "isAsync": true,
+        "lineStart": 110,
+        "lineEnd": 112
+      },
+      "ModelRouter.keyChain": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "keyChain",
+        "isAsync": false,
+        "lineStart": 120,
+        "lineEnd": 143
+      },
+      "ModelRouter.getStatus": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "getStatus",
+        "isAsync": false,
+        "lineStart": 148,
+        "lineEnd": 150
+      },
+      "ModelRouter.destroy": {
+        "file": "src/model-router/index.js",
+        "className": "ModelRouter",
+        "methodName": "destroy",
+        "isAsync": false,
+        "lineStart": 155,
+        "lineEnd": 160
+      },
+      "ModelSelector.constructor": {
+        "file": "src/model-router/selector.js",
+        "className": "ModelSelector",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 13
+      },
+      "ModelSelector.select": {
+        "file": "src/model-router/selector.js",
+        "className": "ModelSelector",
+        "methodName": "select",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 76
+      },
+      "MoltbookClient.constructor": {
+        "file": "src/moltbook-client.js",
+        "className": "MoltbookClient",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 15
+      },
+      "MoltbookClient.get": {
+        "file": "src/moltbook-client.js",
+        "className": "MoltbookClient",
+        "methodName": "get",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 23
+      },
+      "MoltbookClient.post": {
+        "file": "src/moltbook-client.js",
+        "className": "MoltbookClient",
+        "methodName": "post",
+        "isAsync": false,
+        "lineStart": 30,
+        "lineEnd": 32
+      },
+      "MoltbookClient.patch": {
+        "file": "src/moltbook-client.js",
+        "className": "MoltbookClient",
+        "methodName": "patch",
+        "isAsync": false,
+        "lineStart": 39,
+        "lineEnd": 41
+      },
+      "MoltbookClient._request": {
+        "file": "src/moltbook-client.js",
+        "className": "MoltbookClient",
+        "methodName": "_request",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 95
+      },
+      "NodeRouter.handle": {
+        "file": "src/node-router.js",
+        "className": "NodeRouter",
+        "methodName": "handle",
+        "isAsync": true,
+        "lineStart": 11,
+        "lineEnd": 43
+      },
+      "OpticNerve.analyze": {
+        "file": "src/optic-nerve.js",
+        "className": "OpticNerve",
+        "methodName": "analyze",
+        "isAsync": true,
+        "lineStart": 10,
+        "lineEnd": 39
+      },
+      "TriStreamParser.parse": {
+        "file": "src/parsers.js",
+        "className": "TriStreamParser",
+        "methodName": "parse",
+        "isAsync": false,
+        "lineStart": 18,
+        "lineEnd": 104
+      },
+      "ResponseParser.extractJson": {
+        "file": "src/parsers.js",
+        "className": "ResponseParser",
+        "methodName": "extractJson",
+        "isAsync": false,
+        "lineStart": 108,
+        "lineEnd": 157
+      },
+      "PersonaManager.constructor": {
+        "file": "src/persona-manager.js",
+        "className": "PersonaManager",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 14
+      },
+      "PersonaManager._load": {
+        "file": "src/persona-manager.js",
+        "className": "PersonaManager",
+        "methodName": "_load",
+        "isAsync": false,
+        "lineStart": 16,
+        "lineEnd": 35
+      },
+      "PersonaManager.save": {
+        "file": "src/persona-manager.js",
+        "className": "PersonaManager",
+        "methodName": "save",
+        "isAsync": false,
+        "lineStart": 37,
+        "lineEnd": 39
+      },
+      "PersonaManager.setName": {
+        "file": "src/persona-manager.js",
+        "className": "PersonaManager",
+        "methodName": "setName",
+        "isAsync": false,
+        "lineStart": 41,
+        "lineEnd": 49
+      },
+      "PersonaManager.setRole": {
+        "file": "src/persona-manager.js",
+        "className": "PersonaManager",
+        "methodName": "setRole",
+        "isAsync": false,
+        "lineStart": 51,
+        "lineEnd": 54
+      },
+      "PersonaManager.get": {
+        "file": "src/persona-manager.js",
+        "className": "PersonaManager",
+        "methodName": "get",
+        "isAsync": false,
+        "lineStart": 56,
+        "lineEnd": 56
+      },
+      "ReactLoop.constructor": {
+        "file": "src/react-loop.js",
+        "className": "ReactLoop",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 9,
+        "lineEnd": 13
+      },
+      "ReactLoop._buildStepSummary": {
+        "file": "src/react-loop.js",
+        "className": "ReactLoop",
+        "methodName": "_buildStepSummary",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 21
+      },
+      "ReactLoop._buildObservation": {
+        "file": "src/react-loop.js",
+        "className": "ReactLoop",
+        "methodName": "_buildObservation",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 39
+      },
+      "ReactLoop.writeJournal": {
+        "file": "src/react-loop.js",
+        "className": "ReactLoop",
+        "methodName": "writeJournal",
+        "isAsync": false,
+        "lineStart": 41,
+        "lineEnd": 56
+      },
+      "ReactLoop.run": {
+        "file": "src/react-loop.js",
+        "className": "ReactLoop",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 58,
+        "lineEnd": 109
+      },
+      "SecurityManager.constructor": {
+        "file": "src/security.js",
+        "className": "SecurityManager",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 6,
+        "lineEnd": 41
+      },
+      "SecurityManager.assess": {
+        "file": "src/security.js",
+        "className": "SecurityManager",
+        "methodName": "assess",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 69
+      },
+      "SecurityManager._assessNetwork": {
+        "file": "src/security.js",
+        "className": "SecurityManager",
+        "methodName": "_assessNetwork",
+        "isAsync": false,
+        "lineStart": 71,
+        "lineEnd": 92
+      },
+      "SecurityManager.addAllowedDomain": {
+        "file": "src/security.js",
+        "className": "SecurityManager",
+        "methodName": "addAllowedDomain",
+        "isAsync": false,
+        "lineStart": 94,
+        "lineEnd": 99
+      },
+      "SkillLoader.constructor": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 14
+      },
+      "SkillLoader._buildIndex": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "_buildIndex",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 48
+      },
+      "SkillLoader._parseFrontMatter": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "_parseFrontMatter",
+        "isAsync": false,
+        "lineStart": 53,
+        "lineEnd": 74
+      },
+      "SkillLoader.loadSkill": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "loadSkill",
+        "isAsync": false,
+        "lineStart": 79,
+        "lineEnd": 92
+      },
+      "SkillLoader.getAutoLoadSkills": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "getAutoLoadSkills",
+        "isAsync": false,
+        "lineStart": 97,
+        "lineEnd": 107
+      },
+      "SkillLoader.matchByKeywords": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "matchByKeywords",
+        "isAsync": false,
+        "lineStart": 112,
+        "lineEnd": 123
+      },
+      "SkillLoader.listSkills": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "listSkills",
+        "isAsync": false,
+        "lineStart": 128,
+        "lineEnd": 136
+      },
+      "SkillLoader.reload": {
+        "file": "src/skill-loader.js",
+        "className": "SkillLoader",
+        "methodName": "reload",
+        "isAsync": false,
+        "lineStart": 141,
+        "lineEnd": 144
+      },
+      "TaskController.constructor": {
+        "file": "src/task-controller.js",
+        "className": "TaskController",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 17
+      },
+      "TaskController.runSequence": {
+        "file": "src/task-controller.js",
+        "className": "TaskController",
+        "methodName": "runSequence",
+        "isAsync": true,
+        "lineStart": 19,
+        "lineEnd": 74
+      },
+      "TaskController.runStepBatch": {
+        "file": "src/task-controller.js",
+        "className": "TaskController",
+        "methodName": "runStepBatch",
+        "isAsync": true,
+        "lineStart": 76,
+        "lineEnd": 147
+      },
+      "ToolScanner.check": {
+        "file": "src/tools.js",
+        "className": "ToolScanner",
+        "methodName": "check",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 22
+      },
+      "HelpManager.getManual": {
+        "file": "src/tools.js",
+        "className": "HelpManager",
+        "methodName": "getManual",
+        "isAsync": false,
+        "lineStart": 26,
+        "lineEnd": 57
+      },
+      "Introspection.readSelf": {
+        "file": "src/upgrader.js",
+        "className": "Introspection",
+        "methodName": "readSelf",
+        "isAsync": false,
+        "lineStart": 11,
+        "lineEnd": 20
+      },
+      "PatchManager._locateNode": {
+        "file": "src/upgrader.js",
+        "className": "PatchManager",
+        "methodName": "_locateNode",
+        "isAsync": false,
+        "lineStart": 32,
+        "lineEnd": 66
+      },
+      "PatchManager.apply": {
+        "file": "src/upgrader.js",
+        "className": "PatchManager",
+        "methodName": "apply",
+        "isAsync": false,
+        "lineStart": 68,
+        "lineEnd": 100
+      },
+      "PatchManager.createTestClone": {
+        "file": "src/upgrader.js",
+        "className": "PatchManager",
+        "methodName": "createTestClone",
+        "isAsync": false,
+        "lineStart": 102,
+        "lineEnd": 116
+      },
+      "PatchManager.verify": {
+        "file": "src/upgrader.js",
+        "className": "PatchManager",
+        "methodName": "verify",
+        "isAsync": false,
+        "lineStart": 117,
+        "lineEnd": 142
+      },
+      "SystemUpgrader.performUpdate": {
+        "file": "src/upgrader.js",
+        "className": "SystemUpgrader",
+        "methodName": "performUpdate",
+        "isAsync": true,
+        "lineStart": 146,
+        "lineEnd": 191
+      },
+      "VirtualCmdHandler.constructor": {
+        "file": "src/virtual-cmd-handler.js",
+        "className": "VirtualCmdHandler",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 10,
+        "lineEnd": 14
+      },
+      "VirtualCmdHandler.run": {
+        "file": "src/virtual-cmd-handler.js",
+        "className": "VirtualCmdHandler",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 16,
+        "lineEnd": 21
+      },
+      "VirtualCmdHandler._schedule": {
+        "file": "src/virtual-cmd-handler.js",
+        "className": "VirtualCmdHandler",
+        "methodName": "_schedule",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 35
+      },
+      "VirtualCmdHandler._skill": {
+        "file": "src/virtual-cmd-handler.js",
+        "className": "VirtualCmdHandler",
+        "methodName": "_skill",
+        "isAsync": true,
+        "lineStart": 37,
+        "lineEnd": 56
+      },
+      "VirtualCmdHandler._check": {
+        "file": "src/virtual-cmd-handler.js",
+        "className": "VirtualCmdHandler",
+        "methodName": "_check",
+        "isAsync": false,
+        "lineStart": 58,
+        "lineEnd": 62
+      },
+      "XPublisher.constructor": {
+        "file": "src/x-publisher.js",
+        "className": "XPublisher",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 32
+      },
+      "XPublisher._checkDailyReset": {
+        "file": "src/x-publisher.js",
+        "className": "XPublisher",
+        "methodName": "_checkDailyReset",
+        "isAsync": false,
+        "lineStart": 35,
+        "lineEnd": 41
+      },
+      "XPublisher.getDailyCount": {
+        "file": "src/x-publisher.js",
+        "className": "XPublisher",
+        "methodName": "getDailyCount",
+        "isAsync": false,
+        "lineStart": 43,
+        "lineEnd": 46
+      },
+      "XPublisher.post": {
+        "file": "src/x-publisher.js",
+        "className": "XPublisher",
+        "methodName": "post",
+        "isAsync": true,
+        "lineStart": 48,
+        "lineEnd": 75
+      }
+    },
+    "topLevelFunctions": {
+      "ActionResult": {
+        "file": "src/autonomy/action-result.js",
+        "functionName": "ActionResult",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 21
+      },
+      "classifyByRules": {
+        "file": "src/autonomy/actions/google-classifier.js",
+        "functionName": "classifyByRules",
+        "isAsync": false,
+        "lineStart": 44,
+        "lineEnd": 64
+      },
+      "classifyByLLM": {
+        "file": "src/autonomy/actions/google-classifier.js",
+        "functionName": "classifyByLLM",
+        "isAsync": true,
+        "lineStart": 68,
+        "lineEnd": 98
+      },
+      "checkPostEngagement": {
+        "file": "src/autonomy/actions/moltbook-engagement.js",
+        "functionName": "checkPostEngagement",
+        "isAsync": true,
+        "lineStart": 23,
+        "lineEnd": 73
+      },
+      "loadState": {
+        "file": "src/autonomy/actions/moltbook-state.js",
+        "functionName": "loadState",
+        "isAsync": false,
+        "lineStart": 26,
+        "lineEnd": 34
+      },
+      "saveState": {
+        "file": "src/autonomy/actions/moltbook-state.js",
+        "functionName": "saveState",
+        "isAsync": false,
+        "lineStart": 36,
+        "lineEnd": 44
+      },
+      "appendCapped": {
+        "file": "src/autonomy/actions/moltbook-state.js",
+        "functionName": "appendCapped",
+        "isAsync": false,
+        "lineStart": 53,
+        "lineEnd": 57
+      },
+      "saveCheckReflection": {
+        "file": "src/autonomy/actions/moltbook-state.js",
+        "functionName": "saveCheckReflection",
+        "isAsync": false,
+        "lineStart": 64,
+        "lineEnd": 104
+      },
+      "savePostReflection": {
+        "file": "src/autonomy/actions/moltbook-state.js",
+        "functionName": "savePostReflection",
+        "isAsync": false,
+        "lineStart": 111,
+        "lineEnd": 127
+      },
+      "runSmokeGate": {
+        "file": "src/autonomy/actions/reflect-patch-executor.js",
+        "functionName": "runSmokeGate",
+        "isAsync": true,
+        "lineStart": 15,
+        "lineEnd": 24
+      },
+      "isFailed": {
+        "file": "src/autonomy/failure-classifier.js",
+        "functionName": "isFailed",
+        "isAsync": false,
+        "lineStart": 9,
+        "lineEnd": 12
+      },
+      "classifyFailure": {
+        "file": "src/autonomy/failure-classifier.js",
+        "functionName": "classifyFailure",
+        "isAsync": false,
+        "lineStart": 15,
+        "lineEnd": 22
+      },
+      "classifyStreak": {
+        "file": "src/autonomy/failure-classifier.js",
+        "functionName": "classifyStreak",
+        "isAsync": false,
+        "lineStart": 25,
+        "lineEnd": 32
+      },
+      "checkFailurePatterns": {
+        "file": "src/autonomy/failure-classifier.js",
+        "functionName": "checkFailurePatterns",
+        "isAsync": false,
+        "lineStart": 40,
+        "lineEnd": 87
+      },
+      "getSystemFingerprint": {
+        "file": "src/brain.js",
+        "functionName": "getSystemFingerprint",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 15
+      },
+      "cleanEnv": {
+        "file": "src/config.js",
+        "functionName": "cleanEnv",
+        "isAsync": false,
+        "lineStart": 7,
+        "lineEnd": 12
+      },
+      "isPlaceholder": {
+        "file": "src/config.js",
+        "functionName": "isPlaceholder",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 17
+      },
+      "createWidgets": {
+        "file": "src/dashboard-renderer.js",
+        "functionName": "createWidgets",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 78
+      },
+      "setupScreenKeys": {
+        "file": "src/dashboard-renderer.js",
+        "functionName": "setupScreenKeys",
+        "isAsync": false,
+        "lineStart": 85,
+        "lineEnd": 88
+      },
+      "startStdinListener": {
+        "file": "src/dashboard-renderer.js",
+        "functionName": "startStdinListener",
+        "isAsync": false,
+        "lineStart": 95,
+        "lineEnd": 109
+      },
+      "stopStdinListener": {
+        "file": "src/dashboard-renderer.js",
+        "functionName": "stopStdinListener",
+        "isAsync": false,
+        "lineStart": 115,
+        "lineEnd": 123
+      },
+      "decayScore": {
+        "file": "src/memory/cold-index.js",
+        "functionName": "decayScore",
+        "isAsync": false,
+        "lineStart": 24,
+        "lineEnd": 34
+      },
+      "doGenerate": {
+        "file": "src/model-router/adapters/gemini-generate.js",
+        "functionName": "doGenerate",
+        "isAsync": true,
+        "lineStart": 21,
+        "lineEnd": 104
+      },
+      "doRequest": {
+        "file": "src/model-router/adapters/openai-http.js",
+        "functionName": "doRequest",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 147
+      },
+      "execute": {
+        "file": "src/model-router/router-execute.js",
+        "functionName": "execute",
+        "isAsync": true,
+        "lineStart": 21,
+        "lineEnd": 76
+      },
+      "dbg": {
+        "file": "src/parsers.js",
+        "functionName": "dbg",
+        "isAsync": false,
+        "lineStart": 6,
+        "lineEnd": 10
+      },
+      "loadPrompt": {
+        "file": "src/prompt-loader.js",
+        "functionName": "loadPrompt",
+        "isAsync": false,
+        "lineStart": 8,
+        "lineEnd": 20
+      },
+      "loadFeedbackPrompt": {
+        "file": "src/prompt-loader.js",
+        "functionName": "loadFeedbackPrompt",
+        "isAsync": false,
+        "lineStart": 22,
+        "lineEnd": 38
+      },
+      "CORE_DEFINITION": {
+        "file": "src/skills.js",
+        "functionName": "CORE_DEFINITION",
+        "isAsync": false,
+        "lineStart": 21,
+        "lineEnd": 59
+      }
+    },
+    "moduleExports": {
+      "src/autonomy/action-filter.js": {
+        "type": "default",
+        "named": [],
+        "default": "ActionFilter",
+        "namedExports": {}
+      },
+      "src/autonomy/action-result.js": {
+        "type": "named",
+        "named": [
+          "ActionResult"
+        ],
+        "default": null,
+        "namedExports": {
+          "ActionResult": {
+            "type": "value",
+            "lineStart": 31
+          }
+        }
+      },
+      "src/autonomy/actions/digest.js": {
+        "type": "default",
+        "named": [],
+        "default": "DigestAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/drive-sync.js": {
+        "type": "default",
+        "named": [],
+        "default": "DriveSyncAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/explore.js": {
+        "type": "default",
+        "named": [],
+        "default": "ExploreAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/github-explore.js": {
+        "type": "default",
+        "named": [],
+        "default": "GitHubExploreAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/google-check.js": {
+        "type": "default",
+        "named": [],
+        "default": "GoogleCheckAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/google-classifier.js": {
+        "type": "named",
+        "named": [
+          "classifyByRules",
+          "classifyByLLM"
+        ],
+        "default": null,
+        "namedExports": {
+          "classifyByRules": {
+            "type": "value",
+            "lineStart": 100
+          },
+          "classifyByLLM": {
+            "type": "value",
+            "lineStart": 100
+          }
+        }
+      },
+      "src/autonomy/actions/health-analyzer.js": {
+        "type": "default",
+        "named": [],
+        "default": "HealthAnalyzer",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/health-check.js": {
+        "type": "default",
+        "named": [],
+        "default": "HealthCheckAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/index.js": {
+        "type": "default",
+        "named": [],
+        "default": "ActionRunner",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/maintenance/base.js": {
+        "type": "default",
+        "named": [],
+        "default": "MaintenanceAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/maintenance/index.js": {
+        "type": "default",
+        "named": [],
+        "default": "MaintenanceRunner",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/maintenance/journal-stats.js": {
+        "type": "default",
+        "named": [],
+        "default": "JournalStatsAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/maintenance/patch-cleanup.js": {
+        "type": "default",
+        "named": [],
+        "default": "PatchCleanupAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/maintenance/process-audit.js": {
+        "type": "default",
+        "named": [],
+        "default": "ProcessAuditAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/maintenance/rss-fetch.js": {
+        "type": "default",
+        "named": [],
+        "default": "RssFetchAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/moltbook-check-executor.js": {
+        "type": "default",
+        "named": [],
+        "default": "MoltbookCheckExecutor",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/moltbook-check.js": {
+        "type": "default",
+        "named": [],
+        "default": "MoltbookCheckAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/moltbook-engagement.js": {
+        "type": "named",
+        "named": [
+          "checkPostEngagement"
+        ],
+        "default": null,
+        "namedExports": {
+          "checkPostEngagement": {
+            "type": "value",
+            "lineStart": 75
+          }
+        }
+      },
+      "src/autonomy/actions/moltbook-post.js": {
+        "type": "default",
+        "named": [],
+        "default": "MoltbookPostAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/moltbook-state.js": {
+        "type": "named",
+        "named": [
+          "loadState",
+          "saveState",
+          "appendCapped",
+          "saveCheckReflection",
+          "savePostReflection"
+        ],
+        "default": null,
+        "namedExports": {
+          "loadState": {
+            "type": "value",
+            "lineStart": 129
+          },
+          "saveState": {
+            "type": "value",
+            "lineStart": 129
+          },
+          "appendCapped": {
+            "type": "value",
+            "lineStart": 129
+          },
+          "saveCheckReflection": {
+            "type": "value",
+            "lineStart": 129
+          },
+          "savePostReflection": {
+            "type": "value",
+            "lineStart": 129
+          }
+        }
+      },
+      "src/autonomy/actions/reflect-diag.js": {
+        "type": "default",
+        "named": [],
+        "default": "ReflectDiag",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/reflect-patch-executor.js": {
+        "type": "default",
+        "named": [],
+        "default": "PatchExecutor",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/reflect-patch.js": {
+        "type": "default",
+        "named": [],
+        "default": "ReflectPatch",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/reflect.js": {
+        "type": "default",
+        "named": [],
+        "default": "ReflectAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/social.js": {
+        "type": "default",
+        "named": [],
+        "default": "SocialAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/web-research.js": {
+        "type": "default",
+        "named": [],
+        "default": "WebResearchAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/x-post.js": {
+        "type": "default",
+        "named": [],
+        "default": "XPostAction",
+        "namedExports": {}
+      },
+      "src/autonomy/context-pressure.js": {
+        "type": "default",
+        "named": [],
+        "default": "ContextPressure",
+        "namedExports": {}
+      },
+      "src/autonomy/decision-context.js": {
+        "type": "default",
+        "named": [],
+        "default": "DecisionContext",
+        "namedExports": {}
+      },
+      "src/autonomy/decision-utils.js": {
+        "type": "default",
+        "named": [],
+        "default": "DecisionUtils",
+        "namedExports": {}
+      },
+      "src/autonomy/decision.js": {
+        "type": "default",
+        "named": [],
+        "default": "DecisionEngine",
+        "namedExports": {}
+      },
+      "src/autonomy/failure-classifier.js": {
+        "type": "named",
+        "named": [
+          "isFailed",
+          "classifyFailure",
+          "classifyStreak",
+          "checkFailurePatterns"
+        ],
+        "default": null,
+        "namedExports": {
+          "isFailed": {
+            "type": "value",
+            "lineStart": 89
+          },
+          "classifyFailure": {
+            "type": "value",
+            "lineStart": 89
+          },
+          "classifyStreak": {
+            "type": "value",
+            "lineStart": 89
+          },
+          "checkFailurePatterns": {
+            "type": "value",
+            "lineStart": 89
+          }
+        }
+      },
+      "src/autonomy/failure-tracker.js": {
+        "type": "named",
+        "named": [
+          "FailureTracker"
+        ],
+        "default": null,
+        "namedExports": {
+          "FailureTracker": {
+            "type": "value",
+            "lineStart": 68
+          }
+        }
+      },
+      "src/autonomy/free-will.js": {
+        "type": "default",
+        "named": [],
+        "default": "FreeWillRunner",
+        "namedExports": {}
+      },
+      "src/autonomy/index.js": {
+        "type": "default",
+        "named": [],
+        "default": "AutonomyManager",
+        "namedExports": {}
+      },
+      "src/autonomy/journal.js": {
+        "type": "default",
+        "named": [],
+        "default": "JournalManager",
+        "namedExports": {}
+      },
+      "src/autonomy/notify.js": {
+        "type": "default",
+        "named": [],
+        "default": "Notifier",
+        "namedExports": {}
+      },
+      "src/autonomy/pending-patches.js": {
+        "type": "default",
+        "named": [],
+        "default": "PendingPatches",
+        "namedExports": {}
+      },
+      "src/brain.js": {
+        "type": "named",
+        "named": [
+          "GolemBrain",
+          "getSystemFingerprint"
+        ],
+        "default": null,
+        "namedExports": {
+          "GolemBrain": {
+            "type": "value",
+            "lineStart": 125
+          },
+          "getSystemFingerprint": {
+            "type": "value",
+            "lineStart": 125
+          }
+        }
+      },
+      "src/callback-handler.js": {
+        "type": "default",
+        "named": [],
+        "default": "CallbackHandler",
+        "namedExports": {}
+      },
+      "src/chronos.js": {
+        "type": "default",
+        "named": [],
+        "default": "ChronosManager",
+        "namedExports": {}
+      },
+      "src/codebase-indexer.js": {
+        "type": "default",
+        "named": [],
+        "default": "CodebaseIndexer",
+        "namedExports": {}
+      },
+      "src/config.js": {
+        "type": "default",
+        "named": [],
+        "default": "CONFIG",
+        "namedExports": {}
+      },
+      "src/context.js": {
+        "type": "named",
+        "named": [
+          "OpticNerve",
+          "UniversalContext",
+          "MessageManager"
+        ],
+        "default": null,
+        "namedExports": {
+          "OpticNerve": {
+            "type": "value",
+            "lineStart": 135
+          },
+          "UniversalContext": {
+            "type": "value",
+            "lineStart": 135
+          },
+          "MessageManager": {
+            "type": "value",
+            "lineStart": 135
+          }
+        }
+      },
+      "src/dashboard-log.js": {
+        "type": "default",
+        "named": [],
+        "default": "DashboardLog",
+        "namedExports": {}
+      },
+      "src/dashboard-monitor.js": {
+        "type": "default",
+        "named": [],
+        "default": "DashboardMonitor",
+        "namedExports": {}
+      },
+      "src/dashboard-renderer.js": {
+        "type": "named",
+        "named": [
+          "createWidgets",
+          "setupScreenKeys",
+          "startStdinListener",
+          "stopStdinListener"
+        ],
+        "default": null,
+        "namedExports": {
+          "createWidgets": {
+            "type": "value",
+            "lineStart": 125
+          },
+          "setupScreenKeys": {
+            "type": "value",
+            "lineStart": 125
+          },
+          "startStdinListener": {
+            "type": "value",
+            "lineStart": 125
+          },
+          "stopStdinListener": {
+            "type": "value",
+            "lineStart": 125
+          }
+        }
+      },
+      "src/deploy-actions.js": {
+        "type": "default",
+        "named": [],
+        "default": "DeployActions",
+        "namedExports": {}
+      },
+      "src/executor.js": {
+        "type": "default",
+        "named": [],
+        "default": "Executor",
+        "namedExports": {}
+      },
+      "src/gcp-auth.js": {
+        "type": "default",
+        "named": [],
+        "default": "GCPAuth",
+        "namedExports": {}
+      },
+      "src/google-commands.js": {
+        "type": "default",
+        "named": [],
+        "default": "GoogleCommands",
+        "namedExports": {}
+      },
+      "src/google-drive.js": {
+        "type": "default",
+        "named": [],
+        "default": "DriveClient",
+        "namedExports": {}
+      },
+      "src/google-gmail.js": {
+        "type": "default",
+        "named": [],
+        "default": "GmailClient",
+        "namedExports": {}
+      },
+      "src/google-services.js": {
+        "type": "default",
+        "named": [],
+        "default": "GoogleServices",
+        "namedExports": {}
+      },
+      "src/memory/cold-index.js": {
+        "type": "default",
+        "named": [],
+        "default": "ColdIndex",
+        "namedExports": {}
+      },
+      "src/memory/index.js": {
+        "type": "default",
+        "named": [],
+        "default": "ExperienceMemoryLayer",
+        "namedExports": {}
+      },
+      "src/memory-drivers.js": {
+        "type": "named",
+        "named": [
+          "ExperienceMemory",
+          "SystemQmdDriver",
+          "SystemNativeDriver"
+        ],
+        "default": null,
+        "namedExports": {
+          "ExperienceMemory": {
+            "type": "value",
+            "lineStart": 155
+          },
+          "SystemQmdDriver": {
+            "type": "value",
+            "lineStart": 155
+          },
+          "SystemNativeDriver": {
+            "type": "value",
+            "lineStart": 155
+          }
+        }
+      },
+      "src/message-buffer.js": {
+        "type": "default",
+        "named": [],
+        "default": "MessageBuffer",
+        "namedExports": {}
+      },
+      "src/message-handler.js": {
+        "type": "default",
+        "named": [],
+        "default": "MessageHandler",
+        "namedExports": {}
+      },
+      "src/message-manager.js": {
+        "type": "default",
+        "named": [],
+        "default": "MessageManager",
+        "namedExports": {}
+      },
+      "src/message-processor.js": {
+        "type": "default",
+        "named": [],
+        "default": "MessageProcessor",
+        "namedExports": {}
+      },
+      "src/model-router/adapters/base.js": {
+        "type": "default",
+        "named": [],
+        "default": "ProviderAdapter",
+        "namedExports": {}
+      },
+      "src/model-router/adapters/gemini-generate.js": {
+        "type": "named",
+        "named": [
+          "doGenerate"
+        ],
+        "default": null,
+        "namedExports": {
+          "doGenerate": {
+            "type": "value",
+            "lineStart": 106
+          }
+        }
+      },
+      "src/model-router/adapters/gemini.js": {
+        "type": "default",
+        "named": [],
+        "default": "GeminiAdapter",
+        "namedExports": {}
+      },
+      "src/model-router/adapters/openai-compat.js": {
+        "type": "default",
+        "named": [],
+        "default": "OpenAICompatAdapter",
+        "namedExports": {}
+      },
+      "src/model-router/adapters/openai-http.js": {
+        "type": "named",
+        "named": [
+          "doRequest"
+        ],
+        "default": null,
+        "namedExports": {
+          "doRequest": {
+            "type": "value",
+            "lineStart": 149
+          }
+        }
+      },
+      "src/model-router/configs.js": {
+        "type": "default",
+        "named": [],
+        "default": "PROVIDER_CONFIGS",
+        "namedExports": {}
+      },
+      "src/model-router/health-reporter.js": {
+        "type": "default",
+        "named": [],
+        "default": "HealthReporter",
+        "namedExports": {}
+      },
+      "src/model-router/health.js": {
+        "type": "default",
+        "named": [],
+        "default": "ProviderHealth",
+        "namedExports": {}
+      },
+      "src/model-router/index.js": {
+        "type": "default",
+        "named": [],
+        "default": "ModelRouter",
+        "namedExports": {}
+      },
+      "src/model-router/intents.js": {
+        "type": "default",
+        "named": [],
+        "default": "INTENT_REQUIREMENTS",
+        "namedExports": {}
+      },
+      "src/model-router/router-execute.js": {
+        "type": "named",
+        "named": [
+          "execute"
+        ],
+        "default": null,
+        "namedExports": {
+          "execute": {
+            "type": "value",
+            "lineStart": 78
+          }
+        }
+      },
+      "src/model-router/selector.js": {
+        "type": "default",
+        "named": [],
+        "default": "ModelSelector",
+        "namedExports": {}
+      },
+      "src/moltbook-client.js": {
+        "type": "default",
+        "named": [],
+        "default": "MoltbookClient",
+        "namedExports": {}
+      },
+      "src/node-router.js": {
+        "type": "default",
+        "named": [],
+        "default": "NodeRouter",
+        "namedExports": {}
+      },
+      "src/optic-nerve.js": {
+        "type": "default",
+        "named": [],
+        "default": "OpticNerve",
+        "namedExports": {}
+      },
+      "src/parsers.js": {
+        "type": "named",
+        "named": [
+          "TriStreamParser",
+          "ResponseParser",
+          "dbg"
+        ],
+        "default": null,
+        "namedExports": {
+          "TriStreamParser": {
+            "type": "value",
+            "lineStart": 160
+          },
+          "ResponseParser": {
+            "type": "value",
+            "lineStart": 160
+          },
+          "dbg": {
+            "type": "value",
+            "lineStart": 160
+          }
+        }
+      },
+      "src/persona-manager.js": {
+        "type": "default",
+        "named": [],
+        "default": "PersonaManager",
+        "namedExports": {}
+      },
+      "src/prompt-loader.js": {
+        "type": "named",
+        "named": [
+          "loadPrompt",
+          "loadFeedbackPrompt"
+        ],
+        "default": null,
+        "namedExports": {
+          "loadPrompt": {
+            "type": "value",
+            "lineStart": 40
+          },
+          "loadFeedbackPrompt": {
+            "type": "value",
+            "lineStart": 40
+          }
+        }
+      },
+      "src/react-loop.js": {
+        "type": "default",
+        "named": [],
+        "default": "ReactLoop",
+        "namedExports": {}
+      },
+      "src/security.js": {
+        "type": "default",
+        "named": [],
+        "default": "SecurityManager",
+        "namedExports": {}
+      },
+      "src/skill-loader.js": {
+        "type": "default",
+        "named": [],
+        "default": "SkillLoader",
+        "namedExports": {}
+      },
+      "src/skills.js": {
+        "type": "named",
+        "named": [
+          "persona",
+          "skillLoader",
+          "getSystemPrompt"
+        ],
+        "default": null,
+        "namedExports": {
+          "persona": {
+            "type": "value",
+            "lineStart": 62
+          },
+          "skillLoader": {
+            "type": "value",
+            "lineStart": 63
+          },
+          "getSystemPrompt": {
+            "type": "function",
+            "lineStart": 65
+          }
+        }
+      },
+      "src/task-controller.js": {
+        "type": "default",
+        "named": [],
+        "default": "TaskController",
+        "namedExports": {}
+      },
+      "src/tools.js": {
+        "type": "named",
+        "named": [
+          "ToolScanner",
+          "HelpManager"
+        ],
+        "default": null,
+        "namedExports": {
+          "ToolScanner": {
+            "type": "value",
+            "lineStart": 60
+          },
+          "HelpManager": {
+            "type": "value",
+            "lineStart": 60
+          }
+        }
+      },
+      "src/upgrader.js": {
+        "type": "named",
+        "named": [
+          "Introspection",
+          "PatchManager",
+          "SystemUpgrader"
+        ],
+        "default": null,
+        "namedExports": {
+          "Introspection": {
+            "type": "value",
+            "lineStart": 194
+          },
+          "PatchManager": {
+            "type": "value",
+            "lineStart": 194
+          },
+          "SystemUpgrader": {
+            "type": "value",
+            "lineStart": 194
+          }
+        }
+      },
+      "src/virtual-cmd-handler.js": {
+        "type": "default",
+        "named": [],
+        "default": "VirtualCmdHandler",
+        "namedExports": {}
+      },
+      "src/x-publisher.js": {
+        "type": "default",
+        "named": [],
+        "default": "XPublisher",
+        "namedExports": {}
+      }
+    }
+  },
+  "metadata": {
+    "totalFiles": 91,
+    "totalClasses": 83,
+    "totalMethods": 425,
+    "totalFunctions": 29,
+    "scanDuration_ms": 650
+  }
+}
