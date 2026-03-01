@@ -51,8 +51,9 @@ module.exports = function phase4(test) {
         ['router/intents',               'src/model-router/intents'],
         ['router/adapters/base',         'src/model-router/adapters/base'],
         ['router/adapters/openai-compat','src/model-router/adapters/openai-compat'],
-        ['router/adapters/openai-http',  'src/model-router/adapters/openai-http'],
-        ['router/adapters/gemini',       'src/model-router/adapters/gemini'],
+        ['router/adapters/openai-http',    'src/model-router/adapters/openai-http'],
+        ['router/adapters/gemini',         'src/model-router/adapters/gemini'],
+        ['router/adapters/gemini-generate','src/model-router/adapters/gemini-generate'],
         ['router/selector',              'src/model-router/selector'],
     ];
     for (const [key, modPath] of routerSubmodules) {

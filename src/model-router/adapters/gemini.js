@@ -1,10 +1,13 @@
 /**
- * GeminiAdapter — Google Gemini API 的 ProviderAdapter
+ * @module model-router/adapters/gemini
+ * @role Gemini key pool 管理、節流、重試策略（adapter shell）
+ * @when-to-modify 調整 429/503 冷卻策略、key 輪換邏輯、節流間隔時
+ *
  * 使用 @google/genai SDK（@google/generative-ai 已於 2025-11-30 EOL）
- * 內部整合 KeyChain 邏輯（多 key 輪轉 + 429 冷卻）
+ * 實際 SDK 呼叫與回應解析由 gemini-generate.js 的 doGenerate() 負責
  */
-const { GoogleGenAI } = require('@google/genai');
-const ProviderAdapter = require('./base');
+const ProviderAdapter  = require('./base');
+const { doGenerate }   = require('./gemini-generate');
 
 class GeminiAdapter extends ProviderAdapter {
     constructor(config) {
@@ -55,88 +58,10 @@ class GeminiAdapter extends ProviderAdapter {
             if (!apiKey) throw new Error('[Gemini] 沒有可用的 API Key');
 
             try {
-                const client = new GoogleGenAI({ apiKey });
-                const isGemini3 = model.startsWith('gemini-3');
-
-                const config = {
-                    maxOutputTokens: maxTokens,
-                    temperature,
-                };
-                if (systemInstruction) config.systemInstruction = systemInstruction;
-                if (requireJson) config.responseMimeType = 'application/json';
-                // Gemini 3 引入 thinking mode，thinkingBudget: 0 關閉推理節省延遲
-                if (isGemini3) config.thinkingConfig = { thinkingBudget: 0 };
-                if (tools) config.tools = tools;
-
-                let response;
-
-                if (chatHistory) {
-                    // 對話模式：使用 chat API
-                    const chat = client.chats.create({ model, history: chatHistory, config });
-                    const lastMsg = messages[messages.length - 1];
-                    const userMessage = lastMsg ? lastMsg.content : '';
-                    response = await chat.sendMessage({ message: userMessage });
-                } else if (inlineData) {
-                    // 多模態模式：contents 包含 text + inlineData parts
-                    const lastMsg = messages[messages.length - 1];
-                    const contents = [{
-                        role: 'user',
-                        parts: [
-                            { text: lastMsg ? lastMsg.content : '' },
-                            { inlineData },
-                        ],
-                    }];
-                    response = await client.models.generateContent({ model, contents, config });
-                } else {
-                    // 簡單模式：messages 合併為 prompt
-                    const prompt = messages.map(m => m.content).join('\n');
-                    response = await client.models.generateContent({ model, contents: prompt, config });
-                }
-
-                // 檢查 MAX_TOKENS
-                const candidate = response.candidates?.[0];
-                const finishReason = candidate?.finishReason;
-                if (finishReason === 'MAX_TOKENS') {
-                    throw Object.assign(
-                        new Error(`[Gemini] MAX_TOKENS: response truncated by ${model}`),
-                        { providerError: 'error' }
-                    );
-                }
-
-                // 讀取文字回應（新 SDK 有 .text getter）
-                const text = (response.text || '').trim();
-
-                // 空字串視為失敗，讓 router failover
-                if (!text) {
-                    throw Object.assign(
-                        new Error(`[Gemini] empty response from ${model}`),
-                        { providerError: 'error' }
-                    );
-                }
-
-                // 讀取 grounding metadata
-                const gm = candidate?.groundingMetadata;
-                const grounding = gm ? {
-                    webSearchQueries: gm.webSearchQueries || [],
-                    sources: (gm.groundingChunks || []).map(c => ({
-                        title: c.web?.title || '',
-                        url: c.web?.uri || '',
-                    })),
-                } : null;
-
-                // rawParts 供 brain.js 保留 thought signature
-                const rawParts = candidate?.content?.parts || [{ text }];
-
-                return {
-                    text,
-                    usage: {
-                        inputTokens: response.usageMetadata?.promptTokenCount || 0,
-                        outputTokens: response.usageMetadata?.candidatesTokenCount || 0,
-                    },
-                    grounding,
-                    rawParts,
-                };
-
+                return await doGenerate(apiKey, {
+                    model, messages, maxTokens, temperature, requireJson,
+                    systemInstruction, tools, inlineData, chatHistory,
+                });
             } catch (e) {
                 lastError = e;
                 const msg = e.message || '';

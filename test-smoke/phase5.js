@@ -126,6 +126,11 @@ module.exports = function phase5(test, s) {
         const { doRequest } = require('../src/model-router/adapters/openai-http');
         assert(typeof doRequest === 'function', 'doRequest 應是 function');
     });
+    test('gemini-generate.doGenerate 是 async function', () => {
+        const { doGenerate } = require('../src/model-router/adapters/gemini-generate');
+        assert(typeof doGenerate === 'function', 'doGenerate 應是 function');
+        assert(doGenerate.constructor.name === 'AsyncFunction', 'doGenerate 應是 async function');
+    });
     test('GCPAuth interface', () => {
         const GCPAuth = require('../src/gcp-auth');
         const auth = new GCPAuth();
