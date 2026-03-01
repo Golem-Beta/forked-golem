@@ -25,6 +25,7 @@ const DriveSyncAction = require('./drive-sync');
 const XPostAction = require('./x-post');
 const MoltbookCheckAction = require('./moltbook-check');
 const MoltbookPostAction  = require('./moltbook-post');
+const ThreadsPostAction   = require('./threads-post');
 const MaintenanceRunner = require('./maintenance/index');
 
 class ActionRunner {
@@ -55,6 +56,7 @@ class ActionRunner {
         this._googleServices   = deps.googleServices || null;
         this._moltbookCheck    = new MoltbookCheckAction(deps);
         this._moltbookPost     = new MoltbookPostAction(deps);
+        this._threadsPost      = new ThreadsPostAction(deps);
         this._maintenance      = new MaintenanceRunner(deps);
     }
 
@@ -144,6 +146,14 @@ class ActionRunner {
         const result = await this._moltbookCheck.run();
         if (result && result.success) {
             await this._logToCalendar('Moltbook 巡查', `upvoted:${result.upvoted} commented:${result.commented} dm:${result.dm_replied}`);
+        }
+        return result;
+    }
+
+    async performThreadsPost() {
+        const result = await this._threadsPost.run();
+        if (result && result.success) {
+            await this._logToCalendar('Threads 發文', result.preview || '發文成功');
         }
         return result;
     }

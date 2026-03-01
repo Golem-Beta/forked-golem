@@ -45,7 +45,7 @@ class FreeWillRunner {
                 'self_reflection': '🧬', 'github_explore': '🔍',
                 'spontaneous_chat': '💬', 'web_research': '🌐',
                 'digest': '📝', 'health_check': '🏥', 'rest': '😴',
-                'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦', 'moltbook_check': '🦞', 'moltbook_post': '🦞',
+                'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦', 'moltbook_check': '🦞', 'moltbook_post': '🦞', 'threads_post': '🧵',
             };
             console.log((actionEmoji[decision.action] || '❓') + ' Golem 決定: ' + decision.action + ' — ' + decision.reason);
 
@@ -94,6 +94,9 @@ class FreeWillRunner {
                     break;
                 case 'moltbook_check':
                     _actionResult = await this.actions.performMoltbookCheck();
+                    break;
+                case 'threads_post':
+                    _actionResult = await this.actions.performThreadsPost();
                     break;
                 case 'moltbook_post':
                     _actionResult = await this.actions.performMoltbookPost();
