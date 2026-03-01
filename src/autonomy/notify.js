@@ -99,9 +99,18 @@ class Notifier {
             console.warn('[Notifier] sendToAdmin received empty text, skip');
             return false;
         }
-        // 靜默時段：即時查當前小時，不依賴排程快照（防止跨越 quiet hour 邊界時漏攔）
+        // 靜默時段：即時查當前小時 + autonomy.json，不依賴排程快照
         const _nowHour = new Date().getHours();
-        const _quietHours = this._quietHours || [];
+        let _quietHours = this._quietHours || [];
+        try {
+            if (_quietHours.length === 0) {
+                const _cfg = JSON.parse(fs.readFileSync(
+                    require('path').join(process.cwd(), 'config', 'autonomy.json'), 'utf-8'
+                ));
+                _quietHours = _cfg.awakening?.quietHours || _cfg.awakening?.sleepHours || [];
+                this._quietHours = _quietHours;  // cache
+            }
+        } catch {}
         const _isQuietNow = this.quietMode || _quietHours.includes(_nowHour);
         if (_isQuietNow) {
             this._quietQueue.push({ text, ts: new Date().toISOString() });
