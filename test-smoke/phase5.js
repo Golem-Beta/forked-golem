@@ -41,7 +41,7 @@ module.exports = function phase5(test, s) {
         ['MoltbookClient',      'moltbook-client',          ['get', 'post', 'patch']],
         ['ContextPressure',     'context-pressure',          ['evaluate', '_classifyFailure', '_classifyStreak']],
         ['FreeWillRunner',      'free-will',                 ['run']],
-        ['MoltbookCheckAction',    'actions/moltbook-check',          ['run', '_wrapExternal', '_askLLMForPlan', '_saveInteractionToReflection']],
+        ['MoltbookCheckAction',    'actions/moltbook-check',          ['run', '_wrapExternal', '_askLLMForPlan']],
         ['MoltbookCheckExecutor',  'actions/moltbook-check-executor', ['execute']],
         ['MoltbookPostAction',     'actions/moltbook-post',           ['run', '_generatePost', '_saveToReflection']],
         ['PersonaManager',      'persona-manager',          ['get', 'save', 'setName', 'setRole']],
@@ -90,10 +90,11 @@ module.exports = function phase5(test, s) {
         assert(checkPostEngagement.constructor.name === 'AsyncFunction');
     });
     test('moltbook-state.loadState 回傳含 postStats 欄位', () => {
-        const { loadState, saveState, appendCapped } = require('../src/autonomy/actions/moltbook-state');
+        const { loadState, saveState, appendCapped, saveCheckReflection } = require('../src/autonomy/actions/moltbook-state');
         assert(typeof loadState === 'function', 'loadState 應是 function');
         assert(typeof saveState === 'function', 'saveState 應是 function');
         assert(typeof appendCapped === 'function', 'appendCapped 應是 function');
+        assert(typeof saveCheckReflection === 'function', 'saveCheckReflection 應是 function');
         const state = loadState();
         assert('postStats' in state, 'postStats 欄位應在 loadState 預設值中');
         assert(typeof state.postStats === 'object');
