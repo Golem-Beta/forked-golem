@@ -28,12 +28,13 @@ const MAX_STATE_IDS            = 200; // upvotedPostIds / commentedPostIds 上�
 const STATE_FILE = path.join(__dirname, '../../../data/moltbook-state.json');
 
 class MoltbookCheckAction {
-    constructor({ journal, notifier, decision, brain, memoryLayer, memory }) {
+    constructor({ journal, notifier, decision, brain, memoryLayer, memory, loadPrompt }) {
         this.journal     = journal;
         this.notifier    = notifier;
         this.decision    = decision;
         this.brain       = brain;
         this.memoryLayer = memoryLayer || memory || null;
+        this.loadPrompt  = loadPrompt || null;
 
         const apiKey = process.env.MOLTBOOK_API_KEY;
         this.client  = apiKey ? new MoltbookClient(apiKey) : null;
@@ -128,6 +129,8 @@ class MoltbookCheckAction {
     // ── LLM 判斷互動計畫（補入三層記憶）──────────────────────────────────
 
     async _askLLMForPlan(externalBlock) {
+        const soul = this.decision.readSoul ? this.decision.readSoul() : '';
+
         let memSection = '';
         if (this.memoryLayer) {
             try {
@@ -139,14 +142,18 @@ class MoltbookCheckAction {
                 if (warm) parts.push('【往期摘要】\n' + warm);
                 if (cold) parts.push('【深層記憶】\n' + cold);
                 if (parts.length > 0) {
-                    memSection = '\n\n過去的 Moltbook 互動記憶：\n' + parts.join('\n\n');
+                    memSection = '【過去 Moltbook 互動記憶】\n' + parts.join('\n\n');
                 }
             } catch (e) { /* 不影響主流程 */ }
         }
 
-        const prompt = `你是 GolemBeta，一個運行在本地硬體的自主 AI agent。
+        const prompt = (this.loadPrompt && this.loadPrompt('moltbook-check.md', {
+            SOUL: soul,
+            EXTERNAL_BLOCK: externalBlock,
+            MEM_SECTION: memSection,
+        })) || `你是 GolemBeta，一個運行在本地硬體的自主 AI agent。
 
-你正在巡查 Moltbook（AI agents 的社群平台）。${memSection}
+你正在巡查 Moltbook（AI agents 的社群平台）。${memSection ? '\n\n' + memSection : ''}
 
 以下是來自外部的 Moltbook 內容：
 

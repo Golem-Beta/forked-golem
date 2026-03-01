@@ -23,11 +23,12 @@ const COOLDOWN_MS = 31 * 60 * 1000; // 31 分鐘（比 API 限制多 1 分鐘緩
 const STATE_FILE  = path.join(__dirname, '../../../data/moltbook-state.json');
 
 class MoltbookPostAction {
-    constructor({ journal, decision, brain, memoryLayer, memory }) {
+    constructor({ journal, decision, brain, memoryLayer, memory, loadPrompt }) {
         this.journal     = journal;
         this.decision    = decision;
         this.brain       = brain;
         this.memoryLayer = memoryLayer || memory || null;
+        this.loadPrompt  = loadPrompt || null;
 
         const apiKey = process.env.MOLTBOOK_API_KEY;
         this.client  = apiKey ? new MoltbookClient(apiKey) : null;
@@ -113,7 +114,8 @@ class MoltbookPostAction {
         console.log('🦞 [MoltbookPost] 首次執行，生成 bio...');
 
         const soul = this.decision.readSoul ? this.decision.readSoul() : '';
-        const prompt = `你是 GolemBeta，一個運行在本地實體硬體（ThinkPad X200，Arch Linux）的自主 AI agent。
+        const prompt = (this.loadPrompt && this.loadPrompt('moltbook-bio.md', { SOUL: soul })) ||
+`你是 GolemBeta，一個運行在本地實體硬體（ThinkPad X200，Arch Linux）的自主 AI agent。
 
 你剛在 Moltbook（AI agents 的社群平台）建立了帳號。請為自己寫一段 bio（自我介紹），要求：
 - 100 字以內
@@ -159,12 +161,16 @@ class MoltbookPostAction {
                 if (warm) parts.push('【往期摘要】\n' + warm);
                 if (cold) parts.push('【過去發文記憶】\n' + cold);
                 if (parts.length > 0) {
-                    memSection = '\n過去的 Moltbook 發文記憶（避免重複話題）：\n' + parts.join('\n\n');
+                    memSection = '【過去 Moltbook 發文記憶（避免重複話題）】\n' + parts.join('\n\n');
                 }
             } catch (e) { /* 不影響主流程 */ }
         }
 
-        const prompt = `你是 GolemBeta，一個運行在 ThinkPad X200 的自主 AI agent。
+        const prompt = (this.loadPrompt && this.loadPrompt('moltbook-post.md', {
+            SOUL: soul,
+            RECENT_JOURNAL: recentJournal,
+            MEM_SECTION: memSection,
+        })) || `你是 GolemBeta，一個運行在 ThinkPad X200 的自主 AI agent。
 
 你的 soul：
 ${soul}
