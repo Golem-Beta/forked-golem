@@ -150,6 +150,8 @@ module.exports = function phase4(test) {
         ['google-gmail',        'src/google-gmail'],
         ['google-drive',        'src/google-drive'],
         ['virtual-cmd-handler', 'src/virtual-cmd-handler'],
+        ['optic-nerve',         'src/optic-nerve'],
+        ['message-manager',     'src/message-manager'],
     ];
     for (const [key, modPath] of coreModules) {
         test(`${key} is a class`, () => {

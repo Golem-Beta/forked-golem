@@ -196,6 +196,16 @@ module.exports = function phase5(test, s) {
             assert(content.includes(v), `缺少佔位符 ${v}`);
         }
     });
+    test('OpticNerve.analyze 是 static async function', () => {
+        const OpticNerve = require('../src/optic-nerve');
+        assert(typeof OpticNerve.analyze === 'function', 'OpticNerve.analyze 應是 function');
+        assert(OpticNerve.analyze.constructor.name === 'AsyncFunction', 'OpticNerve.analyze 應是 async');
+    });
+    test('MessageManager.send 是 static async function', () => {
+        const MessageManager = require('../src/message-manager');
+        assert(typeof MessageManager.send === 'function', 'MessageManager.send 應是 function');
+        assert(MessageManager.send.constructor.name === 'AsyncFunction', 'MessageManager.send 應是 async');
+    });
     test('google-classifier classifyByRules 規則分類行為正確', () => {
         const { classifyByRules } = require('../src/autonomy/actions/google-classifier');
         // Google platform — 非影響服務的應 ignore
