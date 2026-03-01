@@ -111,6 +111,24 @@ const PROVIDER_CONFIGS = {
             'Meta-Llama-3.3-70B-Instruct': [],
         },
     },
+    nvidia: {
+        baseUrl: 'https://integrate.api.nvidia.com/v1',
+        envKey: 'NVIDIA_API_KEY',
+        multiKey: false,
+        rpdLimits: {
+            'meta/llama-3.3-70b-instruct':         1000,
+            'nvidia/llama-3.3-nemotron-super-49b-v1': 1000,
+            'qwen/qwen3-235b-a22b':                500,
+            'deepseek-ai/deepseek-r1-0528':        200,
+        },
+        defaultRpm: 40,
+        modelCapabilities: {
+            'meta/llama-3.3-70b-instruct':            ['long_context'],
+            'nvidia/llama-3.3-nemotron-super-49b-v1': ['long_context', 'reasoning'],
+            'qwen/qwen3-235b-a22b':                   ['long_context'],
+            'deepseek-ai/deepseek-r1-0528':           ['long_context', 'reasoning'],
+        },
+    },
 };
 
 module.exports = PROVIDER_CONFIGS;
