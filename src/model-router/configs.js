@@ -30,15 +30,17 @@ const PROVIDER_CONFIGS = {
         envKey: 'GROQ_API_KEYS',
         multiKey: true,
         rpdLimits: {
-            'llama-3.3-70b-versatile':     1000,
-            'moonshotai/kimi-k2-instruct-0905': 1000,
-            'qwen/qwen3-32b':              1000,
+            'llama-3.3-70b-versatile':              1000,
+            'moonshotai/kimi-k2-instruct-0905':     1000,
+            'openai/gpt-oss-120b':                  1000,
+            'meta-llama/llama-4-maverick-17b-128e-instruct': 1000,
         },
         defaultRpm: 30,
         modelCapabilities: {
-            'llama-3.3-70b-versatile':     ['tristream'],  // benchmark 8/8 通過
-            'moonshotai/kimi-k2-instruct-0905': ['long_context'],
-            'qwen/qwen3-32b':              [],
+            'llama-3.3-70b-versatile':              ['tristream'],  // benchmark 8/8 通過
+            'moonshotai/kimi-k2-instruct-0905':     ['long_context'],
+            'openai/gpt-oss-120b':                  ['reasoning'],
+            'meta-llama/llama-4-maverick-17b-128e-instruct': [],
         },
     },
     deepseek: {
