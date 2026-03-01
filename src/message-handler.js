@@ -117,6 +117,7 @@ class MessageHandler {
         }
 
         await ctx.sendTyping();
+        let steps = [];
         try {
             let finalInput = ctx.text;
             let tainted = false;
@@ -177,7 +178,7 @@ class MessageHandler {
                 await this.brain.memorize(parsed.memory, { type: 'fact', timestamp: Date.now() });
             }
 
-            let steps = parsed.actions;
+            steps = parsed.actions;
             let chatPart = parsed.reply;
             dbg('ActionFlow', `steps.length=${steps.length} hasStructuredTags=${parsed.hasStructuredTags} steps=${JSON.stringify(steps)}`);
 
