@@ -120,7 +120,7 @@ class AutonomyManager {
             this._timer = setTimeout(async () => {
                 const wasQuiet = this.quietMode;
                 this.quietMode = isQuiet;
-                this.notifier.setQuietMode(isQuiet);
+                this.notifier.setQuietMode(isQuiet, quietHours);
 
                 // 靜默結束 → 立即 drain queue
                 if (wasQuiet && !isQuiet) {

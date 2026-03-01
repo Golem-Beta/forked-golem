@@ -30,14 +30,16 @@ class Notifier {
         // 靜默時段暫存 queue（{ text, ts }[]）
         this._quietQueue = this._loadQuietQueueFromDisk();
         this.quietMode = false;
+        this._quietHours = [];  // 由 AutonomyManager 注入，用於即時判斷
         this._consecutiveFailures = 0;
     }
 
     /**
      * 由 AutonomyManager 控制靜默模式
      */
-    setQuietMode(val) {
+    setQuietMode(val, quietHours) {
         this.quietMode = !!val;
+        if (Array.isArray(quietHours)) this._quietHours = quietHours;
     }
 
     /**
@@ -97,8 +99,11 @@ class Notifier {
             console.warn('[Notifier] sendToAdmin received empty text, skip');
             return false;
         }
-        // 靜默時段：暫存，不發送
-        if (this.quietMode) {
+        // 靜默時段：即時查當前小時，不依賴排程快照（防止跨越 quiet hour 邊界時漏攔）
+        const _nowHour = new Date().getHours();
+        const _quietHours = this._quietHours || [];
+        const _isQuietNow = this.quietMode || _quietHours.includes(_nowHour);
+        if (_isQuietNow) {
             this._quietQueue.push({ text, ts: new Date().toISOString() });
             this._saveQuietQueue();
             console.log('[Notifier] 靜默佇列（不是失敗），訊息暫存 (queue=' + this._quietQueue.length + ')');
