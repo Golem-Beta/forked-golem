@@ -21,9 +21,7 @@ class ExploreAction {
     }
 
     async performGitHubExplore() {
-        const result = await this._githubExplore.performGitHubExplore();
-        this.journal.append({ type: 'github_explore', outcome: result ? 'done' : 'send_failed' });
-        return result;
+        return this._githubExplore.performGitHubExplore();
     }
 }
 
