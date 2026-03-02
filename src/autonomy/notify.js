@@ -27,7 +27,7 @@ class Notifier {
         this.config = config;
         this.brain = brain;
         this.TriStreamParser = TriStreamParser;
-        // 靜默時段暫存 queue（{ text, ts }[]）
+        // 靜默時段暫存 queue（{ text, ts, source }[]）
         this._quietQueue = this._loadQuietQueueFromDisk();
         this.quietMode = false;
         this._quietHours = [];  // 由 AutonomyManager 注入，用於即時判斷
@@ -44,11 +44,16 @@ class Notifier {
 
     /**
      * 取出並清空靜默 queue
+     * 若有 source === 'patch_review' 的項目，在最後一則末尾追加 /lp 提示
      */
     drainQuietQueue() {
         const items = this._quietQueue.slice();
         this._quietQueue = [];
         try { fs.unlinkSync(QUIET_QUEUE_PATH); } catch (_) {}
+        if (items.length > 0 && items.some(i => i.source === 'patch_review')) {
+            const last = items[items.length - 1];
+            items[items.length - 1] = { ...last, text: last.text + '\n（如有 patch 附件，請用 /lp 查看）' };
+        }
         return items;
     }
 
@@ -92,9 +97,18 @@ class Notifier {
     }
 
     /**
-     * 發送純文字到管理員（自動分段）
+     * 發送純文字（及可選附件）到管理員
+     * @param {string} text - 訊息文字
+     * @param {object} [options={}]
+     * @param {string}  [options.document]   - 本機檔案路徑；quiet hours 期間自動略過
+     * @param {string}  [options.source]     - 來源標識（用於 drain 統計），預設 'general'
+     * @param {object}  [options.tgOptions]  - 額外的 Telegram sendMessage 選項（如 reply_markup）
      */
-    async sendToAdmin(text) {
+    async sendToAdmin(text, options = {}) {
+        const docPath  = options.document  || null;
+        const source   = options.source    || 'general';
+        const tgOpts   = options.tgOptions || {};
+
         if (!text) {
             console.warn('[Notifier] sendToAdmin received empty text, skip');
             return false;
@@ -113,16 +127,25 @@ class Notifier {
         } catch {}
         const _isQuietNow = this.quietMode || _quietHours.includes(_nowHour);
         if (_isQuietNow) {
-            this._quietQueue.push({ text, ts: new Date().toISOString() });
+            this._quietQueue.push({ text, ts: new Date().toISOString(), source });
             this._saveQuietQueue();
-            console.log('[Notifier] 靜默佇列（不是失敗），訊息暫存 (queue=' + this._quietQueue.length + ')');
+            console.log('[Notifier] 靜默佇列（不是失敗），訊息暫存 (queue=' + this._quietQueue.length + ')' + (docPath ? '，附件略過' : ''));
             return 'queued';
         }
         const TG_MAX = 4000;
         try {
             if (this.tgBot && this.config.ADMIN_IDS[0]) {
+                const adminId = this.config.ADMIN_IDS[0];
                 if (text.length <= TG_MAX) {
-                    await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], text);
+                    await this.tgBot.api.sendMessage(adminId, text, tgOpts);
+                    if (docPath) {
+                        try {
+                            const { InputFile } = require('grammy');
+                            await this.tgBot.api.sendDocument(adminId, new InputFile(fs.createReadStream(docPath), path.basename(docPath)));
+                        } catch (de) {
+                            console.warn('[Notifier] 附件傳送失敗:', de.message);
+                        }
+                    }
                     console.log('[Notifier] TG sent OK (' + text.length + ' chars)');
                     if (this.brain) {
                         this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
@@ -152,8 +175,18 @@ class Notifier {
                         }
                     }
                     console.log(`📨 [Notifier] 訊息過長 (${text.length} chars)，分 ${finalChunks.length} 段發送`);
-                    for (const chunk of finalChunks) {
-                        await this.tgBot.api.sendMessage(this.config.ADMIN_IDS[0], chunk);
+                    // tgOpts（inline keyboard 等）附到最後一段，讓按鈕出現在訊息尾端
+                    for (let ci = 0; ci < finalChunks.length; ci++) {
+                        const chunkOpts = (ci === finalChunks.length - 1) ? tgOpts : {};
+                        await this.tgBot.api.sendMessage(adminId, finalChunks[ci], chunkOpts);
+                    }
+                    if (docPath) {
+                        try {
+                            const { InputFile } = require('grammy');
+                            await this.tgBot.api.sendDocument(adminId, new InputFile(fs.createReadStream(docPath), path.basename(docPath)));
+                        } catch (de) {
+                            console.warn('[Notifier] 附件傳送失敗:', de.message);
+                        }
                     }
                     console.log('[Notifier] TG sent OK (' + text.length + ' chars, chunked)');
                     if (this.brain) {
@@ -165,6 +198,7 @@ class Notifier {
             } else if (this.dcClient && this.config.DISCORD_ADMIN_ID) {
                 const user = await this.dcClient.users.fetch(this.config.DISCORD_ADMIN_ID);
                 await user.send(text.slice(0, 2000));
+                // Discord: 不支援本機附件，略過 docPath
             }
         } catch (e) {
             console.error('[Notifier] send FAILED:', e.message);

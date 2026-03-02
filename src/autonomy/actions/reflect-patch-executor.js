@@ -9,7 +9,7 @@
  */
 'use strict';
 
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 
 async function runSmokeGate() {
@@ -21,6 +21,23 @@ async function runSmokeGate() {
         child.on('close', code => resolve({ ok: code === 0, output }));
         child.on('error', err => resolve({ ok: false, output: err.message }));
     });
+}
+
+/**
+ * 對比兩個檔案，產出 unified diff 字串（截至 3000 字元）
+ * 失敗或 diff 指令不存在時回傳 null（呼叫端 fallback 回 2 行 preview）
+ */
+function buildUnifiedDiff(targetPath, testFile) {
+    try {
+        const r = spawnSync('diff', ['-u', targetPath, testFile], { encoding: 'utf-8' });
+        if (r.error) return null;                    // diff 指令不存在
+        if (r.status === 0) return '（無差異）';
+        if (r.status === 1) {                        // 正常：有差異
+            const d = r.stdout || '';
+            return d.length > 3000 ? d.slice(0, 3000) + '\n...(diff 已截斷)' : d;
+        }
+        return null;                                 // diff 指令錯誤（status 2）
+    } catch (_) { return null; }
 }
 
 class PatchExecutor {
@@ -84,52 +101,69 @@ class PatchExecutor {
     // ── 送審（建 diff preview、存 PendingPatches、發 Telegram inline button）
 
     async sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx) {
-        const confidence  = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
+        const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
+
+        // --- diff preview 建構（優先 unified diff；失敗時 fallback 回 2 行 preview）---
         const truncLine   = s => s.length > 80 ? s.substring(0, 80) + '...' : s;
-        const searchPreview = proposal.target_node
-            ? `- [AST: ${proposal.target_node}]`
-            : proposal.search.split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
-        const replacePreview = proposal.replace.split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
+        const rawDiff     = buildUnifiedDiff(targetPath, testFile);
+        let diffBlock, diffPreviewShort;
+        if (rawDiff !== null) {
+            diffBlock       = '```\n' + rawDiff + '\n```';
+            diffPreviewShort = rawDiff.slice(0, 500);
+        } else {
+            const searchPrev = proposal.target_node
+                ? `- [AST: ${proposal.target_node}]`
+                : (proposal.search || '').split('\n').slice(0, 2).map(truncLine).map(l => '- ' + l).join('\n');
+            const replacePrev = (proposal.replace || '').split('\n').slice(0, 2).map(truncLine).map(l => '+ ' + l).join('\n');
+            diffBlock        = '```\n' + searchPrev + '\n' + replacePrev + '\n```';
+            diffPreviewShort = searchPrev + '\n' + replacePrev;
+        }
 
         global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
         if (this.PendingPatches) {
             const pendingId = this.PendingPatches.add({
                 testFile, target: targetPath, name: targetName,
                 description: proposal.description || '', proposalType,
-                diffPreview: searchPreview + '\n' + replacePreview,
+                diffPreview: diffPreviewShort,
             });
             global.pendingPatch.pendingId = pendingId;
         }
 
-        const diffBlock = '```\n' + searchPreview + '\n' + replacePreview + '\n```';
         const infoParts = [];
         if (proposal.risk_level) infoParts.push('風險: ' + proposal.risk_level);
         if (typeof proposal.confidence === 'number') infoParts.push('信心: ' + (confidence * 100).toFixed(0) + '%');
         if (proposal.expected_outcome) infoParts.push('預期: ' + proposal.expected_outcome);
-        const infoLine  = infoParts.length > 0 ? '\n' + infoParts.join(' | ') : '';
-        const msgText   = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine;
-        const options   = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
+        const infoLine   = infoParts.length > 0 ? '\n' + infoParts.join(' | ') : '';
+        const msgText    = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine;
+        const inlineOpts = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
 
         let sentCP = false;
         let sentCPError = null;
         try {
             if (triggerCtx) {
-                await triggerCtx.reply(msgText, options);
+                // 使用者手動觸發路徑：有 ctx，直接回覆
+                await triggerCtx.reply(msgText, inlineOpts);
                 await triggerCtx.sendDocument(testFile);
                 sentCP = true;
             } else if (this.config.ADMIN_IDS && this.config.ADMIN_IDS[0]) {
-                const { tgBot } = this.notifier;
-                if (tgBot) {
-                    await tgBot.api.sendMessage(this.config.ADMIN_IDS[0], msgText, options);
-                    await tgBot.api.sendDocument(this.config.ADMIN_IDS[0], new this.InputFile(testFile));
-                    sentCP = true;
+                // 自主觸發路徑：透過 notifier.sendToAdmin，遵守 quiet hours
+                const result = await this.notifier.sendToAdmin(msgText, {
+                    document: testFile,
+                    source: 'patch_review',
+                    tgOptions: inlineOpts,
+                });
+                if (result === true || result === 'queued') {
+                    sentCP = result; // true 或 'queued'
+                } else {
+                    sentCP = false;
+                    if (result && result.error) sentCPError = result.error;
                 }
             }
         } catch (sendErr) {
             console.error('[SelfReflection/core_patch] send FAILED:', sendErr.message);
             sentCPError = sendErr.message;
         }
-        console.log('[SelfReflection/core_patch] send:', sentCP ? '✅ OK' : '❌ FAILED');
+        console.log('[SelfReflection/core_patch] send:', sentCP === true ? '✅ OK' : sentCP === 'queued' ? '⏳ queued' : '❌ FAILED');
 
         if (this.googleServices?._auth?.isAuthenticated()) {
             try {
