@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-03-01T06:59:00.261Z",
-  "gitHead": "72177339dbcdeb1ab53217056fffee40318e27e8",
+  "generatedAt": "2026-03-02T11:51:45.149Z",
+  "gitHead": "e3cb006dc440984384ef3f4ef1c49461b8fc2d63",
   "symbols": {
     "files": {
       "src/autonomy/action-filter.js": {
@@ -22,7 +22,7 @@
       },
       "src/autonomy/actions/digest.js": {
         "path": "src/autonomy/actions/digest.js",
-        "lines": 204,
+        "lines": 214,
         "classes": [
           "DigestAction"
         ],
@@ -79,7 +79,7 @@
       },
       "src/autonomy/actions/health-check.js": {
         "path": "src/autonomy/actions/health-check.js",
-        "lines": 81,
+        "lines": 152,
         "classes": [
           "HealthCheckAction"
         ],
@@ -87,7 +87,7 @@
       },
       "src/autonomy/actions/index.js": {
         "path": "src/autonomy/actions/index.js",
-        "lines": 171,
+        "lines": 181,
         "classes": [
           "ActionRunner"
         ],
@@ -167,7 +167,7 @@
       },
       "src/autonomy/actions/moltbook-post.js": {
         "path": "src/autonomy/actions/moltbook-post.js",
-        "lines": 206,
+        "lines": 207,
         "classes": [
           "MoltbookPostAction"
         ],
@@ -227,9 +227,17 @@
         ],
         "functions": []
       },
+      "src/autonomy/actions/threads-post.js": {
+        "path": "src/autonomy/actions/threads-post.js",
+        "lines": 124,
+        "classes": [
+          "ThreadsPostAction"
+        ],
+        "functions": []
+      },
       "src/autonomy/actions/web-research.js": {
         "path": "src/autonomy/actions/web-research.js",
-        "lines": 104,
+        "lines": 107,
         "classes": [
           "WebResearchAction"
         ],
@@ -253,7 +261,7 @@
       },
       "src/autonomy/decision-context.js": {
         "path": "src/autonomy/decision-context.js",
-        "lines": 200,
+        "lines": 265,
         "classes": [
           "DecisionContext"
         ],
@@ -261,7 +269,7 @@
       },
       "src/autonomy/decision-utils.js": {
         "path": "src/autonomy/decision-utils.js",
-        "lines": 159,
+        "lines": 160,
         "classes": [
           "DecisionUtils"
         ],
@@ -269,7 +277,7 @@
       },
       "src/autonomy/decision.js": {
         "path": "src/autonomy/decision.js",
-        "lines": 170,
+        "lines": 172,
         "classes": [
           "DecisionEngine"
         ],
@@ -296,7 +304,7 @@
       },
       "src/autonomy/free-will.js": {
         "path": "src/autonomy/free-will.js",
-        "lines": 126,
+        "lines": 129,
         "classes": [
           "FreeWillRunner"
         ],
@@ -320,7 +328,7 @@
       },
       "src/autonomy/notify.js": {
         "path": "src/autonomy/notify.js",
-        "lines": 186,
+        "lines": 200,
         "classes": [
           "Notifier"
         ],
@@ -395,7 +403,7 @@
       },
       "src/dashboard-monitor.js": {
         "path": "src/dashboard-monitor.js",
-        "lines": 157,
+        "lines": 179,
         "classes": [
           "DashboardMonitor"
         ],
@@ -530,7 +538,7 @@
       },
       "src/message-processor.js": {
         "path": "src/message-processor.js",
-        "lines": 216,
+        "lines": 221,
         "classes": [
           "MessageProcessor"
         ],
@@ -578,7 +586,7 @@
       },
       "src/model-router/configs.js": {
         "path": "src/model-router/configs.js",
-        "lines": 117,
+        "lines": 139,
         "classes": [],
         "functions": []
       },
@@ -592,7 +600,7 @@
       },
       "src/model-router/health.js": {
         "path": "src/model-router/health.js",
-        "lines": 222,
+        "lines": 232,
         "classes": [
           "ProviderHealth"
         ],
@@ -608,7 +616,7 @@
       },
       "src/model-router/intents.js": {
         "path": "src/model-router/intents.js",
-        "lines": 50,
+        "lines": 53,
         "classes": [],
         "functions": []
       },
@@ -638,7 +646,7 @@
       },
       "src/node-router.js": {
         "path": "src/node-router.js",
-        "lines": 47,
+        "lines": 19,
         "classes": [
           "NodeRouter"
         ],
@@ -687,6 +695,30 @@
           "ReactLoop"
         ],
         "functions": []
+      },
+      "src/reality/hn-feed.js": {
+        "path": "src/reality/hn-feed.js",
+        "lines": 70,
+        "classes": [],
+        "functions": [
+          "httpsGet",
+          "fetchTopStories",
+          "fetch",
+          "format"
+        ]
+      },
+      "src/reality/threads-client.js": {
+        "path": "src/reality/threads-client.js",
+        "lines": 135,
+        "classes": [],
+        "functions": [
+          "httpsGet",
+          "httpsPost",
+          "getToken",
+          "getMyUserId",
+          "publish",
+          "getMyPosts"
+        ]
       },
       "src/security.js": {
         "path": "src/security.js",
@@ -787,15 +819,15 @@
         "methodName": "performDigest",
         "isAsync": true,
         "lineStart": 18,
-        "lineEnd": 140
+        "lineEnd": 150
       },
       "DigestAction.performMorningDigest": {
         "file": "src/autonomy/actions/digest.js",
         "className": "DigestAction",
         "methodName": "performMorningDigest",
         "isAsync": true,
-        "lineStart": 145,
-        "lineEnd": 200
+        "lineStart": 155,
+        "lineEnd": 210
       },
       "DriveSyncAction.constructor": {
         "file": "src/autonomy/actions/drive-sync.js",
@@ -962,168 +994,192 @@
         "className": "HealthCheckAction",
         "methodName": "constructor",
         "isAsync": false,
-        "lineStart": 10,
-        "lineEnd": 15
+        "lineStart": 12,
+        "lineEnd": 17
       },
       "HealthCheckAction.run": {
         "file": "src/autonomy/actions/health-check.js",
         "className": "HealthCheckAction",
         "methodName": "run",
         "isAsync": true,
-        "lineStart": 17,
-        "lineEnd": 39
+        "lineStart": 19,
+        "lineEnd": 43
+      },
+      "HealthCheckAction._cleanOrphanNodes": {
+        "file": "src/autonomy/actions/health-check.js",
+        "className": "HealthCheckAction",
+        "methodName": "_cleanOrphanNodes",
+        "isAsync": false,
+        "lineStart": 45,
+        "lineEnd": 74
       },
       "HealthCheckAction._checkIndexHealth": {
         "file": "src/autonomy/actions/health-check.js",
         "className": "HealthCheckAction",
         "methodName": "_checkIndexHealth",
         "isAsync": false,
-        "lineStart": 41,
-        "lineEnd": 59
+        "lineStart": 76,
+        "lineEnd": 94
+      },
+      "HealthCheckAction._checkMemoryHealth": {
+        "file": "src/autonomy/actions/health-check.js",
+        "className": "HealthCheckAction",
+        "methodName": "_checkMemoryHealth",
+        "isAsync": true,
+        "lineStart": 96,
+        "lineEnd": 130
       },
       "HealthCheckAction._shouldTriggerReflection": {
         "file": "src/autonomy/actions/health-check.js",
         "className": "HealthCheckAction",
         "methodName": "_shouldTriggerReflection",
         "isAsync": false,
-        "lineStart": 61,
-        "lineEnd": 77
+        "lineStart": 132,
+        "lineEnd": 148
       },
       "ActionRunner.constructor": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "constructor",
         "isAsync": false,
-        "lineStart": 46,
-        "lineEnd": 59
+        "lineStart": 47,
+        "lineEnd": 61
       },
       "ActionRunner.performSpontaneousChat": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performSpontaneousChat",
         "isAsync": true,
-        "lineStart": 62,
-        "lineEnd": 62
+        "lineStart": 64,
+        "lineEnd": 64
       },
       "ActionRunner.onAdminReply": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "onAdminReply",
         "isAsync": false,
-        "lineStart": 63,
-        "lineEnd": 63
+        "lineStart": 65,
+        "lineEnd": 65
       },
       "ActionRunner.performWebResearch": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performWebResearch",
         "isAsync": true,
-        "lineStart": 66,
-        "lineEnd": 66
+        "lineStart": 68,
+        "lineEnd": 68
       },
       "ActionRunner.performSelfReflection": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performSelfReflection",
         "isAsync": true,
-        "lineStart": 69,
-        "lineEnd": 75
+        "lineStart": 71,
+        "lineEnd": 77
       },
       "ActionRunner.performGitHubExplore": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performGitHubExplore",
         "isAsync": true,
-        "lineStart": 78,
-        "lineEnd": 82
+        "lineStart": 80,
+        "lineEnd": 84
       },
       "ActionRunner.performDigest": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performDigest",
         "isAsync": true,
-        "lineStart": 85,
-        "lineEnd": 85
+        "lineStart": 87,
+        "lineEnd": 87
       },
       "ActionRunner.performMorningDigest": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performMorningDigest",
         "isAsync": true,
-        "lineStart": 86,
-        "lineEnd": 86
+        "lineStart": 88,
+        "lineEnd": 88
       },
       "ActionRunner.performHealthCheck": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performHealthCheck",
         "isAsync": true,
-        "lineStart": 89,
-        "lineEnd": 93
+        "lineStart": 91,
+        "lineEnd": 95
       },
       "ActionRunner.performGoogleCheck": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performGoogleCheck",
         "isAsync": true,
-        "lineStart": 96,
-        "lineEnd": 104
+        "lineStart": 98,
+        "lineEnd": 106
       },
       "ActionRunner.performDriveSync": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performDriveSync",
         "isAsync": true,
-        "lineStart": 107,
-        "lineEnd": 115
+        "lineStart": 109,
+        "lineEnd": 117
       },
       "ActionRunner.performXPost": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performXPost",
         "isAsync": true,
-        "lineStart": 118,
-        "lineEnd": 124
+        "lineStart": 120,
+        "lineEnd": 126
       },
       "ActionRunner._logToCalendar": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "_logToCalendar",
         "isAsync": true,
-        "lineStart": 127,
-        "lineEnd": 141
+        "lineStart": 129,
+        "lineEnd": 143
       },
       "ActionRunner.performMoltbookCheck": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performMoltbookCheck",
         "isAsync": true,
-        "lineStart": 143,
-        "lineEnd": 149
+        "lineStart": 145,
+        "lineEnd": 151
+      },
+      "ActionRunner.performThreadsPost": {
+        "file": "src/autonomy/actions/index.js",
+        "className": "ActionRunner",
+        "methodName": "performThreadsPost",
+        "isAsync": true,
+        "lineStart": 153,
+        "lineEnd": 159
       },
       "ActionRunner.performMoltbookPost": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performMoltbookPost",
         "isAsync": true,
-        "lineStart": 151,
-        "lineEnd": 157
+        "lineStart": 161,
+        "lineEnd": 167
       },
       "ActionRunner.hasMaintenance": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "hasMaintenance",
         "isAsync": false,
-        "lineStart": 160,
-        "lineEnd": 160
+        "lineStart": 170,
+        "lineEnd": 170
       },
       "ActionRunner.performMaintenance": {
         "file": "src/autonomy/actions/index.js",
         "className": "ActionRunner",
         "methodName": "performMaintenance",
         "isAsync": true,
-        "lineStart": 161,
-        "lineEnd": 167
+        "lineStart": 171,
+        "lineEnd": 177
       },
       "MaintenanceAction.constructor": {
         "file": "src/autonomy/actions/maintenance/base.js",
@@ -1347,7 +1403,7 @@
         "methodName": "_generatePost",
         "isAsync": true,
         "lineStart": 143,
-        "lineEnd": 200
+        "lineEnd": 201
       },
       "ReflectDiag.constructor": {
         "file": "src/autonomy/actions/reflect-diag.js",
@@ -1461,6 +1517,38 @@
         "lineStart": 95,
         "lineEnd": 111
       },
+      "ThreadsPostAction.constructor": {
+        "file": "src/autonomy/actions/threads-post.js",
+        "className": "ThreadsPostAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 13,
+        "lineEnd": 17
+      },
+      "ThreadsPostAction._getLastPostTime": {
+        "file": "src/autonomy/actions/threads-post.js",
+        "className": "ThreadsPostAction",
+        "methodName": "_getLastPostTime",
+        "isAsync": false,
+        "lineStart": 19,
+        "lineEnd": 26
+      },
+      "ThreadsPostAction._saveLastPostTime": {
+        "file": "src/autonomy/actions/threads-post.js",
+        "className": "ThreadsPostAction",
+        "methodName": "_saveLastPostTime",
+        "isAsync": false,
+        "lineStart": 28,
+        "lineEnd": 30
+      },
+      "ThreadsPostAction.run": {
+        "file": "src/autonomy/actions/threads-post.js",
+        "className": "ThreadsPostAction",
+        "methodName": "run",
+        "isAsync": true,
+        "lineStart": 32,
+        "lineEnd": 120
+      },
       "WebResearchAction.constructor": {
         "file": "src/autonomy/actions/web-research.js",
         "className": "WebResearchAction",
@@ -1475,7 +1563,7 @@
         "methodName": "performWebResearch",
         "isAsync": true,
         "lineStart": 16,
-        "lineEnd": 100
+        "lineEnd": 103
       },
       "XPostAction.constructor": {
         "file": "src/autonomy/actions/x-post.js",
@@ -1547,71 +1635,87 @@
         "methodName": "build",
         "isAsync": true,
         "lineStart": 45,
-        "lineEnd": 74
+        "lineEnd": 78
       },
       "DecisionContext._buildJournalSummary": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_buildJournalSummary",
         "isAsync": false,
-        "lineStart": 78,
-        "lineEnd": 84
+        "lineStart": 82,
+        "lineEnd": 88
       },
       "DecisionContext._recallBrainMemory": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_recallBrainMemory",
         "isAsync": true,
-        "lineStart": 86,
-        "lineEnd": 102
+        "lineStart": 90,
+        "lineEnd": 106
       },
       "DecisionContext._buildDiversitySection": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_buildDiversitySection",
         "isAsync": false,
-        "lineStart": 104,
-        "lineEnd": 121
+        "lineStart": 108,
+        "lineEnd": 125
       },
       "DecisionContext._recallThreeLayers": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_recallThreeLayers",
         "isAsync": true,
-        "lineStart": 123,
-        "lineEnd": 140
+        "lineStart": 127,
+        "lineEnd": 144
       },
       "DecisionContext._bm25Search": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_bm25Search",
         "isAsync": false,
-        "lineStart": 142,
-        "lineEnd": 161
+        "lineStart": 146,
+        "lineEnd": 165
       },
       "DecisionContext._readCodebaseSummary": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_readCodebaseSummary",
         "isAsync": false,
-        "lineStart": 163,
-        "lineEnd": 171
+        "lineStart": 167,
+        "lineEnd": 175
       },
       "DecisionContext._readLatestSynthesis": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_readLatestSynthesis",
         "isAsync": false,
-        "lineStart": 173,
-        "lineEnd": 189
+        "lineStart": 177,
+        "lineEnd": 193
+      },
+      "DecisionContext._fetchHNSection": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_fetchHNSection",
+        "isAsync": true,
+        "lineStart": 195,
+        "lineEnd": 203
+      },
+      "DecisionContext._buildInternalStateSection": {
+        "file": "src/autonomy/decision-context.js",
+        "className": "DecisionContext",
+        "methodName": "_buildInternalStateSection",
+        "isAsync": false,
+        "lineStart": 205,
+        "lineEnd": 254
       },
       "DecisionContext._buildQuietQueueSection": {
         "file": "src/autonomy/decision-context.js",
         "className": "DecisionContext",
         "methodName": "_buildQuietQueueSection",
         "isAsync": false,
-        "lineStart": 191,
-        "lineEnd": 196
+        "lineStart": 256,
+        "lineEnd": 261
       },
       "DecisionUtils.loadAutonomyConfig": {
         "file": "src/autonomy/decision-utils.js",
@@ -1635,39 +1739,39 @@
         "methodName": "getTimeContext",
         "isAsync": false,
         "lineStart": 51,
-        "lineEnd": 74
+        "lineEnd": 75
       },
       "DecisionUtils._parseJSDocHeader": {
         "file": "src/autonomy/decision-utils.js",
         "className": "DecisionUtils",
         "methodName": "_parseJSDocHeader",
         "isAsync": false,
-        "lineStart": 76,
-        "lineEnd": 81
+        "lineStart": 77,
+        "lineEnd": 82
       },
       "DecisionUtils.getProjectFileList": {
         "file": "src/autonomy/decision-utils.js",
         "className": "DecisionUtils",
         "methodName": "getProjectFileList",
         "isAsync": false,
-        "lineStart": 83,
-        "lineEnd": 115
+        "lineStart": 84,
+        "lineEnd": 116
       },
       "DecisionUtils.extractCodeSection": {
         "file": "src/autonomy/decision-utils.js",
         "className": "DecisionUtils",
         "methodName": "extractCodeSection",
         "isAsync": false,
-        "lineStart": 122,
-        "lineEnd": 139
+        "lineStart": 123,
+        "lineEnd": 140
       },
       "DecisionUtils.saveReflection": {
         "file": "src/autonomy/decision-utils.js",
         "className": "DecisionUtils",
         "methodName": "saveReflection",
         "isAsync": false,
-        "lineStart": 141,
-        "lineEnd": 154
+        "lineStart": 142,
+        "lineEnd": 155
       },
       "DecisionEngine.constructor": {
         "file": "src/autonomy/decision.js",
@@ -1763,7 +1867,7 @@
         "methodName": "makeDecision",
         "isAsync": true,
         "lineStart": 81,
-        "lineEnd": 166
+        "lineEnd": 168
       },
       "FailureTracker.constructor": {
         "file": "src/autonomy/failure-tracker.js",
@@ -1811,7 +1915,7 @@
         "methodName": "run",
         "isAsync": true,
         "lineStart": 27,
-        "lineEnd": 122
+        "lineEnd": 125
       },
       "AutonomyManager.constructor": {
         "file": "src/autonomy/index.js",
@@ -1987,63 +2091,63 @@
         "methodName": "constructor",
         "isAsync": false,
         "lineStart": 24,
-        "lineEnd": 34
+        "lineEnd": 35
       },
       "Notifier.setQuietMode": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "setQuietMode",
         "isAsync": false,
-        "lineStart": 39,
-        "lineEnd": 41
+        "lineStart": 40,
+        "lineEnd": 43
       },
       "Notifier.drainQuietQueue": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "drainQuietQueue",
         "isAsync": false,
-        "lineStart": 46,
-        "lineEnd": 51
+        "lineStart": 48,
+        "lineEnd": 53
       },
       "Notifier.isHardFailed": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "isHardFailed",
         "isAsync": false,
-        "lineStart": 57,
-        "lineEnd": 59
+        "lineStart": 59,
+        "lineEnd": 61
       },
       "Notifier._loadQuietQueueFromDisk": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "_loadQuietQueueFromDisk",
         "isAsync": false,
-        "lineStart": 64,
-        "lineEnd": 78
+        "lineStart": 66,
+        "lineEnd": 80
       },
       "Notifier._saveQuietQueue": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "_saveQuietQueue",
         "isAsync": false,
-        "lineStart": 83,
-        "lineEnd": 90
+        "lineStart": 85,
+        "lineEnd": 92
       },
       "Notifier.sendToAdmin": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "sendToAdmin",
         "isAsync": true,
-        "lineStart": 95,
-        "lineEnd": 164
+        "lineStart": 97,
+        "lineEnd": 178
       },
       "Notifier.sendNotification": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "sendNotification",
         "isAsync": true,
-        "lineStart": 169,
-        "lineEnd": 182
+        "lineStart": 183,
+        "lineEnd": 196
       },
       "PendingPatches.constructor": {
         "file": "src/autonomy/pending-patches.js",
@@ -2491,7 +2595,7 @@
         "methodName": "startMonitoring",
         "isAsync": false,
         "lineStart": 35,
-        "lineEnd": 153
+        "lineEnd": 175
       },
       "DashboardPlugin.constructor": {
         "file": "src/dashboard.js",
@@ -3307,31 +3411,31 @@
         "methodName": "process",
         "isAsync": true,
         "lineStart": 24,
-        "lineEnd": 61
+        "lineEnd": 66
       },
       "MessageProcessor._enrichInput": {
         "file": "src/message-processor.js",
         "className": "MessageProcessor",
         "methodName": "_enrichInput",
         "isAsync": true,
-        "lineStart": 65,
-        "lineEnd": 116
+        "lineStart": 70,
+        "lineEnd": 121
       },
       "MessageProcessor._processLLMResponse": {
         "file": "src/message-processor.js",
         "className": "MessageProcessor",
         "methodName": "_processLLMResponse",
         "isAsync": true,
-        "lineStart": 120,
-        "lineEnd": 179
+        "lineStart": 125,
+        "lineEnd": 184
       },
       "MessageProcessor._filterHallucinations": {
         "file": "src/message-processor.js",
         "className": "MessageProcessor",
         "methodName": "_filterHallucinations",
         "isAsync": true,
-        "lineStart": 183,
-        "lineEnd": 212
+        "lineStart": 188,
+        "lineEnd": 217
       },
       "ProviderAdapter.constructor": {
         "file": "src/model-router/adapters/base.js",
@@ -3563,127 +3667,127 @@
         "methodName": "register",
         "isAsync": false,
         "lineStart": 23,
-        "lineEnd": 42
+        "lineEnd": 44
       },
       "ProviderHealth.get": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "get",
         "isAsync": false,
-        "lineStart": 49,
-        "lineEnd": 58
+        "lineStart": 51,
+        "lineEnd": 60
       },
       "ProviderHealth.isAvailable": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "isAvailable",
         "isAsync": false,
-        "lineStart": 63,
-        "lineEnd": 73
+        "lineStart": 65,
+        "lineEnd": 75
       },
       "ProviderHealth.score": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "score",
         "isAsync": false,
-        "lineStart": 78,
-        "lineEnd": 89
+        "lineStart": 81,
+        "lineEnd": 94
       },
       "ProviderHealth.onSuccess": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "onSuccess",
         "isAsync": false,
-        "lineStart": 93,
-        "lineEnd": 104
+        "lineStart": 98,
+        "lineEnd": 114
       },
       "ProviderHealth.on429": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "on429",
         "isAsync": false,
-        "lineStart": 106,
-        "lineEnd": 115
+        "lineStart": 116,
+        "lineEnd": 125
       },
       "ProviderHealth.on503": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "on503",
         "isAsync": false,
-        "lineStart": 117,
-        "lineEnd": 123
+        "lineStart": 127,
+        "lineEnd": 133
       },
       "ProviderHealth.onError": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "onError",
         "isAsync": false,
-        "lineStart": 125,
-        "lineEnd": 134
+        "lineStart": 135,
+        "lineEnd": 144
       },
       "ProviderHealth.onFatal": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "onFatal",
         "isAsync": false,
-        "lineStart": 136,
-        "lineEnd": 142
+        "lineStart": 146,
+        "lineEnd": 152
       },
       "ProviderHealth.resetAllRpd": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "resetAllRpd",
         "isAsync": false,
-        "lineStart": 147,
-        "lineEnd": 157
+        "lineStart": 157,
+        "lineEnd": 167
       },
       "ProviderHealth.fetchDeepSeekBalance": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "fetchDeepSeekBalance",
         "isAsync": true,
-        "lineStart": 161,
-        "lineEnd": 161
+        "lineStart": 171,
+        "lineEnd": 171
       },
       "ProviderHealth.getDeepSeekBalance": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "getDeepSeekBalance",
         "isAsync": false,
-        "lineStart": 162,
-        "lineEnd": 162
+        "lineStart": 172,
+        "lineEnd": 172
       },
       "ProviderHealth.getSummary": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "getSummary",
         "isAsync": false,
-        "lineStart": 163,
-        "lineEnd": 163
+        "lineStart": 173,
+        "lineEnd": 173
       },
       "ProviderHealth._debounceSave": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "_debounceSave",
         "isAsync": false,
-        "lineStart": 168,
-        "lineEnd": 175
+        "lineStart": 178,
+        "lineEnd": 185
       },
       "ProviderHealth.saveToDisk": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "saveToDisk",
         "isAsync": false,
-        "lineStart": 180,
-        "lineEnd": 191
+        "lineStart": 190,
+        "lineEnd": 201
       },
       "ProviderHealth.loadFromDisk": {
         "file": "src/model-router/health.js",
         "className": "ProviderHealth",
         "methodName": "loadFromDisk",
         "isAsync": false,
-        "lineStart": 196,
-        "lineEnd": 218
+        "lineStart": 206,
+        "lineEnd": 228
       },
       "ModelRouter.constructor": {
         "file": "src/model-router/index.js",
@@ -3802,8 +3906,8 @@
         "className": "NodeRouter",
         "methodName": "handle",
         "isAsync": true,
-        "lineStart": 11,
-        "lineEnd": 43
+        "lineStart": 8,
+        "lineEnd": 15
       },
       "OpticNerve.analyze": {
         "file": "src/optic-nerve.js",
@@ -4371,6 +4475,69 @@
         "lineStart": 22,
         "lineEnd": 38
       },
+      "httpsGet": {
+        "file": "src/reality/threads-client.js",
+        "functionName": "httpsGet",
+        "isAsync": false,
+        "lineStart": 12,
+        "lineEnd": 23
+      },
+      "fetchTopStories": {
+        "file": "src/reality/hn-feed.js",
+        "functionName": "fetchTopStories",
+        "isAsync": true,
+        "lineStart": 28,
+        "lineEnd": 37
+      },
+      "fetch": {
+        "file": "src/reality/hn-feed.js",
+        "functionName": "fetch",
+        "isAsync": true,
+        "lineStart": 39,
+        "lineEnd": 57
+      },
+      "format": {
+        "file": "src/reality/hn-feed.js",
+        "functionName": "format",
+        "isAsync": false,
+        "lineStart": 59,
+        "lineEnd": 67
+      },
+      "httpsPost": {
+        "file": "src/reality/threads-client.js",
+        "functionName": "httpsPost",
+        "isAsync": false,
+        "lineStart": 25,
+        "lineEnd": 44
+      },
+      "getToken": {
+        "file": "src/reality/threads-client.js",
+        "functionName": "getToken",
+        "isAsync": true,
+        "lineStart": 47,
+        "lineEnd": 90
+      },
+      "getMyUserId": {
+        "file": "src/reality/threads-client.js",
+        "functionName": "getMyUserId",
+        "isAsync": true,
+        "lineStart": 93,
+        "lineEnd": 97
+      },
+      "publish": {
+        "file": "src/reality/threads-client.js",
+        "functionName": "publish",
+        "isAsync": true,
+        "lineStart": 100,
+        "lineEnd": 122
+      },
+      "getMyPosts": {
+        "file": "src/reality/threads-client.js",
+        "functionName": "getMyPosts",
+        "isAsync": true,
+        "lineStart": 125,
+        "lineEnd": 132
+      },
       "CORE_DEFINITION": {
         "file": "src/skills.js",
         "functionName": "CORE_DEFINITION",
@@ -4593,6 +4760,12 @@
         "type": "default",
         "named": [],
         "default": "SocialAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/threads-post.js": {
+        "type": "default",
+        "named": [],
+        "default": "ThreadsPostAction",
         "namedExports": {}
       },
       "src/autonomy/actions/web-research.js": {
@@ -5072,6 +5245,52 @@
         "default": "ReactLoop",
         "namedExports": {}
       },
+      "src/reality/hn-feed.js": {
+        "type": "named",
+        "named": [
+          "fetch",
+          "format"
+        ],
+        "default": null,
+        "namedExports": {
+          "fetch": {
+            "type": "value",
+            "lineStart": 69
+          },
+          "format": {
+            "type": "value",
+            "lineStart": 69
+          }
+        }
+      },
+      "src/reality/threads-client.js": {
+        "type": "named",
+        "named": [
+          "publish",
+          "getMyPosts",
+          "getToken",
+          "getMyUserId"
+        ],
+        "default": null,
+        "namedExports": {
+          "publish": {
+            "type": "value",
+            "lineStart": 134
+          },
+          "getMyPosts": {
+            "type": "value",
+            "lineStart": 134
+          },
+          "getToken": {
+            "type": "value",
+            "lineStart": 134
+          },
+          "getMyUserId": {
+            "type": "value",
+            "lineStart": 134
+          }
+        }
+      },
       "src/security.js": {
         "type": "default",
         "named": [],
@@ -5169,10 +5388,10 @@
     }
   },
   "metadata": {
-    "totalFiles": 91,
-    "totalClasses": 83,
-    "totalMethods": 427,
-    "totalFunctions": 29,
-    "scanDuration_ms": 525
+    "totalFiles": 94,
+    "totalClasses": 84,
+    "totalMethods": 436,
+    "totalFunctions": 38,
+    "scanDuration_ms": 440
   }
 }

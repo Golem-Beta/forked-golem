@@ -22,10 +22,13 @@ class Introspection {
 
 class PatchManager {
     /**
-     * AST-aware 頂層節點定位（格式 A 專用）
-     * 支援：FunctionDeclaration、VariableDeclaration（含箭頭函數）、ExpressionStatement（如 Foo.bar = ...）
+     * AST-aware 節點定位（格式 A 專用）
+     * 支援：
+     *   - 頂層 FunctionDeclaration / VariableDeclaration / ClassDeclaration / ExpressionStatement
+     *   - class method（含 static、async、constructor）：target_node: "ClassName.methodName"
+     *     ⚠️ private method（#bar）不支援，computed key（[Symbol.xxx]）跳過
      * @param {string} code - 原始 JS 程式碼
-     * @param {string} targetName - 節點名稱（如 "myFunc"、"Foo.bar"）
+     * @param {string} targetName - 節點名稱（如 "myFunc"、"Foo"、"Foo.bar"）
      * @returns {{ start: number, end: number }}
      * @throws {Error} 找不到、不唯一、或 AST 解析失敗
      */
@@ -35,6 +38,35 @@ class PatchManager {
         let ast;
         try { ast = acorn.parse(code, { ecmaVersion: 2022, sourceType: 'script' }); } catch (e) { throw new Error(`AST 解析失敗: ${e.message}`); }
         const isDotted = targetName.includes('.');
+
+        // --- class method lookup（dotted，如 "Foo.bar"）---
+        if (isDotted) {
+            const dotIdx = targetName.indexOf('.');
+            const className = targetName.slice(0, dotIdx);
+            const methodName = targetName.slice(dotIdx + 1);
+            const classNodes = ast.body.filter(n =>
+                n.type === 'ClassDeclaration' && n.id && n.id.name === className
+            );
+            if (classNodes.length > 1) {
+                throw new Error(`target_node "${targetName}" 不唯一：找到 ${classNodes.length} 個同名 class "${className}"`);
+            }
+            if (classNodes.length === 1) {
+                const classNode = classNodes[0];
+                const methods = [];
+                for (const member of classNode.body.body) {
+                    if (member.type !== 'MethodDefinition') continue;
+                    if (member.computed) continue; // 跳過 [Symbol.xxx]
+                    if (!member.key || member.key.type !== 'Identifier') continue; // 跳過 private #bar
+                    if (member.key.name === methodName) methods.push(member);
+                }
+                if (methods.length === 0) throw new Error(`target_node "${targetName}" 找不到：class ${className} 中無 "${methodName}" 方法（private method 不支援）`);
+                if (methods.length > 1) throw new Error(`target_node "${targetName}" 不唯一：class ${className} 中找到 ${methods.length} 個 "${methodName}"`);
+                return { start: methods[0].start, end: methods[0].end };
+            }
+            // classNodes.length === 0：往下走，嘗試 ExpressionStatement（Foo.bar = ...）
+        }
+
+        // --- 頂層節點 lookup ---
         const matches = [];
         for (const node of ast.body) {
             let hit = false;
@@ -43,6 +75,8 @@ class PatchManager {
             } else if (node.type === 'VariableDeclaration') {
                 const decl = node.declarations[0];
                 hit = !isDotted && !!(decl && decl.id.type === 'Identifier' && decl.id.name === targetName);
+            } else if (node.type === 'ClassDeclaration' && node.id) {
+                hit = !isDotted && node.id.name === targetName;
             } else if (node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression') {
                 const left = node.expression.left;
                 if (left.type === 'Identifier') {
@@ -65,8 +99,54 @@ class PatchManager {
         return { start: matches[0].start, end: matches[0].end };
     }
 
+    /**
+     * 縮排正規化：將 replace 字串的縮排對齊原始節點位置
+     * template literal 內部的行不調整
+     * @param {string} originalCode - 原始程式碼
+     * @param {number} start - 目標節點的起始偏移量
+     * @param {string} replace - LLM 產出的替換文字
+     * @returns {string} 縮排已正規化的替換文字
+     */
+    static _normalizeIndent(originalCode, start, replace) {
+        // 找到 start 所在行的行首
+        let lineStart = start;
+        while (lineStart > 0 && originalCode[lineStart - 1] !== '\n') lineStart--;
+        const origIndent = originalCode.slice(lineStart, start).match(/^([ \t]*)/)[1];
+        const replIndent = replace.match(/^([ \t]*)/)[1];
+        if (origIndent === replIndent) return replace;
+        const delta = origIndent.length - replIndent.length;
+        const lines = replace.split('\n');
+        const result = [];
+        let inTemplate = false;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (inTemplate) {
+                result.push(line); // template literal 內部不動
+            } else if (i === 0) {
+                result.push(origIndent + line.slice(replIndent.length));
+            } else if (delta > 0) {
+                result.push(' '.repeat(delta) + line);
+            } else {
+                const curLen = line.match(/^([ \t]*)/)[1].length;
+                result.push(line.slice(Math.min(-delta, curLen)));
+            }
+            // 掃描此行更新 template literal 狀態（簡單 backtick toggle）
+            let escaped = false;
+            for (let j = 0; j < line.length; j++) {
+                if (escaped) { escaped = false; continue; }
+                if (line[j] === '\\') { escaped = true; continue; }
+                if (line[j] === '`') inTemplate = !inTemplate;
+            }
+        }
+        return result.join('\n');
+    }
+
     static apply(originalCode, patch) {
-        // 格式 A：AST 節點整體替換（優先）
+        // Format B 已永久廢除：收到 search 欄位直接拋錯
+        if (patch.search !== undefined) {
+            throw new Error('❌ Format B（search 字串替換）已廢除。請改用 target_node 格式（Format A），指定 ClassName.methodName 或頂層識別符。');
+        }
+        // 格式 A：AST 節點整體替換
         if (patch.target_node !== undefined) {
             if (typeof patch.target_node !== 'string' || !patch.target_node) throw new Error('❌ target_node 必須是非空字串');
             if (typeof patch.replace !== 'string') throw new Error('❌ replace 欄位必須是字串');
@@ -79,24 +159,10 @@ class PatchManager {
                 const pEnd = protMatch.index + protMatch[0].length;
                 if (start < pEnd && end > pStart) throw new Error(`⛔ 權限拒絕：試圖修改系統核心禁區。`);
             }
-            return originalCode.slice(0, start) + patch.replace + originalCode.slice(end);
+            const normalized = PatchManager._normalizeIndent(originalCode, start, patch.replace);
+            return originalCode.slice(0, start) + normalized + originalCode.slice(end);
         }
-        // 格式 B：字串精確替換（向後相容 fallback）
-        if (patch.search !== undefined) {
-            const protectedPattern = /\/\/ =+ \[KERNEL PROTECTED START\] =+([\s\S]*?)\/\/ =+ \[KERNEL PROTECTED END\] =+/g;
-            let match;
-            while ((match = protectedPattern.exec(originalCode)) !== null) {
-                if (match[1].includes(patch.search)) throw new Error(`⛔ 權限拒絕：試圖修改系統核心禁區。`);
-            }
-            if (!originalCode.includes(patch.search)) {
-                throw new Error(`❌ 精確匹配失敗：找不到目標代碼段落 (長度:${patch.search.length})。請確認 patch 內容與原始碼完全一致。`);
-            }
-            const firstIdx = originalCode.indexOf(patch.search);
-            const secondIdx = originalCode.indexOf(patch.search, firstIdx + 1);
-            if (secondIdx !== -1) throw new Error(`❌ 匹配不唯一：目標段落出現多次，無法安全替換。`);
-            return originalCode.replace(patch.search, patch.replace);
-        }
-        throw new Error('❌ patch 格式錯誤：缺少 target_node 或 search 欄位');
+        throw new Error('❌ patch 格式錯誤：缺少 target_node 欄位');
     }
 
     static createTestClone(originalPath, patchContent) {
@@ -114,6 +180,7 @@ class PatchManager {
             return testFile;
         } catch (e) { throw new Error(`補丁應用失敗: ${e.message}`); }
     }
+
     static verify(filePath) {
         try {
             execSync(`node -c "${filePath}"`);
