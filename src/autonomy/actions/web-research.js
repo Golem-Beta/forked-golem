@@ -64,7 +64,7 @@ class WebResearchAction extends BaseAction {
             const purpose = topicData.purpose || decisionReason;
             console.log('🌐 [WebResearch] 搜尋主題: ' + query + ' | 目的: ' + purpose);
 
-            const searchResults = await this.webSearch.search(query, { count: 5 });
+            const searchResults = await this.webSearch.search(query, { limit: 5 });
             const provider = searchResults.length > 0 ? (searchResults[0]._provider || "unknown") : "ddg";
             console.log("[WebResearch] 搜尋結果: " + searchResults.length + " 筆 (provider: " + provider + ")");
 
