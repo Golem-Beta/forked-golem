@@ -7,11 +7,14 @@
  */
 
 const BaseAction = require('./base-action');
+const WebSearchTool = require("./web-search-tool");
+const CONFIG = require("../../config");
 
 class WebResearchAction extends BaseAction {
     constructor({ journal, notifier, decision, loadPrompt, memoryLayer }) {
         super({ journal, notifier, decision, loadPrompt });
         this.memory = memoryLayer || null;
+        this.webSearch = new WebSearchTool({ config: CONFIG });
     }
 
     async performWebResearch(decisionReason = '') {
@@ -61,22 +64,25 @@ class WebResearchAction extends BaseAction {
             const purpose = topicData.purpose || decisionReason;
             console.log('🌐 [WebResearch] 搜尋主題: ' + query + ' | 目的: ' + purpose);
 
-            const searchPrompt = '搜尋並用繁體中文摘要以下主題的最新資訊（200-300字）：\n' +
-                '主題：' + query + '\n' +
-                '重點：' + purpose + '\n' +
-                '請包含具體的數據、版本號、日期等事實性資訊。如果找到相關的工具或專案，列出名稱和網址。';
+            const searchResults = await this.webSearch.search(query, { count: 5 });
+            const provider = searchResults.length > 0 ? (searchResults[0]._provider || "unknown") : "ddg";
+            console.log("[WebResearch] 搜尋結果: " + searchResults.length + " 筆 (provider: " + provider + ")");
 
-            const searchResult = await this.decision.callLLM(searchPrompt, {
-                temperature: 0.5, intent: 'analysis',
-                tools: [{ googleSearch: {} }],
-            });
+            const searchContext = searchResults.length > 0
+                ? searchResults.map((r, i) => "[" + (i+1) + "] " + r.title + "\n    URL: " + r.url + "\n    摘要: " + r.snippet).join("\n\n")
+                : "（無搜尋結果）";
+
+            const searchPrompt = "根據以下搜尋結果，用繁體中文摘要最新資訊（200-300字）：\n\n" +
+                "主題：" + query + "\n重點：" + purpose + "\n\n【搜尋結果】\n" + searchContext + "\n\n" +
+                "請包含具體的數據、版本號、日期等事實性資訊。如果找到相關的工具或專案，列出名稱和網址。";
+
+            const searchResult = await this.decision.callLLM(searchPrompt, { temperature: 0.5, intent: "analysis" });
             const text = searchResult.text;
-            const grounding = searchResult.grounding;
 
             const reflectionFile = this.decision.saveReflection('web_research', text);
-            const sourcesBlock = (grounding && grounding.sources && grounding.sources.length > 0)
-                ? '\n\n---\n📎 來源：\n' + grounding.sources.slice(0, 5).map(s => `• ${s.title || s.url}`).join('\n')
-                : '';
+            const sourcesBlock = searchResults.length > 0
+                ? "\n\n---\n📎 來源：\n" + searchResults.slice(0, 5).map(s => "• " + (s.title || s.url)).join("\n")
+                : "";
             const parts = [
                 '🌐 網路研究報告',
                 '🔎 主題: ' + query,
@@ -90,8 +96,8 @@ class WebResearchAction extends BaseAction {
                 action: 'web_research', topic: query, purpose: purpose,
                 outcome: this._sentOutcome(sentWR, 'shared'),
                 reflection_file: reflectionFile,
-                grounded: grounding !== null,
-                sources: grounding ? grounding.sources.length : 0,
+                provider: provider,
+                sources_count: searchResults.length,
                 ...this._sentErrorField(sentWR)
             });
             if (sentWR === true) console.log('✅ [WebResearch] 研究報告已發送: ' + query);

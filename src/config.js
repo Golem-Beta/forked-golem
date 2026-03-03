@@ -42,6 +42,8 @@ const CONFIG = {
         return isNaN(v) ? 0.85 : Math.min(Math.max(v, 0), 1);
     })(),
     AUTODEPLOY_MAX_RISK: (process.env.AUTODEPLOY_MAX_RISK || 'low').toLowerCase(),
+    BRAVE_API_KEY: cleanEnv(process.env.BRAVE_API_KEY || ''),
+    JINA_API_KEY:  cleanEnv(process.env.JINA_API_KEY  || ''),
 };
 
 // 驗證關鍵 Token
