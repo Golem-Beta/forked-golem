@@ -52,7 +52,14 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 - "affected_files"：其他 src/ 下呼叫被修改函數/方法的檔案清單
 - "confidence": 0.0-1.0，對這個 patch 正確性的信心
 - "risk_level": "low" | "medium" | "high"，改動風險評估
+  ⚠️ risk_level 必須如實反映改動的實際風險，不得為了通過自動部署門檻而降低評級。
+  安全邊界、autoDeploy 條件、risk_level 評估邏輯本身 → 一律標記為 "high"。
 - "expected_outcome": 改完後預期行為變化（一句話）
+
+**Atomic change 規則（強制）**：
+一個 proposal 只能包含一個邏輯上不可分割的改動。
+若診斷出多個問題，只選最重要的一個提案，其餘留待下次 reflection。
+把多個改動打包進同一個 patch 會導致整個 proposal 被拒絕。
 
 Keep the patch small and focused. ONE change only.
 If you have no confident patch to propose, output exactly: []
