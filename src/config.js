@@ -36,7 +36,12 @@ const CONFIG = {
     X_API_KEY:             cleanEnv(process.env.X_API_KEY || ''),
     X_API_SECRET:          cleanEnv(process.env.X_API_SECRET || ''),
     X_ACCESS_TOKEN:        cleanEnv(process.env.X_ACCESS_TOKEN || ''),
-    X_ACCESS_TOKEN_SECRET: cleanEnv(process.env.X_ACCESS_TOKEN_SECRET || '')
+    X_ACCESS_TOKEN_SECRET: cleanEnv(process.env.X_ACCESS_TOKEN_SECRET || ''),
+    AUTODEPLOY_MIN_CONFIDENCE: (() => {
+        const v = parseFloat(process.env.AUTODEPLOY_MIN_CONFIDENCE);
+        return isNaN(v) ? 0.85 : Math.min(Math.max(v, 0), 1);
+    })(),
+    AUTODEPLOY_MAX_RISK: (process.env.AUTODEPLOY_MAX_RISK || 'low').toLowerCase(),
 };
 
 // 驗證關鍵 Token

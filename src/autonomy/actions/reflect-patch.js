@@ -11,6 +11,34 @@ const fs   = require('fs');
 const path = require('path');
 const PatchExecutor = require('./reflect-patch-executor');
 
+// ── 靜態安全規則（硬編碼防火牆，不可被 prompt 或 config 覆蓋）──────────────
+const _PROTECTED_TARGET_KEYWORDS = ['autoDeploy', 'risk_level', 'confidence', 'AUTODEPLOY'];
+const _PROTECTED_REPLACE_PATTERNS = [
+    /\bautoDeploy\b/,                          // autoDeploy 函式本身
+    /\bconfidence\b\s*(?:>=|<=|===|!==|>|<)/, // confidence 比較運算
+    /\brisk_level\b/,                          // risk_level 任何出現均擋（含賦值）
+    /AUTODEPLOY_MIN_CONFIDENCE|AUTODEPLOY_MAX_RISK/, // config key 直接引用
+];
+const _RISK_ORDER = { low: 1, medium: 2, high: 3 };
+
+/**
+ * 回傳 { reason } 表示被靜態規則阻擋；回傳 null 表示通過。
+ * @param {object} proposal
+ */
+function _checkStaticSafetyRules(proposal) {
+    const targetNode = proposal.target_node || '';
+    for (const kw of _PROTECTED_TARGET_KEYWORDS) {
+        if (targetNode.toLowerCase().includes(kw.toLowerCase()))
+            return { reason: `target_node 含受保護關鍵字 "${kw}"` };
+    }
+    const replace = proposal.replace || '';
+    for (const pat of _PROTECTED_REPLACE_PATTERNS) {
+        if (pat.test(replace))
+            return { reason: `replace 含受保護邏輯 (${pat.source})` };
+    }
+    return null;
+}
+
 class ReflectPatch {
     constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices, loadPrompt }) {
         this.journal        = journal;
@@ -195,11 +223,21 @@ class ReflectPatch {
             return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
         }
 
-        const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
-        if (confidence >= 0.85 && (proposal.risk_level || 'medium') === 'low') {
-            const autoResult = await this.executor.autoDeploy(proposal, testFile, targetPath, targetName, proposalType, reflectionFile);
-            if (autoResult) return autoResult;
-            // null → 意外例外，降級為送審
+        // 靜態安全規則：硬編碼防火牆，優先於 config 設定
+        const staticBlock = _checkStaticSafetyRules(proposal);
+        if (staticBlock) {
+            console.warn('[SelfReflection] 靜態安全規則阻擋 autoDeploy:', staticBlock.reason);
+        } else {
+            const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
+            const minConf    = this.config.AUTODEPLOY_MIN_CONFIDENCE || 0.85;
+            const maxRisk    = this.config.AUTODEPLOY_MAX_RISK || 'low';
+            const riskVal    = _RISK_ORDER[proposal.risk_level || 'medium'] || 2;
+            const maxRiskVal = _RISK_ORDER[maxRisk] || 0; // 'never' → undefined → 0，永遠不通過
+            if (confidence >= minConf && riskVal <= maxRiskVal) {
+                const autoResult = await this.executor.autoDeploy(proposal, testFile, targetPath, targetName, proposalType, reflectionFile);
+                if (autoResult) return autoResult;
+                // null → 意外例外，降級為送審
+            }
         }
 
         return this.executor.sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx);
