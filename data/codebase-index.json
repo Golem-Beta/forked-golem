@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-03-02T11:51:45.149Z",
-  "gitHead": "e3cb006dc440984384ef3f4ef1c49461b8fc2d63",
+  "generatedAt": "2026-03-03T12:45:42.296Z",
+  "gitHead": "64c03e9932b9d265f8be129d2d1cc02b7716d2c4",
   "symbols": {
     "files": {
       "src/autonomy/action-filter.js": {
@@ -19,6 +19,14 @@
         "functions": [
           "ActionResult"
         ]
+      },
+      "src/autonomy/actions/base-action.js": {
+        "path": "src/autonomy/actions/base-action.js",
+        "lines": 80,
+        "classes": [
+          "BaseAction"
+        ],
+        "functions": []
       },
       "src/autonomy/actions/digest.js": {
         "path": "src/autonomy/actions/digest.js",
@@ -195,21 +203,24 @@
       },
       "src/autonomy/actions/reflect-patch-executor.js": {
         "path": "src/autonomy/actions/reflect-patch-executor.js",
-        "lines": 166,
+        "lines": 214,
         "classes": [
           "PatchExecutor"
         ],
         "functions": [
-          "runSmokeGate"
+          "runSmokeGate",
+          "buildUnifiedDiff"
         ]
       },
       "src/autonomy/actions/reflect-patch.js": {
         "path": "src/autonomy/actions/reflect-patch.js",
-        "lines": 210,
+        "lines": 286,
         "classes": [
           "ReflectPatch"
         ],
-        "functions": []
+        "functions": [
+          "_checkStaticSafetyRules"
+        ]
       },
       "src/autonomy/actions/reflect.js": {
         "path": "src/autonomy/actions/reflect.js",
@@ -218,6 +229,18 @@
           "ReflectAction"
         ],
         "functions": []
+      },
+      "src/autonomy/actions/reviewer-agent.js": {
+        "path": "src/autonomy/actions/reviewer-agent.js",
+        "lines": 167,
+        "classes": [
+          "ReviewerAgent"
+        ],
+        "functions": [
+          "_truncate",
+          "_hasUnintentionalRemovals",
+          "_failSafe"
+        ]
       },
       "src/autonomy/actions/social.js": {
         "path": "src/autonomy/actions/social.js",
@@ -237,7 +260,7 @@
       },
       "src/autonomy/actions/web-research.js": {
         "path": "src/autonomy/actions/web-research.js",
-        "lines": 107,
+        "lines": 106,
         "classes": [
           "WebResearchAction"
         ],
@@ -328,7 +351,7 @@
       },
       "src/autonomy/notify.js": {
         "path": "src/autonomy/notify.js",
-        "lines": 200,
+        "lines": 234,
         "classes": [
           "Notifier"
         ],
@@ -378,7 +401,7 @@
       },
       "src/config.js": {
         "path": "src/config.js",
-        "lines": 53,
+        "lines": 58,
         "classes": [],
         "functions": [
           "cleanEnv",
@@ -616,7 +639,7 @@
       },
       "src/model-router/intents.js": {
         "path": "src/model-router/intents.js",
-        "lines": 53,
+        "lines": 56,
         "classes": [],
         "functions": []
       },
@@ -763,7 +786,7 @@
       },
       "src/upgrader.js": {
         "path": "src/upgrader.js",
-        "lines": 195,
+        "lines": 262,
         "classes": [
           "Introspection",
           "PatchManager",
@@ -804,6 +827,46 @@
         "isAsync": false,
         "lineStart": 20,
         "lineEnd": 116
+      },
+      "BaseAction.constructor": {
+        "file": "src/autonomy/actions/base-action.js",
+        "className": "BaseAction",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 23,
+        "lineEnd": 28
+      },
+      "BaseAction._abortIfChannelDown": {
+        "file": "src/autonomy/actions/base-action.js",
+        "className": "BaseAction",
+        "methodName": "_abortIfChannelDown",
+        "isAsync": false,
+        "lineStart": 35,
+        "lineEnd": 40
+      },
+      "BaseAction._sentOutcome": {
+        "file": "src/autonomy/actions/base-action.js",
+        "className": "BaseAction",
+        "methodName": "_sentOutcome",
+        "isAsync": false,
+        "lineStart": 48,
+        "lineEnd": 52
+      },
+      "BaseAction._sentErrorField": {
+        "file": "src/autonomy/actions/base-action.js",
+        "className": "BaseAction",
+        "methodName": "_sentErrorField",
+        "isAsync": false,
+        "lineStart": 59,
+        "lineEnd": 64
+      },
+      "BaseAction._handleError": {
+        "file": "src/autonomy/actions/base-action.js",
+        "className": "BaseAction",
+        "methodName": "_handleError",
+        "isAsync": false,
+        "lineStart": 72,
+        "lineEnd": 76
       },
       "DigestAction.constructor": {
         "file": "src/autonomy/actions/digest.js",
@@ -1426,56 +1489,56 @@
         "className": "PatchExecutor",
         "methodName": "constructor",
         "isAsync": false,
-        "lineStart": 27,
-        "lineEnd": 35
+        "lineStart": 44,
+        "lineEnd": 52
       },
       "PatchExecutor.autoDeploy": {
         "file": "src/autonomy/actions/reflect-patch-executor.js",
         "className": "PatchExecutor",
         "methodName": "autoDeploy",
         "isAsync": true,
-        "lineStart": 40,
-        "lineEnd": 82
+        "lineStart": 57,
+        "lineEnd": 99
       },
       "PatchExecutor.sendForReview": {
         "file": "src/autonomy/actions/reflect-patch-executor.js",
         "className": "PatchExecutor",
         "methodName": "sendForReview",
         "isAsync": true,
-        "lineStart": 86,
-        "lineEnd": 162
+        "lineStart": 104,
+        "lineEnd": 210
       },
       "ReflectPatch.constructor": {
         "file": "src/autonomy/actions/reflect-patch.js",
         "className": "ReflectPatch",
         "methodName": "constructor",
         "isAsync": false,
-        "lineStart": 15,
-        "lineEnd": 29
+        "lineStart": 43,
+        "lineEnd": 57
       },
       "ReflectPatch.run": {
         "file": "src/autonomy/actions/reflect-patch.js",
         "className": "ReflectPatch",
         "methodName": "run",
         "isAsync": true,
-        "lineStart": 38,
-        "lineEnd": 91
+        "lineStart": 66,
+        "lineEnd": 119
       },
       "ReflectPatch._handleSkillCreate": {
         "file": "src/autonomy/actions/reflect-patch.js",
         "className": "ReflectPatch",
         "methodName": "_handleSkillCreate",
         "isAsync": true,
-        "lineStart": 93,
-        "lineEnd": 127
+        "lineStart": 121,
+        "lineEnd": 155
       },
       "ReflectPatch._handleCorePatch": {
         "file": "src/autonomy/actions/reflect-patch.js",
         "className": "ReflectPatch",
         "methodName": "_handleCorePatch",
         "isAsync": true,
-        "lineStart": 129,
-        "lineEnd": 206
+        "lineStart": 157,
+        "lineEnd": 282
       },
       "ReflectAction.constructor": {
         "file": "src/autonomy/actions/reflect.js",
@@ -1492,6 +1555,22 @@
         "isAsync": true,
         "lineStart": 16,
         "lineEnd": 49
+      },
+      "ReviewerAgent.constructor": {
+        "file": "src/autonomy/actions/reviewer-agent.js",
+        "className": "ReviewerAgent",
+        "methodName": "constructor",
+        "isAsync": false,
+        "lineStart": 14,
+        "lineEnd": 16
+      },
+      "ReviewerAgent.review": {
+        "file": "src/autonomy/actions/reviewer-agent.js",
+        "className": "ReviewerAgent",
+        "methodName": "review",
+        "isAsync": true,
+        "lineStart": 33,
+        "lineEnd": 125
       },
       "SocialAction.constructor": {
         "file": "src/autonomy/actions/social.js",
@@ -1554,16 +1633,16 @@
         "className": "WebResearchAction",
         "methodName": "constructor",
         "isAsync": false,
-        "lineStart": 8,
-        "lineEnd": 14
+        "lineStart": 12,
+        "lineEnd": 15
       },
       "WebResearchAction.performWebResearch": {
         "file": "src/autonomy/actions/web-research.js",
         "className": "WebResearchAction",
         "methodName": "performWebResearch",
         "isAsync": true,
-        "lineStart": 16,
-        "lineEnd": 103
+        "lineStart": 17,
+        "lineEnd": 102
       },
       "XPostAction.constructor": {
         "file": "src/autonomy/actions/x-post.js",
@@ -2106,48 +2185,48 @@
         "className": "Notifier",
         "methodName": "drainQuietQueue",
         "isAsync": false,
-        "lineStart": 48,
-        "lineEnd": 53
+        "lineStart": 49,
+        "lineEnd": 58
       },
       "Notifier.isHardFailed": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "isHardFailed",
         "isAsync": false,
-        "lineStart": 59,
-        "lineEnd": 61
+        "lineStart": 64,
+        "lineEnd": 66
       },
       "Notifier._loadQuietQueueFromDisk": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "_loadQuietQueueFromDisk",
         "isAsync": false,
-        "lineStart": 66,
-        "lineEnd": 80
+        "lineStart": 71,
+        "lineEnd": 85
       },
       "Notifier._saveQuietQueue": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "_saveQuietQueue",
         "isAsync": false,
-        "lineStart": 85,
-        "lineEnd": 92
+        "lineStart": 90,
+        "lineEnd": 97
       },
       "Notifier.sendToAdmin": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "sendToAdmin",
         "isAsync": true,
-        "lineStart": 97,
-        "lineEnd": 178
+        "lineStart": 107,
+        "lineEnd": 212
       },
       "Notifier.sendNotification": {
         "file": "src/autonomy/notify.js",
         "className": "Notifier",
         "methodName": "sendNotification",
         "isAsync": true,
-        "lineStart": 183,
-        "lineEnd": 196
+        "lineStart": 217,
+        "lineEnd": 230
       },
       "PendingPatches.constructor": {
         "file": "src/autonomy/pending-patches.js",
@@ -4170,40 +4249,48 @@
         "className": "PatchManager",
         "methodName": "_locateNode",
         "isAsync": false,
-        "lineStart": 32,
-        "lineEnd": 66
+        "lineStart": 35,
+        "lineEnd": 100
+      },
+      "PatchManager._normalizeIndent": {
+        "file": "src/upgrader.js",
+        "className": "PatchManager",
+        "methodName": "_normalizeIndent",
+        "isAsync": false,
+        "lineStart": 110,
+        "lineEnd": 142
       },
       "PatchManager.apply": {
         "file": "src/upgrader.js",
         "className": "PatchManager",
         "methodName": "apply",
         "isAsync": false,
-        "lineStart": 68,
-        "lineEnd": 100
+        "lineStart": 144,
+        "lineEnd": 166
       },
       "PatchManager.createTestClone": {
         "file": "src/upgrader.js",
         "className": "PatchManager",
         "methodName": "createTestClone",
         "isAsync": false,
-        "lineStart": 102,
-        "lineEnd": 116
+        "lineStart": 168,
+        "lineEnd": 182
       },
       "PatchManager.verify": {
         "file": "src/upgrader.js",
         "className": "PatchManager",
         "methodName": "verify",
         "isAsync": false,
-        "lineStart": 117,
-        "lineEnd": 142
+        "lineStart": 184,
+        "lineEnd": 209
       },
       "SystemUpgrader.performUpdate": {
         "file": "src/upgrader.js",
         "className": "SystemUpgrader",
         "methodName": "performUpdate",
         "isAsync": true,
-        "lineStart": 146,
-        "lineEnd": 191
+        "lineStart": 213,
+        "lineEnd": 258
       },
       "VirtualCmdHandler.constructor": {
         "file": "src/virtual-cmd-handler.js",
@@ -4348,6 +4435,41 @@
         "isAsync": true,
         "lineStart": 15,
         "lineEnd": 24
+      },
+      "buildUnifiedDiff": {
+        "file": "src/autonomy/actions/reflect-patch-executor.js",
+        "functionName": "buildUnifiedDiff",
+        "isAsync": false,
+        "lineStart": 30,
+        "lineEnd": 41
+      },
+      "_checkStaticSafetyRules": {
+        "file": "src/autonomy/actions/reflect-patch.js",
+        "functionName": "_checkStaticSafetyRules",
+        "isAsync": false,
+        "lineStart": 28,
+        "lineEnd": 40
+      },
+      "_truncate": {
+        "file": "src/autonomy/actions/reviewer-agent.js",
+        "functionName": "_truncate",
+        "isAsync": false,
+        "lineStart": 130,
+        "lineEnd": 133
+      },
+      "_hasUnintentionalRemovals": {
+        "file": "src/autonomy/actions/reviewer-agent.js",
+        "functionName": "_hasUnintentionalRemovals",
+        "isAsync": false,
+        "lineStart": 140,
+        "lineEnd": 152
+      },
+      "_failSafe": {
+        "file": "src/autonomy/actions/reviewer-agent.js",
+        "functionName": "_failSafe",
+        "isAsync": false,
+        "lineStart": 155,
+        "lineEnd": 164
       },
       "isFailed": {
         "file": "src/autonomy/failure-classifier.js",
@@ -4566,6 +4688,12 @@
           }
         }
       },
+      "src/autonomy/actions/base-action.js": {
+        "type": "default",
+        "named": [],
+        "default": "BaseAction",
+        "namedExports": {}
+      },
       "src/autonomy/actions/digest.js": {
         "type": "default",
         "named": [],
@@ -4754,6 +4882,12 @@
         "type": "default",
         "named": [],
         "default": "ReflectAction",
+        "namedExports": {}
+      },
+      "src/autonomy/actions/reviewer-agent.js": {
+        "type": "default",
+        "named": [],
+        "default": "ReviewerAgent",
         "namedExports": {}
       },
       "src/autonomy/actions/social.js": {
@@ -5361,15 +5495,15 @@
         "namedExports": {
           "Introspection": {
             "type": "value",
-            "lineStart": 194
+            "lineStart": 261
           },
           "PatchManager": {
             "type": "value",
-            "lineStart": 194
+            "lineStart": 261
           },
           "SystemUpgrader": {
             "type": "value",
-            "lineStart": 194
+            "lineStart": 261
           }
         }
       },
@@ -5388,10 +5522,10 @@
     }
   },
   "metadata": {
-    "totalFiles": 94,
-    "totalClasses": 84,
-    "totalMethods": 436,
-    "totalFunctions": 38,
-    "scanDuration_ms": 440
+    "totalFiles": 96,
+    "totalClasses": 86,
+    "totalMethods": 444,
+    "totalFunctions": 43,
+    "scanDuration_ms": 436
   }
 }

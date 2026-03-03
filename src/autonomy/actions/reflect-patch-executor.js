@@ -100,7 +100,8 @@ class PatchExecutor {
 
     // ── 送審（建 diff preview、存 PendingPatches、發 Telegram inline button）
 
-    async sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx) {
+    // ── reviewResult 可選第 8 個參數：ReviewerAgent 審查結果（verdict: needs_human 時注入）
+    async sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx, reviewResult) {
         const confidence = typeof proposal.confidence === 'number' ? proposal.confidence : 0;
 
         // --- diff preview 建構（優先 unified diff；失敗時 fallback 回 2 行 preview）---
@@ -134,7 +135,20 @@ class PatchExecutor {
         if (typeof proposal.confidence === 'number') infoParts.push('信心: ' + (confidence * 100).toFixed(0) + '%');
         if (proposal.expected_outcome) infoParts.push('預期: ' + proposal.expected_outcome);
         const infoLine   = infoParts.length > 0 ? '\n' + infoParts.join(' | ') : '';
-        const msgText    = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine;
+
+        // ReviewerAgent 摘要區塊（needs_human 路徑才會有）
+        let reviewerLine = '';
+        if (reviewResult) {
+            reviewerLine = '\n🔍 **Reviewer**: ' + reviewResult.summary;
+            if (reviewResult.risks && reviewResult.risks.length > 0) {
+                reviewerLine += '\n⚠️ 風險: ' + reviewResult.risks.slice(0, 3).join(' / ');
+            }
+            if (reviewResult.removed_logic && reviewResult.removed_logic.length > 0) {
+                reviewerLine += '\n🗑️ 疑似移除: ' + reviewResult.removed_logic.slice(0, 2).join(', ');
+            }
+        }
+
+        const msgText    = '💡 **核心進化提案** (' + proposalType + ')\n目標：' + targetName + '\n內容：' + (proposal.description || '') + '\n' + diffBlock + infoLine + reviewerLine;
         const inlineOpts = { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } };
 
         let sentCP = false;

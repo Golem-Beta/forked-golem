@@ -2,24 +2,23 @@
  * @module web-research
  * @role 網路研究行動 — 選題 → Grounding 搜尋 → 匯報
  * @when-to-modify 調整搜尋 prompt、Grounding 工具呼叫、或匯報格式時
+ *
+ * [2026-03-03] BaseAction pilot：使用 _abortIfChannelDown / _sentOutcome / _sentErrorField / _handleError
  */
 
-class WebResearchAction {
+const BaseAction = require('./base-action');
+
+class WebResearchAction extends BaseAction {
     constructor({ journal, notifier, decision, loadPrompt, memoryLayer }) {
-        this.journal = journal;
-        this.notifier = notifier;
-        this.decision = decision;
-        this.loadPrompt = loadPrompt;
+        super({ journal, notifier, decision, loadPrompt });
         this.memory = memoryLayer || null;
     }
 
     async performWebResearch(decisionReason = '') {
         try {
-            if (this.notifier.isHardFailed()) {
-                console.warn('[WebResearch] 通知通道硬失敗，提前中止');
-                this.journal.append({ action: 'web_research', outcome: 'aborted_channel_down' });
-                return { success: false, action: 'web_research', outcome: 'aborted_channel_down' };
-            }
+            const abort = this._abortIfChannelDown('web_research');
+            if (abort) return abort;
+
             const soul = this.decision.readSoul();
             const recentJournal = this.journal.readRecent(5);
 
@@ -89,16 +88,16 @@ class WebResearchAction {
 
             this.journal.append({
                 action: 'web_research', topic: query, purpose: purpose,
-                outcome: sentWR === true ? 'shared' : 'send_failed', reflection_file: reflectionFile,
-                grounded: grounding !== null, sources: grounding ? grounding.sources.length : 0,
-                ...(sentWR !== true && sentWR !== 'queued' && sentWR && sentWR.error ? { error: sentWR.error } : {})
+                outcome: this._sentOutcome(sentWR, 'shared'),
+                reflection_file: reflectionFile,
+                grounded: grounding !== null,
+                sources: grounding ? grounding.sources.length : 0,
+                ...this._sentErrorField(sentWR)
             });
             if (sentWR === true) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
-            return { success: sentWR === true, action: 'web_research', outcome: sentWR === true ? 'shared' : 'send_failed' };
+            return { success: sentWR === true, action: 'web_research', outcome: this._sentOutcome(sentWR, 'shared') };
         } catch (e) {
-            console.error('❌ [WebResearch] 研究失敗:', e.message);
-            this.journal.append({ action: 'web_research', outcome: 'error', error: e.message });
-            return { success: false, action: 'web_research', outcome: 'error', detail: e.message };
+            return this._handleError('web_research', e);
         }
     }
 }

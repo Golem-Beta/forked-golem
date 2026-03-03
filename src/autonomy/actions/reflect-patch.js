@@ -223,6 +223,44 @@ class ReflectPatch {
             return { success: false, action: 'self_reflection', outcome: 'verification_failed', target: proposal.file || '' };
         }
 
+        // ── ReviewerAgent 語義審查（語法驗證通過後、autoDeploy 決策前）──────────
+        const ReviewerAgent = require('./reviewer-agent');
+        const reviewer = new ReviewerAgent({ decision: this.decision });
+        const originalCode = proposal.search
+            || (proposal.target_node ? `// [AST target: ${proposal.target_node}]` : '');
+        let reviewResult;
+        try {
+            reviewResult = await reviewer.review(originalCode, proposal.replace || '', proposal);
+        } catch (e) {
+            console.warn('[Reflection] ReviewerAgent 例外，降級為 needs_human:', e.message);
+            reviewResult = {
+                verdict: 'needs_human', summary: 'ReviewerAgent 例外: ' + e.message,
+                removed_logic: [], intentional_removals: [], risks: [e.message],
+            };
+        }
+
+        if (reviewResult.verdict === 'reject') {
+            console.warn('[SelfReflection] ReviewerAgent 拒絕 patch:', reviewResult.summary);
+            try { fs.unlinkSync(testFile); } catch (_) {}
+            this.journal.append({
+                action: 'self_reflection', mode: 'core_patch',
+                proposal: proposalType, outcome: 'reviewer_rejected',
+                reviewer_summary: reviewResult.summary,
+                risks: reviewResult.risks,
+                reflection_file: reflectionFile,
+            });
+            return { success: false, action: 'self_reflection', outcome: 'reviewer_rejected', target: proposal.file || '' };
+        }
+
+        if (reviewResult.verdict === 'needs_human') {
+            console.log('[SelfReflection] ReviewerAgent 要求人工確認:', reviewResult.summary);
+            // 強制走 sendForReview，附上 reviewer 結果供人工判斷，跳過 autoDeploy
+            return this.executor.sendForReview(
+                proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx, reviewResult
+            );
+        }
+        // verdict: approve → 繼續靜態安全規則 + autoDeploy 決策
+
         // 靜態安全規則：硬編碼防火牆，優先於 config 設定
         const staticBlock = _checkStaticSafetyRules(proposal);
         if (staticBlock) {
