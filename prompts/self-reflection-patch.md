@@ -39,6 +39,7 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 - 頂層函數：從 `function` 開頭到結尾的 `}`
 - class method：只填方法本身（從方法名稱/static/async 到結尾的 `}`），**不含** class 外框
 - 縮排由系統自動正規化，不需手動對齊原始縮排
+- ⚠️ **換行符必須轉義**：`replace` 值內的所有換行符必須寫成 `\n`，不可使用實際換行。違反此規則會導致 JSON.parse() 失敗，patch 被完全丟棄。
 
 不需要指定 `"file"`——系統自動從 codebase 索引解析檔案路徑。
 
