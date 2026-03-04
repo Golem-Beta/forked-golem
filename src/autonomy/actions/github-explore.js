@@ -158,7 +158,7 @@ class GitHubExploreAction {
                 this.journal.append({
                     action: 'github_explore', topic, repo: newRepo.full_name,
                     stars: newRepo.stargazers_count, language: newRepo.language,
-                    outcome: sentGH === true ? 'shared' : 'send_failed', reflection_file: reflectionFile,
+                    outcome: sentGH === true ? 'shared' : sentGH === 'queued' ? 'queued' : 'send_failed', reflection_file: reflectionFile,
                     model: this.decision.lastModel,
                     tokens: this.decision.lastTokens,
                     ...(sentGH !== true && sentGH !== 'queued' ? {
@@ -170,7 +170,7 @@ class GitHubExploreAction {
                 return {
                     success: sentGH === true,
                     action: 'github_explore',
-                    outcome: sentGH === true ? 'shared' : 'send_failed',
+                    outcome: sentGH === true ? 'shared' : sentGH === 'queued' ? 'queued' : 'send_failed',
                     ...(sentGH === true ? {
                         memorize: {
                             text: `[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`,
