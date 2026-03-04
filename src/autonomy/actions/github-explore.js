@@ -161,7 +161,9 @@ class GitHubExploreAction {
                     outcome: sentGH === true ? 'shared' : 'send_failed', reflection_file: reflectionFile,
                     model: this.decision.lastModel,
                     tokens: this.decision.lastTokens,
-                    ...(sentGH !== true && sentGH !== 'queued' && sentGH && sentGH.error ? { error: sentGH.error } : {})
+                    ...(sentGH !== true && sentGH !== 'queued' ? {
+                        send_error: (sentGH && sentGH.error) ? sentGH.error : (typeof sentGH === 'string' ? sentGH : JSON.stringify(sentGH))
+                    } : {})
                 });
         
                 if (sentGH === true) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
