@@ -143,8 +143,8 @@ class BenchmarkRunner {
     }
 
     _log(msg) {
-        console.log(msg);
         if (this.onProgress) this.onProgress(msg);
+        else console.log(msg);
     }
 
     /**
@@ -165,19 +165,25 @@ class BenchmarkRunner {
         const results = {};
         const order   = [];
 
+        // 先初始化 results / order（保持原本順序顯示）
         for (const target of targets) {
             const key = `${target.provider}/${target.model}`;
             results[key] = {};
             order.push({ key, target });
+        }
 
-            for (const test of TESTS) {
-                this._log(`  ${key.padEnd(50)} ${test.name} ...`);
+        // 外層 test，內層 target：A1→B1→C1，A2→B2→C2
+        // 同一輪測試跨 provider 輪流，自然分散同 provider 的 rate limit 壓力
+        for (const test of TESTS) {
+            this._log(`\n📋 ${test.name}\n`);
+            for (const { key, target } of order) {
+                this._log(`  ${key.padEnd(50)} ...`);
                 const r = await runTest(target, test, systemPrompt);
                 results[key][test.id] = r;
-                this._log(r.pass ? `  ✅ ${r.ms}ms` : `  ❌ ${r.ms}ms — ${r.detail}`);
+                this._log(r.pass ? `  ✅ ${r.ms}ms — ${r.detail}` : `  ❌ ${r.ms}ms — ${r.detail}`);
 
-                // 避免打爆 rate limit
-                await new Promise(res => setTimeout(res, 1500));
+                // 跨 provider 輪流已有自然間隔；3s 避免同 provider 連打
+                await new Promise(res => setTimeout(res, 3000));
             }
         }
 
