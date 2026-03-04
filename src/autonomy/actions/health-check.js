@@ -7,12 +7,11 @@
 const fs   = require('fs');
 const path = require('path');
 const HealthAnalyzer = require('./health-analyzer');
+const BaseAction = require('./base-action');
 
-class HealthCheckAction {
+class HealthCheckAction extends BaseAction {
     constructor({ journal, notifier, decision }) {
-        this.journal   = journal;
-        this.notifier  = notifier;
-        this.decision  = decision;
+        super({ journal, notifier, decision });
         this._analyzer = new HealthAnalyzer({ decision });
     }
 
@@ -34,10 +33,10 @@ class HealthCheckAction {
         const sent = await this.notifier.sendToAdmin(report);
         this.journal.append({
             action: 'health_check',
-            outcome: sent === true ? 'reported' : sent === 'queued' ? 'queued' : 'send_failed',
+            outcome: this._sentOutcome(sent, 'reported'),
             anomalies: data.log.errors.length + data.log.warns.length,
             needsReflection,
-            ...(sent !== true && sent !== 'queued' && sent && sent.error ? { error: sent.error } : {})
+            ...this._sentErrorField(sent)
         });
         return { success: true, action: 'health_check', needsReflection };
     }

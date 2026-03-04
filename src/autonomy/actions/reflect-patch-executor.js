@@ -11,6 +11,7 @@
 
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
+const BaseAction = require('./base-action');
 
 async function runSmokeGate() {
     return new Promise((resolve) => {
@@ -40,11 +41,9 @@ function buildUnifiedDiff(targetPath, testFile) {
     } catch (_) { return null; }
 }
 
-class PatchExecutor {
+class PatchExecutor extends BaseAction {
     constructor({ journal, notifier, decision, config, InputFile, PendingPatches, googleServices }) {
-        this.journal        = journal;
-        this.notifier       = notifier;
-        this.decision       = decision;
+        super({ journal, notifier, decision });
         this.config         = config;
         this.InputFile      = InputFile;
         this.PendingPatches = PendingPatches;
@@ -178,6 +177,8 @@ class PatchExecutor {
             sentCPError = sendErr.message;
         }
         console.log('[SelfReflection/core_patch] send:', sentCP === true ? '✅ OK' : sentCP === 'queued' ? '⏳ queued' : '❌ FAILED');
+        // 合成 _sentOutcome/_sentErrorField 可消費的 sentFinal
+        const sentFinal = sentCP === true ? true : sentCP === 'queued' ? 'queued' : (sentCPError ? { error: sentCPError } : false);
 
         if (this.googleServices?._auth?.isAuthenticated()) {
             try {
@@ -198,15 +199,15 @@ class PatchExecutor {
             proposal: proposalType, target: targetName,
             description: proposal.description,
             ts: proposedTs,
-            outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed',
+            outcome: this._sentOutcome(sentFinal, 'proposed'),
             ...metaFields,
             reflection_file: reflectionFile,
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens,
-            ...(sentCP !== true && sentCP !== 'queued' && sentCPError ? { error: sentCPError } : {})
+            ...this._sentErrorField(sentFinal)
         });
         if (global.pendingPatch) global.pendingPatch.proposedTs = proposedTs;
-        return { success: sentCP === true, action: 'self_reflection', outcome: sentCP === true ? 'proposed' : sentCP === 'queued' ? 'queued' : 'proposed_send_failed', target: targetName };
+        return { success: sentCP === true, action: 'self_reflection', outcome: this._sentOutcome(sentFinal, 'proposed'), target: targetName };
     }
 }
 

@@ -10,6 +10,7 @@
 const fs   = require('fs');
 const path = require('path');
 const PatchExecutor = require('./reflect-patch-executor');
+const BaseAction = require('./base-action');
 
 // ── 靜態安全規則（硬編碼防火牆，不可被 prompt 或 config 覆蓋）──────────────
 const _PROTECTED_TARGET_KEYWORDS = ['autoDeploy', 'risk_level', 'confidence', 'AUTODEPLOY'];
@@ -39,11 +40,9 @@ function _checkStaticSafetyRules(proposal) {
     return null;
 }
 
-class ReflectPatch {
+class ReflectPatch extends BaseAction {
     constructor({ journal, notifier, decision, skills, config, memory, PatchManager, ResponseParser, InputFile, PendingPatches, googleServices, loadPrompt }) {
-        this.journal        = journal;
-        this.notifier       = notifier;
-        this.decision       = decision;
+        super({ journal, notifier, decision, loadPrompt });
         this.skills         = skills;
         this.config         = config;
         this.memory         = memory;
@@ -52,7 +51,6 @@ class ReflectPatch {
         this.InputFile      = InputFile;
         this.PendingPatches = PendingPatches;
         this.googleServices = googleServices || null;
-        this.loadPrompt     = loadPrompt || null;
         this.executor = new PatchExecutor({ journal, notifier, decision, config, InputFile, PendingPatches, googleServices });
     }
 
@@ -145,13 +143,13 @@ class ReflectPatch {
         this.journal.append({
             action: 'self_reflection', mode: 'skill_create',
             skill_name: skillName, description: proposal.description,
-            outcome: sentSC === true ? 'skill_created' : sentSC === 'queued' ? 'queued' : 'skill_created_send_failed',
+            outcome: this._sentOutcome(sentSC, 'skill_created'),
             reflection_file: reflectionFile,
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens,
-            ...(sentSC !== true && sentSC !== 'queued' && sentSC && sentSC.error ? { error: sentSC.error } : {})
+            ...this._sentErrorField(sentSC)
         });
-        return { success: sentSC === true, action: 'self_reflection', outcome: sentSC === true ? 'skill_created' : sentSC === 'queued' ? 'queued' : 'skill_created_send_failed' };
+        return { success: sentSC === true, action: 'self_reflection', outcome: this._sentOutcome(sentSC, 'skill_created') };
     }
 
     async _handleCorePatch(proposal, reflectionFile, triggerCtx) {

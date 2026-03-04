@@ -5,14 +5,12 @@
  */
 const fs = require('fs');
 const path = require('path');
+const BaseAction = require('./base-action');
 
-class DigestAction {
+class DigestAction extends BaseAction {
     constructor({ journal, notifier, decision, memoryLayer, loadPrompt }) {
-        this.journal = journal;
-        this.notifier = notifier;
-        this.decision = decision;
+        super({ journal, notifier, decision, loadPrompt });
         this.memory = memoryLayer || null; // 三層記憶召回
-        this.loadPrompt = loadPrompt || null;
     }
 
     async performDigest() {
@@ -137,9 +135,9 @@ class DigestAction {
 
             this.journal.append({
                 action: 'digest', topic: firstLine,
-                outcome: sentDG === true ? 'completed' : sentDG === 'queued' ? 'queued' : 'completed_send_failed',
+                outcome: this._sentOutcome(sentDG, 'completed'),
                 file: 'synthesis/' + filename, summary_preview: summary.substring(0, 100),
-                ...(sentDG !== true && sentDG !== 'queued' && sentDG && sentDG.error ? { error: sentDG.error } : {})
+                ...this._sentErrorField(sentDG)
             });
             if (sentDG) console.log('[Digest] 消化歸納完成。');
         } catch (e) {
@@ -194,12 +192,12 @@ class DigestAction {
             console.log('[MorningDigest] sendToAdmin:', sentMD ? '✅ OK' : '❌ FAILED');
             this.journal.append({
                 action: 'morning_digest',
-                outcome: sentMD === true ? 'sent' : sentMD === 'queued' ? 'queued' : 'send_failed',
+                outcome: this._sentOutcome(sentMD, 'sent'),
                 item_count: items.length,
                 summary_preview: summary.substring(0, 100),
                 model: this.decision.lastModel,
                 tokens: this.decision.lastTokens,
-                ...(sentMD !== true && sentMD !== 'queued' && sentMD && sentMD.error ? { error: sentMD.error } : {})
+                ...this._sentErrorField(sentMD)
             });
             if (sentMD) console.log('[MorningDigest] 晨間摘要已發送。');
         } catch (e) {

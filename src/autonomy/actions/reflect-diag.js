@@ -4,15 +4,13 @@
  * @when-to-modify 調整診斷提示詞、歷史 reflection 讀取數量、或診斷輸出 schema 時
  */
 const { execSync } = require('child_process');
+const BaseAction = require('./base-action');
 
-class ReflectDiag {
+class ReflectDiag extends BaseAction {
     constructor({ journal, notifier, decision, memory, memoryLayer, loadPrompt }) {
-        this.journal = journal;
-        this.notifier = notifier;
-        this.decision = decision;
+        super({ journal, notifier, decision, loadPrompt });
         this.memory = memory;              // 舊 ExperienceMemory（getAdvice 用）
         this.memoryLayer = memoryLayer || null; // 新三層記憶召回
-        this.loadPrompt = loadPrompt || null;
     }
 
     /**
@@ -106,7 +104,7 @@ class ReflectDiag {
             this.journal.append({ action: 'self_reflection', phase: 'diagnosis', outcome: 'parse_failed', reflection_file: diagFile });
             if (!triggerCtx) {
                 const sent = await this.notifier.sendToAdmin('🧬 [self_reflection] Phase 1 診斷解析失敗: ' + e.message + '\n(輸出已存至 ' + diagFile + ')');
-                this.journal.append({ action: 'notification', target: 'admin', outcome: sent ? 'done' : 'send_failed' });
+                this.journal.append({ action: 'notification', target: 'admin', outcome: this._sentOutcome(sent, 'done'), ...this._sentErrorField(sent) });
             }
             return null;
         }

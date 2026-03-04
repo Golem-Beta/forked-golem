@@ -6,14 +6,12 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const BaseAction = require('./base-action');
 
-class GitHubExploreAction {
+class GitHubExploreAction extends BaseAction {
     constructor({ journal, notifier, decision, config, loadPrompt, memoryLayer, brain }) {
-        this.journal = journal;
-        this.notifier = notifier;
-        this.decision = decision;
+        super({ journal, notifier, decision, loadPrompt });
         this.config = config;
-        this.loadPrompt = loadPrompt;
         this.memory = memoryLayer || null;
         this.brain = brain || null;
     }
@@ -35,11 +33,8 @@ class GitHubExploreAction {
 
                 async performGitHubExplore() {
             try {
-                if (this.notifier.isHardFailed()) {
-                    console.warn('[GitHub] 通知通道硬失敗，提前中止');
-                    this.journal.append({ action: 'github_explore', outcome: 'aborted_channel_down' });
-                    return { success: false, action: 'github_explore', outcome: 'aborted_channel_down' };
-                }
+                const abort = this._abortIfChannelDown('github_explore');
+                if (abort) return abort;
                 const topics = [
                     'autonomous agent framework', 'LLM tool use', 'AI agent memory',
                     'local AI assistant', 'AI self-improvement', 'prompt engineering framework',
@@ -158,19 +153,17 @@ class GitHubExploreAction {
                 this.journal.append({
                     action: 'github_explore', topic, repo: newRepo.full_name,
                     stars: newRepo.stargazers_count, language: newRepo.language,
-                    outcome: sentGH === true ? 'shared' : sentGH === 'queued' ? 'queued' : 'send_failed', reflection_file: reflectionFile,
+                    outcome: this._sentOutcome(sentGH, 'shared'), reflection_file: reflectionFile,
                     model: this.decision.lastModel,
                     tokens: this.decision.lastTokens,
-                    ...(sentGH !== true && sentGH !== 'queued' ? {
-                        send_error: (sentGH && sentGH.error) ? sentGH.error : (typeof sentGH === 'string' ? sentGH : JSON.stringify(sentGH))
-                    } : {})
+                    ...this._sentErrorField(sentGH)
                 });
         
                 if (sentGH === true) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
                 return {
                     success: sentGH === true,
                     action: 'github_explore',
-                    outcome: sentGH === true ? 'shared' : sentGH === 'queued' ? 'queued' : 'send_failed',
+                    outcome: this._sentOutcome(sentGH, 'shared'),
                     ...(sentGH === true ? {
                         memorize: {
                             text: `[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`,

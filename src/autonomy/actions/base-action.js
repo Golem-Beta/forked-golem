@@ -57,10 +57,11 @@ class BaseAction {
      * @returns {object} `{ error: string }` 或空物件
      */
     _sentErrorField(sent) {
-        if (sent !== true && sent !== 'queued' && sent && sent.error) {
-            return { error: sent.error };
-        }
-        return {};
+        if (sent === true || sent === 'queued') return {};
+        if (!sent) return {};
+        if (sent.error) return { error: sent.error };
+        // 非物件值（string 等）強制序列化
+        return { error: typeof sent === 'string' ? sent : JSON.stringify(sent) };
     }
 
     /**

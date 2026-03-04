@@ -3,14 +3,11 @@
  * @role 主動社交行動 — 自發打招呼 + 回應追蹤
  * @when-to-modify 調整社交訊息生成邏輯、回應追蹤視窗、或社交提示詞時
  */
+const BaseAction = require('./base-action');
 
-class SocialAction {
+class SocialAction extends BaseAction {
     constructor({ journal, notifier, decision, loadPrompt }) {
-        this.journal = journal;
-        this.notifier = notifier;
-        this.decision = decision;
-        this.loadPrompt = loadPrompt;
-
+        super({ journal, notifier, decision, loadPrompt });
         // 📬 30 分鐘回應追蹤
         this._pendingSocialChat = null;
     }
@@ -56,11 +53,11 @@ class SocialAction {
         this.journal.append({
             action: 'spontaneous_chat',
             context: contextNote,
-            outcome: sent === true ? 'sent' : sent === 'queued' ? 'queued' : 'send_failed',
+            outcome: this._sentOutcome(sent, 'sent'),
             msg_length: msg.length,
             model: this.decision.lastModel,
             tokens: this.decision.lastTokens,
-            ...(sent !== true && sent !== 'queued' && sent && sent.error ? { error: sent.error } : {})
+            ...this._sentErrorField(sent)
         });
 
         if (sent !== true && sent !== 'queued') {
@@ -86,7 +83,7 @@ class SocialAction {
                 this._pendingSocialChat = null;
             }, 30 * 60 * 1000)
         };
-        return { success: sent === true, action: 'spontaneous_chat', outcome: sent === true ? 'sent' : sent === 'queued' ? 'queued' : 'send_failed' };
+        return { success: sent === true, action: 'spontaneous_chat', outcome: this._sentOutcome(sent, 'sent') };
     }
 
     /**
