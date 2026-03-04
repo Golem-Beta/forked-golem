@@ -52,9 +52,11 @@ class DecisionContext {
         const quietQueueSection    = this._buildQuietQueueSection();
         const pressureSection      = this._pressure.evaluate();
 
-        const hasExplore     = Array.isArray(available) && available.some(a => EXPLORE_ACTIONS.has(a.id));
-        const synthesisSection = hasExplore ? this._readLatestSynthesis() : '';
-        const hnSection        = hasExplore ? await this._fetchHNSection() : '';
+        // 強化探索結果的召回：不論當前可用行動為何，只要近期有探索就顯示，以利決策連續性
+        const hasExploreAction = Array.isArray(available) && available.some(a => EXPLORE_ACTIONS.has(a.id));
+        const recentHasExplore = recentEntries.slice(-5).some(j => EXPLORE_ACTIONS.has(j.action));
+        const synthesisSection = (hasExploreAction || recentHasExplore) ? this._readLatestSynthesis() : '';
+        const hnSection        = hasExploreAction ? await this._fetchHNSection() : '';
 
         const hasReflect     = Array.isArray(available) && available.some(a => a.id === 'self_reflection');
         const codebaseSummary = hasReflect ? this._readCodebaseSummary() : '';
