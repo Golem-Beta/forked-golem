@@ -65,12 +65,20 @@ class WebResearchAction extends BaseAction {
             console.log('🌐 [WebResearch] 搜尋主題: ' + query + ' | 目的: ' + purpose);
 
             const searchResults = await this.webSearch.search(query, { limit: 5 });
-            const provider = searchResults.length > 0 ? (searchResults[0]._provider || "unknown") : "ddg";
+            const provider = searchResults.length > 0 ? (searchResults[0]._provider || 'brave') : (this.webSearch.braveKey ? 'brave_no_results' : 'ddg_no_results');
             console.log("[WebResearch] 搜尋結果: " + searchResults.length + " 筆 (provider: " + provider + ")");
 
-            const searchContext = searchResults.length > 0
-                ? searchResults.map((r, i) => "[" + (i+1) + "] " + r.title + "\n    URL: " + r.url + "\n    摘要: " + r.snippet).join("\n\n")
-                : "（無搜尋結果）";
+            // early abort：搜尋結果為 0，避免 LLM 憑空生成幻覺內容
+            if (searchResults.length === 0) {
+                console.warn('[WebResearch] 搜尋結果為空，中止本次研究');
+                this.journal.append({
+                    action: 'web_research', topic: query, purpose: purpose,
+                    outcome: 'no_results', provider: provider, sources: 0, grounded: false
+                });
+                return { success: false, action: 'web_research', outcome: 'no_results' };
+            }
+
+            const searchContext = searchResults.map((r, i) => "[" + (i+1) + "] " + r.title + "\n    URL: " + r.url + "\n    摘要: " + r.snippet).join("\n\n");
 
             const searchPrompt = "根據以下搜尋結果，用繁體中文摘要最新資訊（200-300字）：\n\n" +
                 "主題：" + query + "\n重點：" + purpose + "\n\n【搜尋結果】\n" + searchContext + "\n\n" +
@@ -97,7 +105,8 @@ class WebResearchAction extends BaseAction {
                 outcome: this._sentOutcome(sentWR, 'shared'),
                 reflection_file: reflectionFile,
                 provider: provider,
-                sources_count: searchResults.length,
+                sources: searchResults.length,
+                grounded: searchResults.length > 0,
                 ...this._sentErrorField(sentWR)
             });
             if (sentWR === true) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
