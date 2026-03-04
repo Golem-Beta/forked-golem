@@ -164,15 +164,18 @@ class GitHubExploreAction {
                     ...(sentGH !== true && sentGH !== 'queued' && sentGH && sentGH.error ? { error: sentGH.error } : {})
                 });
         
-                if (sentGH === true && this.brain) {
-                    this.brain.memorize(`[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`, {
-                        source: 'github_explore',
-                        repo: newRepo.full_name,
-                        topic
-                    });
-                }
                 if (sentGH === true) console.log(`✅ [GitHub] 探索報告已發送: ${newRepo.full_name}`);
-                return { success: sentGH === true, action: 'github_explore', outcome: sentGH === true ? 'shared' : 'send_failed' };
+                return {
+                    success: sentGH === true,
+                    action: 'github_explore',
+                    outcome: sentGH === true ? 'shared' : 'send_failed',
+                    ...(sentGH === true ? {
+                        memorize: {
+                            text: `[GitHub Explore] ${newRepo.full_name}: ${analysis.substring(0, 500)}`,
+                            metadata: { source: 'github_explore', repo: newRepo.full_name, topic }
+                        }
+                    } : {})
+                };
             } catch (e) {
                 console.error('❌ [GitHub] 探索失敗:', e.message);
                 this.journal.append({ 

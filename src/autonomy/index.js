@@ -18,6 +18,7 @@ const { FailureTracker } = require('./failure-tracker');
 const ExperienceMemoryLayer = require('../memory/index');
 const XPublisher = require('../x-publisher');
 const FreeWillRunner = require('./free-will');
+const { ResultHandler } = require('./result-handler');
 
 class AutonomyManager {
     /**
@@ -71,11 +72,17 @@ class AutonomyManager {
         this.quietMode = false;
         this._failureTracker = new FailureTracker(this.notifier);
 
+        this._resultHandler = new ResultHandler({
+            brain: deps.brain,
+            failureTracker: this._failureTracker,
+            actions: this.actions,
+        });
+
         this._freeWill = new FreeWillRunner({
             decision: this.decision,
             actions: this.actions,
             journal: this.journal,
-            failureTracker: this._failureTracker,
+            resultHandler: this._resultHandler,
             getQuietMode: () => this.quietMode,
         });
     }

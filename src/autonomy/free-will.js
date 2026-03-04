@@ -10,17 +10,17 @@
 class FreeWillRunner {
     /**
      * @param {object} deps
-     * @param {object} deps.decision  - DecisionEngine
-     * @param {object} deps.actions   - ActionRunner
-     * @param {object} deps.journal   - JournalManager
-     * @param {object} deps.failureTracker - FailureTracker
+     * @param {object} deps.decision       - DecisionEngine
+     * @param {object} deps.actions        - ActionRunner
+     * @param {object} deps.journal        - JournalManager
+     * @param {object} deps.resultHandler  - ResultHandler（統一處理 side effects）
      * @param {Function} deps.getQuietMode - () => boolean（讀取 AutonomyManager.quietMode）
      */
-    constructor({ decision, actions, journal, failureTracker, getQuietMode }) {
+    constructor({ decision, actions, journal, resultHandler, getQuietMode }) {
         this.decision = decision;
         this.actions = actions;
         this.journal = journal;
-        this._failureTracker = failureTracker;
+        this._resultHandler = resultHandler;
         this._getQuietMode = getQuietMode;
     }
 
@@ -77,11 +77,6 @@ class FreeWillRunner {
                     break;
                 case 'health_check':
                     _actionResult = await this.actions.performHealthCheck();
-                    if (_actionResult && _actionResult.needsReflection) {
-                        console.log('🏥 [HealthCheck] 發現異常，排程觸發 self_reflection');
-                        const needsReflection = _actionResult.needsReflection;
-                        setTimeout(() => this.actions.performSelfReflection({ trigger: 'health_check', ...needsReflection }), 5 * 60 * 1000);
-                    }
                     break;
                 case 'gmail_check':
                     _actionResult = await this.actions.performGoogleCheck();
@@ -117,7 +112,7 @@ class FreeWillRunner {
                         console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
                     }
             }
-            if (_actionResult) await this._failureTracker.record(_actionResult);
+            if (_actionResult) await this._resultHandler.handle(_actionResult);
         } catch (e) {
             console.error('[錯誤] 自由意志執行失敗:', e.message || e);
             this.journal.append({ action: 'error', error: e.message });

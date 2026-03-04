@@ -81,6 +81,17 @@ class GolemBrain {
         }
     }
 
+    /**
+     * 即時感知注入 — 將觀測文字推入 chatHistory，不觸發 LLM 呼叫。
+     * 用於自主行動後讓 brain 感知結果，維持對話連續性。
+     * @param {string} text
+     */
+    observe(text) {
+        this.chatHistory.push({ role: 'user', parts: [{ text }] });
+        this.chatHistory.push({ role: 'model', parts: [{ text: '(感知已接收)' }] });
+        console.log(`👁️ [Brain] 感知注入: ${text.substring(0, 80)}`);
+    }
+
     async sendMessage(text, isSystem = false) {
         if (!this._initialized) await this.init();
 

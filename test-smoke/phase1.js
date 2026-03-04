@@ -9,7 +9,7 @@ module.exports = function phase1(test) {
         'security', 'brain', 'parsers', 'executor', 'node-router',
         'chronos', 'upgrader', 'tools', 'prompt-loader',
         'autonomy', 'skills', 'model-router', 'task-controller',
-        'x-publisher'
+        'x-publisher', 'autonomy/result-handler'
     ];
     for (const name of moduleList) {
         test(`require src/${name}`, () => {
