@@ -27,6 +27,7 @@ const MoltbookCheckAction = require('./moltbook-check');
 const MoltbookPostAction  = require('./moltbook-post');
 const ThreadsPostAction   = require('./threads-post');
 const MaintenanceRunner = require('./maintenance/index');
+const ModelBenchmarkAction = require('./model-benchmark/index');
 
 class ActionRunner {
     /**
@@ -55,6 +56,7 @@ class ActionRunner {
         this._xPost            = new XPostAction(deps);
         this._googleServices   = deps.googleServices || null;
         this._moltbookCheck    = new MoltbookCheckAction(deps);
+        this._modelBenchmark   = new ModelBenchmarkAction(deps);
         this._moltbookPost     = new MoltbookPostAction(deps);
         this._threadsPost      = new ThreadsPostAction(deps);
         this._maintenance      = new MaintenanceRunner(deps);
@@ -66,6 +68,7 @@ class ActionRunner {
 
     // --- explore ---
     async performWebResearch(reason)     { return this._explore.performWebResearch(reason); }
+    async performModelBenchmark(opts)     { return this._modelBenchmark.run(opts); }
 
     // --- reflect ---
     async performSelfReflection(ctx) {

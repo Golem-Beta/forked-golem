@@ -43,7 +43,7 @@ class FreeWillRunner {
 
             const actionEmoji = {
                 'self_reflection': '🧬', 'github_explore': '🔍',
-                'spontaneous_chat': '💬', 'web_research': '🌐',
+                'spontaneous_chat': '💬', 'web_research': '🌐', 'model_benchmark': '🔬',
                 'digest': '📝', 'health_check': '🏥', 'rest': '😴',
                 'gmail_check': '📬', 'drive_sync': '💾', 'x_post': '🐦', 'moltbook_check': '🦞', 'moltbook_post': '🦞', 'threads_post': '🧵',
             };
@@ -68,6 +68,9 @@ class FreeWillRunner {
                     break;
                 case 'web_research':
                     _actionResult = await this.actions.performWebResearch(decision.reason);
+                    break;
+                case 'model_benchmark':
+                    _actionResult = await this.actions.performModelBenchmark();
                     break;
                 case 'morning_digest':
                     _actionResult = await this.actions.performMorningDigest();
