@@ -35,7 +35,7 @@ class MoltbookCheckExecutor {
                 upvoted++;
                 state.upvotedPostIds = appendCapped(state.upvotedPostIds, String(postId), MAX_STATE_IDS);
             } else {
-                console.warn(`🦞 upvote ${postId} 失敗:`, r.error);
+                console.warn(`🦞 upvote ${postId} 失敗:`, r.error, r.hint ? '| hint: ' + r.hint : '');
             }
         }
 
@@ -54,7 +54,7 @@ class MoltbookCheckExecutor {
                 console.warn(`🦞 comment rate limited, retry_after: ${r.retry_after}s`);
                 break;
             } else {
-                console.warn(`🦞 comment 失敗:`, r.error);
+                console.warn(`🦞 comment 失敗 [post:${c.post_id}]:`, r.error, r.hint ? '| hint: ' + r.hint : '', '| content:', (c.content || '').slice(0, 80));
             }
             if (commented < pendingComments.length) {
                 await new Promise(resolve => setTimeout(resolve, 21000));
