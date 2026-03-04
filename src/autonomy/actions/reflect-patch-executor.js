@@ -154,8 +154,8 @@ class PatchExecutor {
         let sentCP = false;
         let sentCPError = null;
         try {
-            if (triggerCtx) {
-                // 使用者手動觸發路徑：有 ctx，直接回覆
+            if (triggerCtx && typeof triggerCtx.reply === 'function') {
+                // 使用者手動觸發路徑：grammy ctx，直接回覆
                 await triggerCtx.reply(msgText, inlineOpts);
                 await triggerCtx.sendDocument(testFile);
                 sentCP = true;
