@@ -156,17 +156,7 @@ module.exports = function phase4(test) {
         });
     }
 
-    // model-benchmark 子模組
-    test('model-benchmark/index exports ModelBenchmarkAction class', () => {
-        const ModelBenchmarkAction = require('../src/autonomy/actions/model-benchmark/index');
-        assert(typeof ModelBenchmarkAction === 'function');
-        assert(typeof ModelBenchmarkAction.prototype.run === 'function');
-    });
-    test('model-benchmark/runner exports BenchmarkRunner class', () => {
-        const BenchmarkRunner = require('../src/autonomy/actions/model-benchmark/runner');
-        assert(typeof BenchmarkRunner === 'function');
-        assert(typeof BenchmarkRunner.prototype.run === 'function');
-    });
+    // model-benchmark named exports（index/runner 已由動態掃描覆蓋）
     test('model-benchmark/targets exports buildTargets function', () => {
         const { buildTargets } = require('../src/autonomy/actions/model-benchmark/targets');
         assert(typeof buildTargets === 'function');
