@@ -198,7 +198,7 @@ class MessageProcessor {
                 "Example: {\"keep\":[0],\"drop\":[1,2]}"
             ].join("\n");
             const guardResult = await this.modelRouter.complete({ intent: "utility", messages: [{ role: "user", content: guardPrompt }], maxTokens: 100, temperature: 0 });
-            const guardJson = (guardResult || "").replace(/```json|```/g, "").trim();
+            const guardJson = ((guardResult && guardResult.text) ? guardResult.text : "").replace(/```json|```/g, "").trim();
             try {
                 const verdict = JSON.parse(guardJson);
                 const dropSet = new Set(verdict.drop || []);

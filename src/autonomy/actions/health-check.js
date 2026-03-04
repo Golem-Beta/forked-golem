@@ -75,7 +75,7 @@ class HealthCheckAction {
 
     _checkIndexHealth() {
         try {
-            const CodebaseIndexer = require('../codebase-indexer');
+            const CodebaseIndexer = require('../../codebase-indexer');
             let needsRebuild = true;
             try {
                 const idx = CodebaseIndexer.load();

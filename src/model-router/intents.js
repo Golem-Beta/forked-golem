@@ -35,7 +35,7 @@ const INTENT_REQUIREMENTS = {
     // 自主社交/摘要：spontaneous_chat、digest，純文字輸出即可
     creative:   { requires: [],           priority: 'quality', defaultMaxTokens: 512  },
     // 深度分析：github/web 研究，長 context 優先
-    analysis:   { requires: [],           priority: 'speed',   defaultMaxTokens: 1024 },
+    analysis:   { requires: [],           priority: 'speed',   defaultMaxTokens: 3072 },
     // 快速決策：autonomy 選擇下一個行動，JSON 輸出
     decision:   { requires: [],           priority: 'speed',   defaultMaxTokens: 512  },
     // 工具任務：HallucinationGuard、格式判斷等單句任務
