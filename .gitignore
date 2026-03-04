@@ -43,3 +43,7 @@ soul.md
 soul.local.md
 logs/
 threads-token.json
+
+# ── 執行時狀態（X200 本地）────────────────────────
+data/moltbook-state.json
+data/codebase-index.json
