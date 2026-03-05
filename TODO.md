@@ -69,10 +69,11 @@
 
 ## 高優先 🔴
 
-### 7. skill-moltbook.md 整合
-- **安全疑慮**: 間接 prompt injection 風險高，需謹慎評估設計
-- **現狀**: skill-moltbook.md 已在 Project Knowledge，尚未整合進 skills.d/
+> （#7 moltbook skill 文件已降級至低優先，功能本體已完成）
 
+### 7. skill-moltbook.md 整合
+- **現狀**: moltbook 功能本體（post/check/engagement）已完成，skills.d/ 整合純屬文件補充
+- **優先度**: 低，待機會處理
 ### 8. 第二台機器 (Alpha, P8700 + 8GB) 部署 + MultiAgent
 - **前提**: 單機架構穩定後再開工
 
