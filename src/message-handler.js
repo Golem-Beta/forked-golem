@@ -84,7 +84,13 @@ class MessageHandler {
                 sendDocument: async (filePath) => {
                     const { InputFile } = require('grammy');
                     const fs2 = require('fs');
-                    await ctx.replyWithDocument(new InputFile(fs2.createReadStream(filePath), require('path').basename(filePath)));
+                    const chatId = ctx.chat?.id || ctx.chatId;
+                    // 優先用 ctx.api（grammy context 確保在作用域內），fallback 用 replyWithDocument
+                    if (chatId && ctx.api) {
+                        await ctx.api.sendDocument(chatId, new InputFile(fs2.createReadStream(filePath), require('path').basename(filePath)));
+                    } else {
+                        await ctx.replyWithDocument(new InputFile(fs2.createReadStream(filePath), require('path').basename(filePath)));
+                    }
                 },
             });
             return;
@@ -135,7 +141,11 @@ class MessageHandler {
                 }
                 global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: patch.description };
                 await ctx.reply(`💡 提案就緒 (目標: ${targetName})。`, { reply_markup: { inline_keyboard: [[{ text: '🚀 部署', callback_data: 'PATCH_DEPLOY' }, { text: '🗑️ 丟棄', callback_data: 'PATCH_DROP' }]] } });
-                await ctx.sendDocument(testFile);
+                const { InputFile: IF2 } = require('grammy');
+                const chatId2 = ctx.chat?.id || ctx.chatId;
+                if (chatId2 && ctx.api) {
+                    await ctx.api.sendDocument(chatId2, new IF2(require('fs').createReadStream(testFile), require('path').basename(testFile)));
+                }
             }
         }
     }

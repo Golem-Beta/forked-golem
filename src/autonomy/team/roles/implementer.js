@@ -35,6 +35,13 @@ class ImplementerRole extends BaseAction {
             return { _error: 'target_file_invalid', _invalidTarget: targetFile };
         }
 
+        // target_node 為 null 代表 Architect 找不到有效節點，繼續只會產生佔位符 patch
+        if (!targetNode) {
+            console.warn('[Team/Implementer] target_node 為 null，無法定位目標，中止');
+            this.journal.append({ action: 'team_implementer', outcome: 'no_target_node', target: targetFile });
+            return null;
+        }
+
         const codeSnippet = this.decision.extractCodeSection(targetFile, targetNode);
         if (!codeSnippet || codeSnippet.length < 10) {
             console.warn('[Team/Implementer] 無法提取程式碼區段:', targetFile, targetNode);
