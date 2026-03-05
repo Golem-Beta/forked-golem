@@ -82,15 +82,8 @@ class MessageHandler {
                 trigger: 'admin_command',
                 reply: ctx.reply.bind(ctx),
                 sendDocument: async (filePath) => {
-                    const { InputFile } = require('grammy');
-                    const fs2 = require('fs');
-                    const chatId = ctx.chat?.id || ctx.chatId;
-                    // 優先用 ctx.api（grammy context 確保在作用域內），fallback 用 replyWithDocument
-                    if (chatId && ctx.api) {
-                        await ctx.api.sendDocument(chatId, new InputFile(fs2.createReadStream(filePath), require('path').basename(filePath)));
-                    } else {
-                        await ctx.replyWithDocument(new InputFile(fs2.createReadStream(filePath), require('path').basename(filePath)));
-                    }
+                    // UniversalContext 已有完整實作（含 Telegram/Discord 分路）
+                    await ctx.sendDocument(filePath);
                 },
             });
             return;

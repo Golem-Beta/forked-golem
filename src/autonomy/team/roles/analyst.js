@@ -97,8 +97,18 @@ class AnalystRole extends BaseAction {
             return null;
         }
 
+        // 收集 codebase 節點清單（ClassName.methodName + 頂層函式），供 Architect 選擇 target_node
+        let nodeList = '(無)';
+        try {
+            const CodebaseIndexer = require('../../../codebase-indexer');
+            const idx = CodebaseIndexer.load();
+            const methods = Object.keys(idx.symbols.classMethods);
+            const fns     = Object.keys(idx.symbols.topLevelFunctions);
+            nodeList = [...methods, ...fns].join('\n');
+        } catch (_) {}
+
         console.log('[Team/Analyst] 症狀:', analystOutput.symptom);
-        return { analystOutput, diagFile, fileList };
+        return { analystOutput, diagFile, fileList, nodeList };
     }
 
     /**

@@ -119,6 +119,15 @@ class ResponseParser {
             const parsed = JSON.parse(cleaned);
             return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
         } catch (e) {
+            // 修復 LLM 在 replace 欄位插入的非法 backslash escape（如 \: \- \. 等）
+            if (e.message && (e.message.includes('Bad escaped') || e.message.includes('bad escaped'))) {
+                try {
+                    const fixedEscapes = cleaned.replace(/\\([^"\\/bfnrtu\r\n0-9])/g, '\\\\$1');
+                    const parsed = JSON.parse(fixedEscapes);
+                    console.log('[Parser] 修復非法 escape 後解析成功');
+                    return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
+                } catch (_) {}
+            }
             try {
                 const lastComplete = cleaned.lastIndexOf('},');
                 if (lastComplete > 0) {
