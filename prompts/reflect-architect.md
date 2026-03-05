@@ -6,10 +6,13 @@
 【Analyst 診斷】
 {{DIAGNOSIS_JSON}}
 
-【現有檔案清單（target_file 必須從此清單選取，不得填入不存在的路徑）】
+【現有檔案清單（必讀）】
+以下是系統中所有實際存在的 .js 檔案。
+target_file 必須從此清單中逐字複製一個完整路徑，不得修改、縮寫或填入清單以外的路徑：
+
 {{FILE_LIST}}
 
-【最近經驗（供參考）】
+{{RETRY_FEEDBACK}}【最近經驗（供參考）】
 {{JOURNAL_CONTEXT}}
 
 【要求】

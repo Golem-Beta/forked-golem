@@ -17,11 +17,15 @@ class ArchitectRole extends BaseAction {
      * @returns {Promise<{ architectOutput: object }|null>}
      */
     async run(ctx) {
-        const { analystOutput, journalContext = '(無)', fileList = [] } = ctx;
+        const { analystOutput, journalContext = '(無)', fileList = [], _architectFeedback = '' } = ctx;
+        const retryFeedback = _architectFeedback
+            ? `【重試提示】${_architectFeedback}\n\n`
+            : '';
         const prompt = this.loadPrompt('reflect-architect.md', {
             DIAGNOSIS_JSON:  JSON.stringify(analystOutput, null, 2),
             JOURNAL_CONTEXT: journalContext,
             FILE_LIST:       fileList.slice(0, 60).join('\n'),
+            RETRY_FEEDBACK:  retryFeedback,
         });
         if (!prompt) throw new Error('reflect-architect.md 載入失敗');
 

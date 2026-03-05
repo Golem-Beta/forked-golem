@@ -1,4 +1,7 @@
 'use strict';
+const fs   = require('fs');
+const path = require('path');
+
 /**
  * @module team/roles/implementer
  * @role Implementer — 根據 Architect 策略提取程式碼 + 呼叫 LLM 產生 Format A patch
@@ -23,6 +26,14 @@ class ImplementerRole extends BaseAction {
         const { diagnosis, strategy, journalContext = '(無)' } = ctx;
         const targetFile = strategy.target_file || 'src/autonomy/actions.js';
         const targetNode = strategy.target_node  || null;
+
+        // 先驗證檔案存在
+        const absPath = path.join(process.cwd(), targetFile);
+        if (!fs.existsSync(absPath)) {
+            console.warn('[Team/Implementer] target_file 不存在:', targetFile);
+            this.journal.append({ action: 'team_implementer', outcome: 'target_file_invalid', target: targetFile });
+            return { _error: 'target_file_invalid', _invalidTarget: targetFile };
+        }
 
         const codeSnippet = this.decision.extractCodeSection(targetFile, targetNode);
         if (!codeSnippet || codeSnippet.length < 10) {
