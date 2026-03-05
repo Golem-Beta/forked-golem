@@ -117,10 +117,12 @@ class DecisionUtils {
 
     /**
      * 讀取目標檔案的程式碼。
-     * 模組化後每個檔案 40-600 行，可直接整檔讀入作為 LLM context。
-     * 超過 15000 字元才截斷（安全閥，正常不會觸發）。
+     * 若提供 targetNode，嘗試 AST 定位並只回傳節點 + 周邊 context（降低截斷機率）。
+     * AST 定位失敗時靜默 fallback 回整檔讀取（超過 15000 chars 才截斷）。
+     * @param {string} filename - 相對路徑（支援 src/ 前綴或不帶前綴）
+     * @param {string|null} [targetNode] - 節點名稱（如 "ClassName.methodName" 或頂層函數名）
      */
-    extractCodeSection(filename) {
+    extractCodeSection(filename, targetNode = null) {
         try {
             // 支援 src/ 前綴和不帶前綴兩種寫法
             let filePath = path.join(process.cwd(), filename);
@@ -129,6 +131,45 @@ class DecisionUtils {
             }
             if (!fs.existsSync(filePath)) return null;
             const code = fs.readFileSync(filePath, 'utf-8');
+
+            // 若有 targetNode，嘗試 AST 聚焦提取（節點 + 前 30 行 + 後 10 行）
+            if (targetNode) {
+                try {
+                    const { PatchManager } = require('../upgrader');
+                    const { start, end } = PatchManager._locateNode(code, targetNode);
+
+                    // 將字元偏移量對應至行號
+                    const lines = code.split('\n');
+                    let charPos = 0, startLine = 0, endLine = lines.length - 1;
+                    let foundStart = false, foundEnd = false;
+                    for (let i = 0; i < lines.length; i++) {
+                        const lineLen = lines[i].length + 1; // +1 for \n
+                        if (!foundStart && charPos + lineLen > start) {
+                            startLine = i;
+                            foundStart = true;
+                        }
+                        if (!foundEnd && charPos + lineLen >= end) {
+                            endLine = i;
+                            foundEnd = true;
+                            break;
+                        }
+                        charPos += lineLen;
+                    }
+
+                    const preStart   = Math.max(0, startLine - 30);
+                    const postEnd    = Math.min(lines.length - 1, endLine + 10);
+                    const header     = `// [AST extracted: ${targetNode} from ${filename}]`;
+                    const preContext = lines.slice(preStart, startLine).join('\n');
+                    const nodeText   = code.slice(start, end);
+                    const postCtx   = lines.slice(endLine + 1, postEnd + 1).join('\n');
+
+                    return [header, preContext, nodeText, postCtx].filter(Boolean).join('\n');
+                } catch (e) {
+                    console.warn(`[extractCodeSection] AST 定位 "${targetNode}" 失敗，fallback: ${e.message}`);
+                    // fallback 回整檔邏輯
+                }
+            }
+
             if (code.length > 15000) {
                 return code.substring(0, 15000) + '\n// ... (truncated at 15000 chars)';
             }

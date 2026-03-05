@@ -32,10 +32,11 @@
 4. 有沒有想做但做不到的事？（缺少 action、工具、或寫入管道，例如「想主動回覆 email 但沒有 send_email action」）
 
 用 JSON 回覆：
-{"diagnosis": "問題描述", "target_file": "src/autonomy/actions.js", "approach": "改進方向", "capability_gap": null}
+{"diagnosis": "問題描述", "target_file": "src/autonomy/actions.js", "target_node": "ClassName.methodName", "approach": "改進方向", "capability_gap": null}
 
 注意：
 - target_file 必須是上方檔案清單中的完整路徑（例如 src/brain.js, src/autonomy/decision.js）
+- target_node：要修改的函數或方法名稱，格式同 patch 的 target_node（`ClassName.methodName` 或頂層函數名）。若改動不針對特定節點（如新增檔案、改設定），填 null。必須是 target_file 中真實存在的節點名稱，不要猜測。
 - capability_gap：若發現能力缺口（缺少 action、工具、管道），用一句話描述；否則填 null
 - 只輸出 JSON。如果你認為目前沒有需要改進的地方，回覆：
 {"diagnosis": "none", "reason": "為什麼不需要改進"}
