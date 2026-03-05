@@ -177,6 +177,7 @@ class AutonomyManager {
 
     /** 老哥回應回流 — 轉發給 ActionRunner */
     onAdminReply(text) { return this.actions.onAdminReply(text); }
+    performSelfReflection(ctx) { return this.actions.performSelfReflection(ctx); }
 }
 
 module.exports = AutonomyManager;
