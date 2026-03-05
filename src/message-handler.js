@@ -76,6 +76,11 @@ class MessageHandler {
 
         if (ctx.text && this.autonomy.onAdminReply) this.autonomy.onAdminReply(ctx.text);
         if (await NodeRouter.handle(ctx, this.brain)) return;
+        if (ctx.text === '/reflect') {
+            await ctx.reply('🧬 觸發 self_reflection...');
+            const r = await this.autonomy.performSelfReflection({ trigger: 'admin_command', reply: ctx.reply.bind(ctx) });
+            return;
+        }
         if (ctx.text && (ctx.text === '/list_patches' || ctx.text === '/lp')) return this.deployActions.listPatches(ctx);
         if (ctx.text === '/gmail') return this.googleCmds.gmail(ctx);
         if (ctx.text.startsWith('/calendar')) return this.googleCmds.calendar(ctx);
