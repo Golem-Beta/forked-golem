@@ -97,14 +97,22 @@ class AnalystRole extends BaseAction {
             return null;
         }
 
-        // 收集 codebase 節點清單（ClassName.methodName + 頂層函式），供 Architect 選擇 target_node
+        // 收集 autonomy/ 節點清單（格式：ClassName.methodName → file.js），供 Architect 同時選 node + file
         let nodeList = '(無)';
         try {
             const CodebaseIndexer = require('../../../codebase-indexer');
             const idx = CodebaseIndexer.load();
-            const methods = Object.keys(idx.symbols.classMethods);
-            const fns     = Object.keys(idx.symbols.topLevelFunctions);
-            nodeList = [...methods, ...fns].join('\n');
+            const lines = [];
+            for (const [name, info] of Object.entries(idx.symbols.classMethods)) {
+                if (!info.file || !info.file.startsWith('src/autonomy')) continue;
+                if (name.endsWith('.constructor')) continue; // constructor 通常不需要單獨 patch
+                lines.push(`${name} → ${info.file}`);
+            }
+            for (const [name, info] of Object.entries(idx.symbols.topLevelFunctions)) {
+                if (!info.file || !info.file.startsWith('src/autonomy')) continue;
+                lines.push(`${name} → ${info.file}`);
+            }
+            nodeList = lines.join('\n');
         } catch (_) {}
 
         console.log('[Team/Analyst] 症狀:', analystOutput.symptom);

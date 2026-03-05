@@ -62,17 +62,36 @@ class ArchitectRole extends BaseAction {
             }
         }
 
-        // 驗證 target_node 是否真實存在；不存在就清空，避免 fallback 拿整個大檔案
+        // 驗證 target_node 是否真實存在；target_file 錯時嘗試從 CodebaseIndexer 自動修正
         if (architectOutput.target_node && architectOutput.target_file) {
             try {
-                const { PatchManager } = require('../../../autonomy/upgrader');
+                const { PatchManager } = require('../../../upgrader');
                 const absPath = require('path').join(process.cwd(), architectOutput.target_file);
                 const code = require('fs').readFileSync(absPath, 'utf8');
                 PatchManager._locateNode(code, architectOutput.target_node);
                 // 沒拋就是存在，保持不變
-            } catch (_) {
-                console.warn('[Team/Architect] target_node 不存在，清空為 null:', architectOutput.target_node);
-                architectOutput.target_node = null;
+            } catch (_locateErr) {
+                // target_file 可能選錯：從 CodebaseIndexer 查正確路徑
+                let corrected = false;
+                try {
+                    const CodebaseIndexer = require('../../../codebase-indexer');
+                    const idx = CodebaseIndexer.load();
+                    const nodeName = architectOutput.target_node;
+                    const info = idx.symbols.classMethods[nodeName] || idx.symbols.topLevelFunctions[nodeName];
+                    if (info && info.file) {
+                        const { PatchManager } = require('../../../upgrader');
+                        const absPath2 = require('path').join(process.cwd(), info.file);
+                        const code2 = require('fs').readFileSync(absPath2, 'utf8');
+                        PatchManager._locateNode(code2, nodeName); // 再次驗證
+                        console.log(`[Team/Architect] target_file 已自動修正: ${architectOutput.target_file} → ${info.file}`);
+                        architectOutput.target_file = info.file;
+                        corrected = true;
+                    }
+                } catch (_2) {}
+                if (!corrected) {
+                    console.warn('[Team/Architect] target_node 不存在，清空為 null:', architectOutput.target_node);
+                    architectOutput.target_node = null;
+                }
             }
         }
 
