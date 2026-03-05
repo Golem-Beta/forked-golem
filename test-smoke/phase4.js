@@ -70,6 +70,8 @@ module.exports = function phase4(test) {
         ['router/adapters/gemini-generate','src/model-router/adapters/gemini-generate'],
         ['router/selector',              'src/model-router/selector'],
         ['router/router-execute',        'src/model-router/router-execute'],
+        ['router/provider-registry',     'src/model-router/provider-registry'],
+        ['router/model-discovery',       'src/model-router/model-discovery'],
     ];
     for (const [key, modPath] of routerSubmodules) {
         test(`model-router ${key} loadable`, () => {
@@ -96,6 +98,19 @@ module.exports = function phase4(test) {
     test('router/adapters/base is a class', () => assert(typeof s['router/adapters/base'] === 'function'));
     test('router/adapters/openai-compat is a class', () => assert(typeof s['router/adapters/openai-compat'] === 'function'));
     test('router/adapters/gemini is a class', () => assert(typeof s['router/adapters/gemini'] === 'function'));
+    test('router/provider-registry exports { load, save, updateModelStatus, getPendingBenchmark, getModelInfo }', () => {
+        const reg = s['router/provider-registry'];
+        assert(typeof reg.load === 'function', 'load 應是 function');
+        assert(typeof reg.save === 'function', 'save 應是 function');
+        assert(typeof reg.updateModelStatus === 'function', 'updateModelStatus 應是 function');
+        assert(typeof reg.getPendingBenchmark === 'function', 'getPendingBenchmark 應是 function');
+        assert(typeof reg.getModelInfo === 'function', 'getModelInfo 應是 function');
+    });
+    test('router/model-discovery exports { runDiscovery }', () => {
+        const disc = s['router/model-discovery'];
+        assert(typeof disc.runDiscovery === 'function', 'runDiscovery 應是 function');
+        assert(disc.runDiscovery.constructor.name === 'AsyncFunction', 'runDiscovery 應是 async function');
+    });
 
     test('require src/moltbook-client', () => {
         s['moltbook-client'] = require('../src/moltbook-client');

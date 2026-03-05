@@ -5,6 +5,7 @@
 'use strict';
 const PROVIDER_CONFIGS = require('./configs');
 const INTENT_REQUIREMENTS = require('./intents');
+const registry = require('./provider-registry');
 
 class ModelSelector {
     constructor(router) {
@@ -40,6 +41,10 @@ class ModelSelector {
                     // 能力比對：intent 所需的每個 tag 都必須在 model 能力中
                     if (!requires.every(r => modelCaps.includes(r))) continue;
 
+                    // registry disabled 的 model 永遠排除
+                    const regInfo = registry.getModelInfo(providerName, model);
+                    if (regInfo && regInfo.status === 'disabled') continue;
+
                     if (strict) {
                         if (!this._r.health.isAvailable(providerName, model)) continue;
                     } else {
@@ -55,8 +60,8 @@ class ModelSelector {
             candidates.sort((a, b) => {
                 const prioA = PROVIDER_CONFIGS[a.provider]?.priority ?? 1.0;
                 const prioB = PROVIDER_CONFIGS[b.provider]?.priority ?? 1.0;
-                let scoreA = this._r.health.score(a.provider, a.model) * prioA;
-                let scoreB = this._r.health.score(b.provider, b.model) * prioB;
+                let scoreA = this._r.health.qualityScore(a.provider, a.model) * prioA;
+                let scoreB = this._r.health.qualityScore(b.provider, b.model) * prioB;
                 // tristream 模型降分：讓非 Gemini 優先服務非三流 intent
                 if (savePremium) {
                     if (a.caps.includes('tristream')) scoreA *= 0.3;

@@ -12,6 +12,7 @@ const path = require('path');
 const { buildTargets }              = require('./targets');
 const { TESTS, MAX_SCORE }          = require('./tests');
 const { callGemini, callOpenAICompat } = require('./callers');
+const providerRegistry              = require('../../../model-router/provider-registry');
 
 // 專案根目錄（model-benchmark/ 往上四層）
 const PROJECT_ROOT = path.join(__dirname, '..', '..', '..', '..');
@@ -53,6 +54,29 @@ async function runTest(target, test, systemPrompt) {
 }
 
 /**
+ * interleaveByProvider：重排 order 使同 provider 的 model 之間插入其他 provider
+ * 例：[gemini/flash, gemini/lite, groq/llama, groq/kimi]
+ *  → [gemini/flash, groq/llama, gemini/lite, groq/kimi]
+ */
+function interleaveByProvider(items) {
+    const byProvider = {};
+    for (const item of items) {
+        const p = item.target.provider;
+        if (!byProvider[p]) byProvider[p] = [];
+        byProvider[p].push(item);
+    }
+    const providers = Object.keys(byProvider);
+    const result = [];
+    const maxLen = Math.max(...providers.map(p => byProvider[p].length));
+    for (let i = 0; i < maxLen; i++) {
+        for (const p of providers) {
+            if (byProvider[p][i]) result.push(byProvider[p][i]);
+        }
+    }
+    return result;
+}
+
+/**
  * 產生 Markdown 報告字串。
  */
 function generateReport(order, results) {
@@ -80,7 +104,7 @@ function generateReport(order, results) {
                 row.push('💥 err');
             } else {
                 row.push(r.pass ? '✅' : '❌');
-                totalScore += r.score || 0;
+                totalScore += r.pass ? 1 : 0;  // pass/fail 各 1 分
                 totalMs    += r.ms;
                 testCount++;
             }
@@ -172,18 +196,25 @@ class BenchmarkRunner {
             order.push({ key, target });
         }
 
-        // 外層 test，內層 target：A1→B1→C1，A2→B2→C2
-        // 同一輪測試跨 provider 輪流，自然分散同 provider 的 rate limit 壓力
+        // interleaveByProvider：同 provider 的 model 之間插入其他 provider
+        const interleaved = interleaveByProvider(order);
+
+        // 外層 test，內層 interleaved target
         for (const test of TESTS) {
             this._log(`\n📋 ${test.name}\n`);
-            for (const { key, target } of order) {
+            for (let i = 0; i < interleaved.length; i++) {
+                const { key, target } = interleaved[i];
                 this._log(`  ${key.padEnd(50)} ...`);
                 const r = await runTest(target, test, systemPrompt);
                 results[key][test.id] = r;
                 this._log(r.pass ? `  ✅ ${r.ms}ms — ${r.detail}` : `  ❌ ${r.ms}ms — ${r.detail}`);
 
-                // 跨 provider 輪流已有自然間隔；3s 避免同 provider 連打
-                await new Promise(res => setTimeout(res, 3000));
+                // 同 provider 間隔 5s，跨 provider 間隔 1s
+                const next = interleaved[i + 1];
+                if (next) {
+                    const delayMs = next.target.provider === target.provider ? 5000 : 1000;
+                    await new Promise(res => setTimeout(res, delayMs));
+                }
             }
         }
 
@@ -194,6 +225,34 @@ class BenchmarkRunner {
 
         fs.mkdirSync(memDir, { recursive: true });
         fs.writeFileSync(outPath, report);
+
+        // 寫入 provider-registry：benchmark 通過率 ≥ 75% → active，否則 disabled
+        for (const { key, target } of order) {
+            const { provider, model } = target;
+            const passCount  = TESTS.filter(t => results[key][t.id]?.pass).length;
+            const passRate   = passCount / TESTS.length;
+            const totalMs    = TESTS.reduce((s, t) => s + (results[key][t.id]?.ms || 0), 0);
+            const avgLatency = Math.round(totalMs / TESTS.length);
+            const patch = {
+                benchmarkScore: passCount,
+                benchmarkMax:   TESTS.length,
+                benchmarkDate:  date,
+                avgLatencyMs:   avgLatency,
+            };
+            if (passRate >= 0.75) {
+                const capabilities = [];
+                if (results[key]['tristream']?.pass) capabilities.push('tristream');
+                patch.status       = 'active';
+                patch.capabilities = capabilities;
+                patch.notes        = '';
+            } else {
+                const failed = TESTS.filter(t => !results[key][t.id]?.pass).map(t => t.name);
+                patch.status = 'disabled';
+                patch.notes  = `benchmark failed: ${failed.join(', ')}`;
+            }
+            providerRegistry.updateModelStatus(provider, model, patch);
+        }
+        this._log(`\n📝 Registry 已更新（${order.length} 個 model）`);
 
         const tristreamCount = order.filter(({ key }) => results[key]['tristream']?.pass).length;
         const summary = `${targets.length} 個 model 測試完成，${tristreamCount} 個支援三流格式。報告：${outPath}`;

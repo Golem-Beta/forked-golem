@@ -75,6 +75,21 @@ class ProviderHealth {
     }
 
     /**
+     * 品質評分：優先讀 registry benchmark 分，否則 fallback 現有 score()
+     * registry 空白時行為 = 現況，不降級
+     */
+    qualityScore(provider, model) {
+        try {
+            const info = require('./provider-registry').getModelInfo(provider, model);
+            if (info && typeof info.benchmarkScore === 'number' && info.benchmarkMax) {
+                const benchFactor = info.benchmarkScore / info.benchmarkMax;
+                return benchFactor * this.score(provider, model);
+            }
+        } catch (_) {}
+        return this.score(provider, model);
+    }
+
+    /**
      * 計算健康分數：RPD 餘量 × 可靠度 × 延遲係數
      * 延遲懲罰：avgLatency / 5000 最多扣 40% 分
      */

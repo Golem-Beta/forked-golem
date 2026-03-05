@@ -8,6 +8,7 @@ const fs   = require('fs');
 const path = require('path');
 const HealthAnalyzer = require('./health-analyzer');
 const BaseAction = require('./base-action');
+const { runDiscovery } = require('../../model-router/model-discovery');
 
 class HealthCheckAction extends BaseAction {
     constructor({ journal, notifier, decision }) {
@@ -21,6 +22,9 @@ class HealthCheckAction extends BaseAction {
         this._checkIndexHealth();
         this._cleanOrphanNodes();
         await this._checkMemoryHealth();
+        // Model discovery（每 24h 一次，由 runDiscovery() 內部頻率控制）
+        runDiscovery().catch(e => console.warn('[HealthCheck] model discovery 失敗:', e.message));
+
         const data = {
             journal:     this._analyzer.analyzeJournal(cutoff),
             log:         this._analyzer.analyzeLog(cutoff),

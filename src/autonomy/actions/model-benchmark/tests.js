@@ -81,11 +81,8 @@ const TESTS = [
     },
 ];
 
-// tristream 最高 3 分，code 最高 3 分，其餘各 1 分
-const MAX_SCORE = TESTS.reduce((sum, t) => {
-    if (t.id === 'tristream') return sum + 3;
-    if (t.id === 'code')      return sum + 3;
-    return sum + 1;
-}, 0);
+// 每測試最高 1 分（通過/不通過），MAX_SCORE = 4
+// validate() 仍回傳內部細粒度 score，runner 以 pass ? 1 : 0 計算總分
+const MAX_SCORE = TESTS.length;
 
 module.exports = { TESTS, MAX_SCORE };
