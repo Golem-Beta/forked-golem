@@ -60,6 +60,20 @@ class ArchitectRole extends BaseAction {
             }
         }
 
+        // 驗證 target_node 是否真實存在；不存在就清空，避免 fallback 拿整個大檔案
+        if (architectOutput.target_node && architectOutput.target_file) {
+            try {
+                const { PatchManager } = require('../../../autonomy/upgrader');
+                const absPath = require('path').join(process.cwd(), architectOutput.target_file);
+                const code = require('fs').readFileSync(absPath, 'utf8');
+                PatchManager._locateNode(code, architectOutput.target_node);
+                // 沒拋就是存在，保持不變
+            } catch (_) {
+                console.warn('[Team/Architect] target_node 不存在，清空為 null:', architectOutput.target_node);
+                architectOutput.target_node = null;
+            }
+        }
+
         const strategyPreview = (architectOutput.strategy || '').substring(0, 80);
         console.log('[Team/Architect] 策略:', strategyPreview);
         return { architectOutput };

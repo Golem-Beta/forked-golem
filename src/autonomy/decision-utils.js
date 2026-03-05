@@ -174,8 +174,8 @@ class DecisionUtils {
                 }
             }
 
-            if (code.length > 15000) {
-                return code.substring(0, 15000) + '\n// ... (truncated at 15000 chars)';
+            if (code.length > 4000) {
+                return code.substring(0, 4000) + '\n// ... (truncated at 4000 chars, target_node fallback)';
             }
             return code;
         } catch (e) {
