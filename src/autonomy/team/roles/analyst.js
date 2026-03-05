@@ -98,7 +98,7 @@ class AnalystRole extends BaseAction {
         }
 
         console.log('[Team/Analyst] 症狀:', analystOutput.symptom);
-        return { analystOutput, diagFile };
+        return { analystOutput, diagFile, fileList };
     }
 
     /**

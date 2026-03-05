@@ -73,6 +73,13 @@ class TeamRunner {
                 return null;
             }
 
+            // 重試後仍然失敗（_retried=true），中止，不繼續讓 Reviewer 拿空 proposals
+            if (result._error && ctx._retried) {
+                console.warn(`[TeamRunner] 重試後仍然失敗 (${result._error})，中止執行`);
+                this.journal.append({ action: 'team_runner', outcome: 'retry_failed', error: result._error });
+                return null;
+            }
+
             ctx = { ...ctx, ...result };
         }
 
