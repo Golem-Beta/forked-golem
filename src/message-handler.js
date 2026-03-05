@@ -78,7 +78,15 @@ class MessageHandler {
         if (await NodeRouter.handle(ctx, this.brain)) return;
         if (ctx.text === '/reflect') {
             await ctx.reply('🧬 觸發 self_reflection...');
-            const r = await this.autonomy.performSelfReflection({ trigger: 'admin_command', reply: ctx.reply.bind(ctx) });
+            const r = await this.autonomy.performSelfReflection({
+                trigger: 'admin_command',
+                reply: ctx.reply.bind(ctx),
+                sendDocument: async (filePath) => {
+                    const { InputFile } = require('grammy');
+                    const fs2 = require('fs');
+                    await ctx.replyWithDocument(new InputFile(fs2.createReadStream(filePath), require('path').basename(filePath)));
+                },
+            });
             return;
         }
         if (ctx.text && (ctx.text === '/list_patches' || ctx.text === '/lp')) return this.deployActions.listPatches(ctx);
