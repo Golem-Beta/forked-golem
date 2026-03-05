@@ -24,35 +24,19 @@ class ImplementerRole extends BaseAction {
         const targetFile = strategy.target_file || 'src/autonomy/actions.js';
         const targetNode = strategy.target_node  || null;
 
-        let resolvedFile = targetFile;
-        let codeSnippet = this.decision.extractCodeSection(targetFile, targetNode);
+        const codeSnippet = this.decision.extractCodeSection(targetFile, targetNode);
         if (!codeSnippet || codeSnippet.length < 10) {
-            // 嘗試 fuzzy match：找 basename 相同或最近似的現有檔案
-            const base = path.basename(targetFile, '.js').replace(/[-_]/g, '');
-            const allFiles = this.decision.getProjectFileList ? this.decision.getProjectFileList() : [];
-            const match = allFiles.find(f => {
-                const fb = path.basename(f.split(' ')[0], '.js').replace(/[-_]/g, '');
-                return fb === base || fb.includes(base) || base.includes(fb);
-            });
-            if (match) {
-                resolvedFile = match.split(' ')[0];
-                codeSnippet = this.decision.extractCodeSection(resolvedFile, targetNode);
-                console.warn(`[Team/Implementer] target_file 不存在，fallback → ${resolvedFile}`);
-            }
-            if (!codeSnippet || codeSnippet.length < 10) {
-                console.warn('[Team/Implementer] 無法提取程式碼區段:', targetFile, targetNode);
-                this.journal.append({ action: 'team_implementer', outcome: 'section_not_found', target: targetFile });
-                return null;
-            }
+            console.warn('[Team/Implementer] 無法提取程式碼區段:', targetFile, targetNode);
+            this.journal.append({ action: 'team_implementer', outcome: 'section_not_found', target: targetFile });
+            return null;
         }
-        const targetFile_resolved = resolvedFile;
 
         const evolutionSkill = this.skills?.skillLoader?.loadSkill('EVOLUTION') || 'Output a JSON Array.';
         const prompt = this.loadPrompt('self-reflection-patch.md', {
             EVOLUTION_SKILL: evolutionSkill,
             DIAGNOSIS:       diagnosis || '(無)',
             APPROACH:        strategy.strategy || '',
-            TARGET_FILE:     targetFile_resolved,
+            TARGET_FILE:     targetFile,
             CODE_SNIPPET:    codeSnippet,
             JOURNAL_CONTEXT: journalContext,
         });
