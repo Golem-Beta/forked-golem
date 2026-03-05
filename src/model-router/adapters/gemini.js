@@ -82,11 +82,10 @@ class GeminiAdapter extends ProviderAdapter {
                     }
                 }
 
-                if (is503 && attempt < maxRetries - 1) {
-                    const backoff = (attempt + 1) * 15000;
-                    console.warn(`⏳ [Gemini] 503 過載，${backoff / 1000}s 後重試 (${attempt + 1}/${maxRetries})`);
-                    await new Promise(r => setTimeout(r, backoff));
-                    continue;
+                if (is503) {
+                    // 立刻拋出讓 router-execute failover 到其他 provider
+                    // 不在 provider 內部 retry（避免阻塞 75s+）
+                    throw Object.assign(e, { providerError: '503' });
                 }
 
                 // 回傳錯誤類型讓 router 決定是否 failover

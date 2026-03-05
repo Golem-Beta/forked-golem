@@ -81,7 +81,7 @@ class DecisionUtils {
         return { role, whenToModify };
     }
 
-    getProjectFileList() {
+    getProjectFileList(pathsOnly = false) {
         try {
             const cwd = process.cwd();
             const files = [];
@@ -97,13 +97,17 @@ class DecisionUtils {
                         try {
                             const content = fs.readFileSync(path.join(dir, e.name), 'utf-8');
                             const lines = content.split('\n').length;
-                            const entry = [rel + ' (' + lines + ' lines)'];
-                            if (e.name.endsWith('.js')) {
-                                const { role, whenToModify } = this._parseJSDocHeader(content);
-                                if (role) entry.push('  @role: ' + role);
-                                if (whenToModify) entry.push('  @when-to-modify: ' + whenToModify);
+                            if (pathsOnly) {
+                                files.push(rel);
+                            } else {
+                                const entry = [rel + ' (' + lines + ' lines)'];
+                                if (e.name.endsWith('.js')) {
+                                    const { role, whenToModify } = this._parseJSDocHeader(content);
+                                    if (role) entry.push('  @role: ' + role);
+                                    if (whenToModify) entry.push('  @when-to-modify: ' + whenToModify);
+                                }
+                                files.push(entry.join('\n'));
                             }
-                            files.push(entry.join('\n'));
                         } catch { files.push(rel + ' (unreadable)'); }
                     }
                 }

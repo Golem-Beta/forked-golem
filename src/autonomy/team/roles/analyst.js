@@ -25,7 +25,7 @@ class AnalystRole extends BaseAction {
         const { journalContext = '(無)', triggerCtx = null } = ctx;
         const advice   = this.memory ? this.memory.getAdvice() : '';
         const soul     = this.decision.readSoul();
-        const fileList = this.decision.getProjectFileList();
+        const fileList = this.decision.getProjectFileList(true); // pathsOnly → string[]
 
         const allJournal = this.journal.readRecent(50);
         const resolvedSet = new Set(

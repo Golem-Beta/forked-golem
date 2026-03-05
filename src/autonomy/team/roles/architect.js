@@ -21,9 +21,9 @@ class ArchitectRole extends BaseAction {
         const retryFeedback = _architectFeedback
             ? `【重試提示】${_architectFeedback}\n\n`
             : '';
-        // fileList 可能是字串（getProjectFileList 回傳）或陣列，統一處理
+        // fileList 是 string[]（pathsOnly 模式），直接 join；限 80 個避免 token 爆炸
         const fileListStr = Array.isArray(fileList)
-            ? fileList.slice(0, 60).join('\n')
+            ? fileList.slice(0, 80).join('\n')
             : String(fileList || '(無檔案清單)');
         const prompt = this.loadPrompt('reflect-architect.md', {
             DIAGNOSIS_JSON:  JSON.stringify(analystOutput, null, 2),
@@ -41,6 +41,14 @@ class ArchitectRole extends BaseAction {
             try {
                 const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
                 architectOutput = JSON.parse(cleaned);
+                // 驗證 target_file 在 fileList 中（fileList 是 string[]）
+                if (architectOutput.target_file && Array.isArray(fileList) && fileList.length > 0) {
+                    if (!fileList.includes(architectOutput.target_file)) {
+                        console.warn('[Team/Architect] target_file 不在清單:', architectOutput.target_file);
+                        this.journal.append({ action: 'team_architect', outcome: 'target_file_invalid', target: architectOutput.target_file });
+                        return { _error: 'target_file_invalid', _invalidTarget: architectOutput.target_file };
+                    }
+                }
                 break; // 成功就跳出
             } catch (e) {
                 console.warn(`[Team/Architect] JSON 解析失敗 (attempt ${attempt}):`, e.message);
