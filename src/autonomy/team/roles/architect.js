@@ -34,17 +34,22 @@ class ArchitectRole extends BaseAction {
         if (!prompt) throw new Error('reflect-architect.md 載入失敗');
 
         console.log('[Team/Architect] 驗證診斷，設計策略...');
-        const raw = (await this.decision.callLLM(prompt, { temperature: 0.4, intent: 'analysis' })).text;
-        this.decision.saveReflection('reflect_architect', raw);
-
         let architectOutput;
-        try {
-            const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            architectOutput = JSON.parse(cleaned);
-        } catch (e) {
-            console.warn('[Team/Architect] JSON 解析失敗:', e.message);
-            this.journal.append({ action: 'team_architect', outcome: 'parse_failed', error: e.message });
-            return null;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            const raw = (await this.decision.callLLM(prompt, { temperature: 0.4, intent: 'analysis' })).text;
+            if (attempt === 1) this.decision.saveReflection('reflect_architect', raw);
+            try {
+                const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
+                architectOutput = JSON.parse(cleaned);
+                break; // 成功就跳出
+            } catch (e) {
+                console.warn(`[Team/Architect] JSON 解析失敗 (attempt ${attempt}):`, e.message);
+                if (attempt === 2) {
+                    this.journal.append({ action: 'team_architect', outcome: 'parse_failed', error: e.message });
+                    return null;
+                }
+                console.log('[Team/Architect] 重試一次（換 model）...');
+            }
         }
 
         const strategyPreview = (architectOutput.strategy || '').substring(0, 80);

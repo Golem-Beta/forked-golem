@@ -121,16 +121,12 @@ const PROVIDER_CONFIGS = {
             'meta/llama-3.3-70b-instruct':               1000,
             'nvidia/llama-3.3-nemotron-super-49b-v1.5':  1000,
             'nvidia/llama-3.1-nemotron-ultra-253b-v1':   500,
-            'qwen/qwen3-235b-a22b':                      500,
-            'minimaxai/minimax-m2.5':                    500,
         },
         defaultRpm: 40,
         modelCapabilities: {
             'meta/llama-3.3-70b-instruct':               ['long_context'],
             'nvidia/llama-3.3-nemotron-super-49b-v1.5':  ['long_context', 'reasoning'],
             'nvidia/llama-3.1-nemotron-ultra-253b-v1':   ['long_context', 'reasoning'],
-            'qwen/qwen3-235b-a22b':                      ['long_context'],
-            'minimaxai/minimax-m2.5':                    ['long_context', 'reasoning'],
         },
     },
 };
