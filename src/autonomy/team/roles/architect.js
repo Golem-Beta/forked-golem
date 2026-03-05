@@ -21,10 +21,14 @@ class ArchitectRole extends BaseAction {
         const retryFeedback = _architectFeedback
             ? `【重試提示】${_architectFeedback}\n\n`
             : '';
+        // fileList 可能是字串（getProjectFileList 回傳）或陣列，統一處理
+        const fileListStr = Array.isArray(fileList)
+            ? fileList.slice(0, 60).join('\n')
+            : String(fileList || '(無檔案清單)');
         const prompt = this.loadPrompt('reflect-architect.md', {
             DIAGNOSIS_JSON:  JSON.stringify(analystOutput, null, 2),
             JOURNAL_CONTEXT: journalContext,
-            FILE_LIST:       fileList.slice(0, 60).join('\n'),
+            FILE_LIST:       fileListStr,
             RETRY_FEEDBACK:  retryFeedback,
         });
         if (!prompt) throw new Error('reflect-architect.md 載入失敗');
