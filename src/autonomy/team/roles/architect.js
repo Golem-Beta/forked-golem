@@ -31,7 +31,7 @@ class ArchitectRole extends BaseAction {
 
         let architectOutput;
         try {
-            const cleaned = raw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+            const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
             architectOutput = JSON.parse(cleaned);
         } catch (e) {
             console.warn('[Team/Architect] JSON 解析失敗:', e.message);
@@ -61,7 +61,7 @@ class ArchitectRole extends BaseAction {
 
         const raw = (await this.decision.callLLM(prompt, { temperature: 0.3, intent: 'analysis' })).text;
         try {
-            const cleaned = raw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+            const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleaned);
         } catch (e) {
             console.warn('[Team/Architect] challenge 解析失敗:', e.message);
