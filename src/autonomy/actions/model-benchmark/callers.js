@@ -96,6 +96,9 @@ function callOpenAICompat(baseUrl, apiKey, model, systemPrompt, userPrompt, maxT
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Length': Buffer.byteLength(body),
+                // openrouter 需要這兩個 header 才不會被 rate-limit
+                'HTTP-Referer': 'https://golem.local',
+                'X-Title': 'GolemBenchmark',
             },
             timeout: 30000,
         };
@@ -108,7 +111,16 @@ function callOpenAICompat(baseUrl, apiKey, model, systemPrompt, userPrompt, maxT
                 try {
                     const json = JSON.parse(data);
                     if (json.error) return reject(new Error(json.error.message || JSON.stringify(json.error)));
-                    resolve(json.choices?.[0]?.message?.content || '');
+                    const raw = json.choices?.[0]?.message?.content;
+                    // magistral 等 reasoning model 回傳 content array [{type:'thinking',...},{type:'text',...}]
+                    let text = '';
+                    if (Array.isArray(raw)) {
+                        const textBlock = raw.find(b => b.type === 'text');
+                        text = textBlock?.text || '';
+                    } else {
+                        text = raw || '';
+                    }
+                    resolve(text);
                 } catch (e) {
                     reject(new Error('JSON parse failed: ' + data.substring(0, 200)));
                 }

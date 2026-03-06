@@ -3,26 +3,26 @@
  * 有值則啟用該 provider，無值則跳過
  *
  * modelCapabilities 定義每個 model 的能力 tag，供 Router 動態比對：
- *   tristream  — 能穩定遵守 [🧠][🤖][💬] 三流格式
+ *   tristream  — 能穩定遵守 [🧠][🤖][💬] 三流格式（三輪 benchmark 一致通過）
  *   vision     — 支援圖片輸入
  *   long_context — 支援長上下文（32K+ tokens）
- *   reasoning  — 強化推理能力
+ *   reasoning  — 強化推理能力（注意：可能輸出 <think> 標籤）
+ *
+ * 最後 benchmark: 2026-03-07 (23 models × 4 tests × 3 runs)
  */
 const PROVIDER_CONFIGS = {
     gemini: {
-        baseUrl: null,  // 用 Google SDK，不走 REST
+        baseUrl: null,
         envKey: 'GEMINI_API_KEYS',
         multiKey: true,
         rpdLimits: {
             'gemini-2.5-flash-lite': 20,
             'gemini-2.5-flash': 20,
-            'gemini-3-flash-preview': 20,
         },
         defaultRpm: 15,
         modelCapabilities: {
-            'gemini-2.5-flash':       ['tristream', 'vision', 'long_context'],
-            'gemini-3-flash-preview': ['tristream', 'vision', 'long_context'],
-            'gemini-2.5-flash-lite':  ['tristream'],
+            'gemini-2.5-flash':      ['tristream', 'vision', 'long_context'],
+            'gemini-2.5-flash-lite': ['tristream'],
         },
     },
     groq: {
@@ -30,17 +30,25 @@ const PROVIDER_CONFIGS = {
         envKey: 'GROQ_API_KEYS',
         multiKey: true,
         rpdLimits: {
-            'llama-3.3-70b-versatile':              1000,
-            'moonshotai/kimi-k2-instruct-0905':     1000,
-            'openai/gpt-oss-120b':                  1000,
-            'meta-llama/llama-4-maverick-17b-128e-instruct': 1000,
+            'llama-3.3-70b-versatile':                        1000,
+            'openai/gpt-oss-120b':                            1000,
+            'openai/gpt-oss-20b':                             1000,
+            'meta-llama/llama-4-maverick-17b-128e-instruct':  1000,
+            'meta-llama/llama-4-scout-17b-16e-instruct':      1000,
+            'moonshotai/kimi-k2-instruct-0905':               1000,
+            'moonshotai/kimi-k2-instruct':                    1000,
+            'qwen/qwen3-32b':                                 1000,
         },
         defaultRpm: 30,
         modelCapabilities: {
-            'llama-3.3-70b-versatile':              ['tristream'],  // benchmark 8/8 通過
-            'moonshotai/kimi-k2-instruct-0905':     ['long_context'],
-            'openai/gpt-oss-120b':                  ['reasoning'],
-            'meta-llama/llama-4-maverick-17b-128e-instruct': [],
+            'llama-3.3-70b-versatile':                        ['tristream'],
+            'openai/gpt-oss-120b':                            ['tristream', 'reasoning'],
+            'openai/gpt-oss-20b':                             ['tristream'],
+            'meta-llama/llama-4-maverick-17b-128e-instruct':  ['tristream'],
+            'meta-llama/llama-4-scout-17b-16e-instruct':      ['tristream'],
+            'moonshotai/kimi-k2-instruct-0905':               ['tristream', 'long_context'],
+            'moonshotai/kimi-k2-instruct':                    ['tristream', 'long_context'],
+            'qwen/qwen3-32b':                                 [],  // ACTION 區塊不穩、中文字數評分 bug
         },
     },
     deepseek: {
@@ -53,8 +61,8 @@ const PROVIDER_CONFIGS = {
         },
         defaultRpm: 60,
         modelCapabilities: {
-            'deepseek-chat':     ['long_context'],
-            'deepseek-reasoner': ['long_context', 'reasoning'],
+            'deepseek-chat':     ['tristream', 'long_context'],
+            'deepseek-reasoner': ['reasoning', 'long_context'],  // tristream/code 持續失敗
         },
     },
     mistral: {
@@ -62,30 +70,15 @@ const PROVIDER_CONFIGS = {
         envKey: 'MISTRAL_API_KEY',
         multiKey: false,
         rpdLimits: {
-            'mistral-small-latest': 500,
+            'mistral-small-latest':    500,
+            'mistral-large-latest':    500,
+            'magistral-medium-latest': 500,
         },
         defaultRpm: 10,
         modelCapabilities: {
-            'mistral-small-latest': [],
-        },
-    },
-    openrouter: {
-        priority: 0.1,
-        baseUrl: 'https://openrouter.ai/api/v1',
-        envKey: 'OPENROUTER_API_KEY',
-        multiKey: false,
-        rpdLimits: {
-            'meta-llama/llama-3.3-70b-instruct:free': 200,
-            'moonshotai/kimi-k2.5:free':              200,
-            'minimax/minimax-m2.1:free':              200,
-            'qwen/qwen3-coder-480b:free':             200,
-        },
-        defaultRpm: 20,
-        modelCapabilities: {
-            'meta-llama/llama-3.3-70b-instruct:free': [],
-            'moonshotai/kimi-k2.5:free':              ['long_context'],
-            'minimax/minimax-m2.1:free':              ['long_context'],
-            'qwen/qwen3-coder-480b:free':             ['long_context'],
+            'mistral-small-latest':    ['tristream'],
+            'mistral-large-latest':    ['tristream'],
+            'magistral-medium-latest': ['reasoning'],  // tristream/中文持續失敗，但 ACTION/code 通過
         },
     },
     cerebras: {
@@ -94,11 +87,11 @@ const PROVIDER_CONFIGS = {
         envKey: 'CEREBRAS_API_KEY',
         multiKey: false,
         rpdLimits: {
-            'llama-3.3-70b': 1000,
+            'gpt-oss-120b': 1000,
         },
         defaultRpm: 30,
         modelCapabilities: {
-            'llama-3.3-70b': [],
+            'gpt-oss-120b': [],  // 中文結果不穩（2/3 輪失敗），不加 tristream
         },
     },
     sambanova: {
@@ -106,11 +99,19 @@ const PROVIDER_CONFIGS = {
         envKey: 'SAMBANOVA_API_KEY',
         multiKey: false,
         rpdLimits: {
-            'Meta-Llama-3.3-70B-Instruct': 1000,
+            'Meta-Llama-3.3-70B-Instruct':         1000,
+            'Llama-4-Maverick-17B-128E-Instruct':  1000,
+            'DeepSeek-V3-0324':                    1000,
+            'Qwen3-32B':                           1000,
+            'gpt-oss-120b':                        1000,
         },
         defaultRpm: 30,
         modelCapabilities: {
-            'Meta-Llama-3.3-70B-Instruct': [],
+            'Meta-Llama-3.3-70B-Instruct':        ['tristream'],
+            'Llama-4-Maverick-17B-128E-Instruct': ['tristream'],
+            'DeepSeek-V3-0324':                   ['tristream', 'long_context'],  // code 偶爾伺服器錯誤，整體穩
+            'Qwen3-32B':                          [],  // tristream T1 不穩、ACTION T3 失敗
+            'gpt-oss-120b':                       [],  // ACTION/中文持續失敗
         },
     },
     nvidia: {
@@ -118,15 +119,13 @@ const PROVIDER_CONFIGS = {
         envKey: 'NVIDIA_API_KEY',
         multiKey: false,
         rpdLimits: {
-            'meta/llama-3.3-70b-instruct':               1000,
-            'nvidia/llama-3.3-nemotron-super-49b-v1.5':  1000,
-            'nvidia/llama-3.1-nemotron-ultra-253b-v1':   500,
+            'meta/llama-3.3-70b-instruct': 1000,
+            'deepseek-ai/deepseek-v3.1':   500,
         },
         defaultRpm: 40,
         modelCapabilities: {
-            'meta/llama-3.3-70b-instruct':               ['long_context'],
-            'nvidia/llama-3.3-nemotron-super-49b-v1.5':  ['long_context', 'reasoning'],
-            'nvidia/llama-3.1-nemotron-ultra-253b-v1':   ['long_context', 'reasoning'],
+            'meta/llama-3.3-70b-instruct': ['tristream'],
+            'deepseek-ai/deepseek-v3.1':   ['long_context'],  // tristream 跨輪不穩（timeout/✅交替）
         },
     },
 };
