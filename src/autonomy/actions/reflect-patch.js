@@ -130,6 +130,14 @@ class ReflectPatch extends BaseAction {
                 const CodebaseIndexer = require('../../codebase-indexer');
                 let idx = null;
                 try { idx = CodebaseIndexer.load(); } catch (_) {}
+                if (idx && CodebaseIndexer.isStale(idx)) {
+                    try {
+                        console.log('[Reflection] 索引過期，重建中...');
+                        idx = CodebaseIndexer.rebuild();
+                    } catch (rebuildErr) {
+                        console.warn('[Reflection] 索引重建失敗，使用舊索引:', rebuildErr.message);
+                    }
+                }
                 if (idx) {
                     const found = CodebaseIndexer.lookup(idx, proposal.target_node);
                     if (!found) {
