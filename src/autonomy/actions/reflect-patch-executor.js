@@ -154,10 +154,13 @@ class PatchExecutor extends BaseAction {
         let sentCPError = null;
         try {
             if (triggerCtx && typeof triggerCtx.reply === 'function') {
-                // 使用者手動觸發路徑：grammy ctx，直接回覆
+                // 使用者手動觸發路徑：reply 成功即設 sentCP，文件走 notifier（createReadStream）
                 await triggerCtx.reply(msgText, inlineOpts);
-                await triggerCtx.sendDocument(testFile);
                 sentCP = true;
+                if (testFile) {
+                    this.notifier.sendToAdmin('📎 上方提案的 patch 文件', { document: testFile })
+                        .catch(e => console.warn('[SelfReflection] 文件補發失敗:', e.message));
+                }
             } else if (this.config.ADMIN_IDS && this.config.ADMIN_IDS[0]) {
                 // 自主觸發路徑：透過 notifier.sendToAdmin，遵守 quiet hours
                 const result = await this.notifier.sendToAdmin(msgText, {

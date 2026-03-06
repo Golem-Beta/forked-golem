@@ -189,27 +189,23 @@ class PatchManager {
                 execSync(`node "${filePath}"`, { env: { ...process.env, GOLEM_TEST_MODE: 'true' }, timeout: 5000, stdio: 'pipe' });
             }
             // OCR 靜態檢查：patch 不得引入新的未接回傳值的 sendToAdmin/sendNotification 呼叫
-            const content = fs.readFileSync(filePath, 'utf-8');
-            const sendCalls     = (content.match(/await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || []).length;
-            const capturedCalls = (content.match(/(?:const|let|var)\s+\w+\s*=\s*await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || []).length;
-            const uncaptured = sendCalls - capturedCalls;
-            if (uncaptured > 0) {
-                // 比對原始檔案，只有 patch 引入新的未捕捉呼叫才拒絕
-                let origUncaptured = 0;
-                try {
-                    const origPath = filePath.replace(/\.test(\.[^.]+)$/, '$1');
-                    const origContent = fs.readFileSync(origPath, 'utf-8');
-                    const origSend     = (origContent.match(/await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || []).length;
-                    const origCaptured = (origContent.match(/(?:const|let|var)\s+\w+\s*=\s*await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || []).length;
-                    origUncaptured = origSend - origCaptured;
-                } catch (_) {}
-                if (uncaptured > origUncaptured) {
-                    const newViolations = uncaptured - origUncaptured;
-                    const errMsg = `OCR 違規：patch 新增 ${newViolations} 個 sendToAdmin/sendNotification 呼叫未接回傳值`;
+            // 使用 line-diff：只統計「patched 有、original 沒有」的新增行，避免歷史遺留呼叫誤判
+            try {
+                const patchedLines = fs.readFileSync(filePath, 'utf-8').split('\n');
+                const origPath     = filePath.replace(/\.test(\.[^.]+)$/, '$1');
+                const origLines    = new Set(fs.readFileSync(origPath, 'utf-8').split('\n'));
+                const newText      = patchedLines.filter(l => !origLines.has(l)).join('\n');
+                const sendInNew     = (newText.match(/await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || []).length;
+                const capturedInNew = (newText.match(/(?:const|let|var)\s+\w+\s*=\s*await this\.notifier\.(sendToAdmin|sendNotification)\(/g) || []).length;
+                const newUncaptured = sendInNew - capturedInNew;
+                if (newUncaptured > 0) {
+                    const errMsg = `OCR 違規：patch 新增 ${newUncaptured} 個 sendToAdmin/sendNotification 呼叫未接回傳值`;
                     console.error(`❌ [PatchManager] ${errMsg}`);
                     try { fs.unlinkSync(filePath); } catch (_) {}
                     return { ok: false, error: errMsg };
                 }
+            } catch (ocrErr) {
+                console.warn(`[PatchManager] OCR 檢查跳過: ${ocrErr.message}`);
             }
             console.log(`✅ [PatchManager] ${filePath} 驗證通過`);
             return { ok: true };

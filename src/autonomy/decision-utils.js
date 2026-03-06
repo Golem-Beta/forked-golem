@@ -177,9 +177,24 @@ class DecisionUtils {
             }
 
             if (snippet === null) {
-                snippet = code.length > 4000
-                    ? code.substring(0, 4000) + '\n// ... (truncated at 4000 chars, target_node fallback)'
-                    : code;
+                if (code.length <= 4000) {
+                    snippet = code;
+                } else if (targetNode) {
+                    // 以 targetNode 名稱（取 dotted 最後一段）為中心截窗
+                    const searchName = targetNode.includes('.') ? targetNode.split('.').pop() : targetNode;
+                    const idx = code.indexOf(searchName);
+                    if (idx >= 0) {
+                        const winStart = Math.max(0, idx - 2000);
+                        const winEnd   = Math.min(code.length, idx + 2000);
+                        const prefix   = winStart > 0 ? '// ... (前略)\n' : '';
+                        const suffix   = winEnd < code.length ? '\n// ... (後略)' : '';
+                        snippet = prefix + code.slice(winStart, winEnd) + suffix;
+                    } else {
+                        snippet = code.substring(0, 4000) + '\n// ... (truncated at 4000 chars, target_node fallback)';
+                    }
+                } else {
+                    snippet = code.substring(0, 4000) + '\n// ... (truncated at 4000 chars, target_node fallback)';
+                }
             }
 
             // 若 targetNode 是 ClassName.methodName，注入已知方法清單約束標頭

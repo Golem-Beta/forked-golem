@@ -104,6 +104,26 @@ class TriStreamParser {
     }
 }
 
+/**
+ * 修復 JSON 字串值中的 literal newline/CR 字元（LLM 常見輸出問題）
+ * 逐字元掃描，在 string 範圍內將 \n/\r 替換為 \\n/\\r
+ */
+function _fixLiteralNewlines(str) {
+    let result = '';
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if (escaped) { result += ch; escaped = false; continue; }
+        if (ch === '\\' && inString) { result += ch; escaped = true; continue; }
+        if (ch === '"') { inString = !inString; result += ch; continue; }
+        if (inString && ch === '\n') { result += '\\n'; continue; }
+        if (inString && ch === '\r') { result += '\\r'; continue; }
+        result += ch;
+    }
+    return result;
+}
+
 class ResponseParser {
     static extractJson(text) {
         if (!text) return [];
@@ -119,6 +139,13 @@ class ResponseParser {
             const parsed = JSON.parse(cleaned);
             return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
         } catch (e) {
+            // 修復 LLM 在字串值中插入的 literal newline（最常見問題，優先嘗試）
+            try {
+                const fixedNl = _fixLiteralNewlines(cleaned);
+                const parsed = JSON.parse(fixedNl);
+                console.log('[Parser] 修復 literal newline 後解析成功');
+                return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
+            } catch (_) {}
             // 修復 LLM 在 replace 欄位插入的非法 backslash escape（如 \: \- \. 等）
             if (e.message && (e.message.includes('Bad escaped') || e.message.includes('bad escaped'))) {
                 try {
