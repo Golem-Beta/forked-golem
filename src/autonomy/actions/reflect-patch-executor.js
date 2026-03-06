@@ -83,7 +83,7 @@ class PatchExecutor extends BaseAction {
             this.journal.append({
                 action: 'self_reflection', mode: 'core_patch',
                 proposal: proposalType, target: targetName,
-                description: proposal.description,
+                description: proposal.description || '',
                 outcome: 'auto_deployed',
                 confidence, risk_level: riskLevel, expected_outcome: expectedOutcome,
                 reflection_file: reflectionFile,
@@ -119,7 +119,7 @@ class PatchExecutor extends BaseAction {
             diffPreviewShort = searchPrev + '\n' + replacePrev;
         }
 
-        global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description };
+        global.pendingPatch = { path: testFile, target: targetPath, name: targetName, description: proposal.description || '' };
         if (this.PendingPatches) {
             const pendingId = this.PendingPatches.add({
                 testFile, target: targetPath, name: targetName,
@@ -197,7 +197,7 @@ class PatchExecutor extends BaseAction {
         this.journal.append({
             action: 'self_reflection', mode: 'core_patch',
             proposal: proposalType, target: targetName,
-            description: proposal.description,
+            description: proposal.description || '',
             ts: proposedTs,
             outcome: this._sentOutcome(sentFinal, 'proposed'),
             ...metaFields,

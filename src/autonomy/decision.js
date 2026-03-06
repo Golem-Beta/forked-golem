@@ -41,7 +41,7 @@ class DecisionEngine {
     readSoul() { return this.utils.readSoul(); }
     getTimeContext(now) { return this.utils.getTimeContext(now); }
     getProjectFileList() { return this.utils.getProjectFileList(); }
-    extractCodeSection(f) { return this.utils.extractCodeSection(f); }
+    extractCodeSection(f, targetNode = null) { return this.utils.extractCodeSection(f, targetNode); }
     saveReflection(a, c) { return this.utils.saveReflection(a, c); }
     getAvailableActions() { return this._actionFilter.getAvailableActions({ journal: this.journal, notifier: this.notifier, cfg: this.loadAutonomyConfig() }); }
 
@@ -54,10 +54,11 @@ class DecisionEngine {
         const defaultMaxTokens = intentDef ? intentDef.defaultMaxTokens : 1024;
         const result = await this.brain.router.complete({
             intent,
-            messages: [{ role: 'user', content: prompt }],
-            maxTokens: opts.maxOutputTokens || defaultMaxTokens,
-            temperature: opts.temperature || 0.8,
-            tools: opts.tools,
+            messages:        [{ role: 'user', content: prompt }],
+            maxTokens:       opts.maxOutputTokens || defaultMaxTokens,
+            temperature:     opts.temperature || 0.8,
+            tools:           opts.tools,
+            excludeProvider: opts.excludeProvider || null,
         });
         this._lastLLMMeta = result.meta;
         this._lastTokens = result.usage;

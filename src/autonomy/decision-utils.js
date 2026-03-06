@@ -136,6 +136,8 @@ class DecisionUtils {
             if (!fs.existsSync(filePath)) return null;
             const code = fs.readFileSync(filePath, 'utf-8');
 
+            let snippet = null;
+
             // 若有 targetNode，嘗試 AST 聚焦提取（節點 + 前 30 行 + 後 10 行）
             if (targetNode) {
                 try {
@@ -167,17 +169,41 @@ class DecisionUtils {
                     const nodeText   = code.slice(start, end);
                     const postCtx   = lines.slice(endLine + 1, postEnd + 1).join('\n');
 
-                    return [header, preContext, nodeText, postCtx].filter(Boolean).join('\n');
+                    snippet = [header, preContext, nodeText, postCtx].filter(Boolean).join('\n');
                 } catch (e) {
                     console.warn(`[extractCodeSection] AST 定位 "${targetNode}" 失敗，fallback: ${e.message}`);
                     // fallback 回整檔邏輯
                 }
             }
 
-            if (code.length > 4000) {
-                return code.substring(0, 4000) + '\n// ... (truncated at 4000 chars, target_node fallback)';
+            if (snippet === null) {
+                snippet = code.length > 4000
+                    ? code.substring(0, 4000) + '\n// ... (truncated at 4000 chars, target_node fallback)'
+                    : code;
             }
-            return code;
+
+            // 若 targetNode 是 ClassName.methodName，注入已知方法清單約束標頭
+            let knownMethods = [];
+            if (targetNode && targetNode.includes('.')) {
+                try {
+                    const CodebaseIndexer = require('../codebase-indexer');
+                    const idx = CodebaseIndexer.load();
+                    const className = targetNode.split('.')[0];
+                    knownMethods = Object.values(idx.symbols.classMethods)
+                        .filter(m => m.className === className)
+                        .map(m => m.methodName);
+                    if (knownMethods.length > 0) {
+                        const constraintHeader =
+                            `// [${className} known methods: ${knownMethods.join(', ')}]\n` +
+                            `// CONSTRAINT: replace 中只能呼叫以上已知方法，不可新增未定義的 this.xxx() call\n`;
+                        snippet = constraintHeader + snippet;
+                    }
+                } catch (e) {
+                    console.warn('[extractCodeSection] CodebaseIndexer 載入失敗:', e.message);
+                }
+            }
+
+            return { snippet, knownMethods };
         } catch (e) {
             console.warn('[extractCodeSection]', e.message);
             return null;

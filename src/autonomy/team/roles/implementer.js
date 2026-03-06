@@ -42,7 +42,7 @@ class ImplementerRole extends BaseAction {
             return null;
         }
 
-        const codeSnippet = this.decision.extractCodeSection(targetFile, targetNode);
+        const { snippet: codeSnippet, knownMethods } = this.decision.extractCodeSection(targetFile, targetNode);
         if (!codeSnippet || codeSnippet.length < 10) {
             console.warn('[Team/Implementer] 無法提取程式碼區段:', targetFile, targetNode);
             this.journal.append({ action: 'team_implementer', outcome: 'section_not_found', target: targetFile });
@@ -80,7 +80,7 @@ class ImplementerRole extends BaseAction {
         }
 
         console.log('[Team/Implementer] proposals:', proposals.length, '| mode:', proposals[0].mode, '| provider:', implementerProvider);
-        return { proposals, codeSnippet, reflectionFile, implementerProvider };
+        return { proposals, codeSnippet, reflectionFile, implementerProvider, knownMethods };
     }
 }
 

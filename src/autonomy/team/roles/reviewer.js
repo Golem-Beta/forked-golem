@@ -20,7 +20,7 @@ class ReviewerRole extends BaseAction {
      * @returns {Promise<{ reviewResult: object }>}
      */
     async run(ctx) {
-        const { proposals, codeSnippet, strategy, implementerProvider } = ctx;
+        const { proposals, codeSnippet, strategy, implementerProvider, knownMethods = [] } = ctx;
         const proposal     = proposals[0];
         const originalCode = proposal.target_node
             ? `// [AST target: ${proposal.target_node}]\n${codeSnippet || ''}`.substring(0, 1500)
@@ -30,7 +30,7 @@ class ReviewerRole extends BaseAction {
         // 強制使用與 Implementer 不同的 provider
         const excludeList = [implementerProvider].filter(Boolean);
 
-        const prompt = _buildReviewPrompt(proposal, originalCode, patchedCode, strategy);
+        const prompt = _buildReviewPrompt(proposal, originalCode, patchedCode, strategy, knownMethods);
 
         let rawText;
         try {
@@ -61,7 +61,10 @@ class ReviewerRole extends BaseAction {
     }
 }
 
-function _buildReviewPrompt(proposal, originalCode, patchedCode, strategy) {
+function _buildReviewPrompt(proposal, originalCode, patchedCode, strategy, knownMethods = []) {
+    const knownMethodsBlock = knownMethods.length > 0
+        ? `\n【target class known methods】\n${knownMethods.join(', ')}\n`
+        : '';
     return `你是一個 AI 程式碼審查員。請審查以下自主 AI Agent 程式碼修改。
 
 【Proposal】
@@ -70,7 +73,7 @@ function _buildReviewPrompt(proposal, originalCode, patchedCode, strategy) {
 目標：${proposal.target_node || proposal.file || '(未知)'}
 策略依據：${strategy?.strategy || '(無)'}
 預期：${proposal.expected_outcome || '(無)'}
-
+${knownMethodsBlock}
 【原始程式碼】
 \`\`\`javascript
 ${originalCode}
@@ -91,6 +94,7 @@ ${patchedCode}
 }
 
 判斷標準：
+- reject：replace 中出現了呼叫不在已知方法清單中的 this.xxx() 方法
 - reject：有明顯破壞性改動（移除整個 try-catch、引入 eval/exec、刪除關鍵驗證）
 - needs_human：removed_logic 有項目不在 intentional_removals 中
 - approve：修改符合描述，無明顯風險`;
