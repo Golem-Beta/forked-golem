@@ -143,6 +143,17 @@ class ModelRouter {
     }
 
     /**
+     * 取得指定 intent 下可用的 provider 名稱清單（依健康分數排序）
+     * 供 TeamProvider 查詢使用，不直接暴露 health 實作
+     * @param {string} [intent='analysis']
+     * @returns {string[]}
+     */
+    getAvailableProviders(intent = 'analysis') {
+        const candidates = this._selector.select(intent);
+        return [...new Set(candidates.map(c => c.provider))];
+    }
+
+    /**
      * 取得狀態摘要（Dashboard 用）
      */
     getStatus() {

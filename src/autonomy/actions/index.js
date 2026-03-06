@@ -6,7 +6,7 @@
  * 子模組對應：
  *   social.js        — performSpontaneousChat, onAdminReply
  *   explore.js       — performWebResearch, performGitHubExplore
- *   reflect.js       — performSelfReflection（協調 reflect-diag + reflect-patch）
+ *   reflect.js       — performSelfReflection（Team 框架：Analyst/Architect/Implementer/Reviewer）
  *   digest.js        — performDigest, performMorningDigest
  *   health-check.js  — performHealthCheck
  *   google-check.js  — performGoogleCheck

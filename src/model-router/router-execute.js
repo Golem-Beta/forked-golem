@@ -22,10 +22,17 @@ async function execute(adapters, health, selector, opts) {
     const { intent = 'chat' } = opts;
     const startTime = Date.now();
 
-    const candidates = selector.select(intent);
-    if (candidates.length === 0) {
+    const allCandidates = selector.select(intent);
+    if (allCandidates.length === 0) {
         throw new Error(`[ModelRouter] intent "${intent}" 無可用 provider`);
     }
+
+    // excludeProvider：Team 角色互斥使用（排除後若無候選則 fallback 全量）
+    const candidates = opts.excludeProvider
+        ? (allCandidates.filter(c => c.provider !== opts.excludeProvider).length > 0
+            ? allCandidates.filter(c => c.provider !== opts.excludeProvider)
+            : allCandidates)
+        : allCandidates;
 
     let lastError = null;
     const failLog = [];
