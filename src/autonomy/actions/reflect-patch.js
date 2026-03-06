@@ -144,6 +144,10 @@ class ReflectPatch extends BaseAction {
                         this.journal.append({
                             action: 'self_reflection', mode: 'core_patch',
                             outcome: 'target_node_not_found', target_node: proposal.target_node,
+                            reason: proposal.target_node.includes('.')
+                                ? '索引重建後仍找不到，節點可能不存在或已更名'
+                                : '名稱格式錯誤：缺少 ClassName. prefix',
+                            hint: 'target_node 應使用 ClassName.methodName 格式，且必須出現在可用節點清單中',
                             reflection_file: reflectionFile,
                         });
                         console.warn(`🧬 [Reflection] target_node "${proposal.target_node}" 不在索引，跳過`);
