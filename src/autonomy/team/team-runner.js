@@ -7,6 +7,10 @@
 
 const Debate = require('./debate');
 
+// 角色間 inter-call delay：避免連續 LLM 呼叫觸發 rate limit
+const INTER_ROLE_DELAY_MS = 1500;
+const _sleep = ms => new Promise(res => setTimeout(res, ms));
+
 class TeamRunner {
     /**
      * @param {object} deps
@@ -34,6 +38,9 @@ class TeamRunner {
         for (let i = 0; i < roleDefs.length; i++) {
             const def = roleDefs[i];
             const roleName = def.role?.constructor?.name || 'unknown';
+
+            if (i > 0) await _sleep(INTER_ROLE_DELAY_MS);
+
             let result;
             try {
                 if (def.debateWith) {
