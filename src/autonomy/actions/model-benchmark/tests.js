@@ -51,13 +51,14 @@ const TESTS = [
         id: 'chinese',
         name: '中文品質',
         prompt: '用繁體中文寫一句關於學習的格言（20字以內）。',
-        maxTokens: 200,
+        maxTokens: 600,  // reasoning model 需要 thinking budget，加大
         validate(text) {
+            // 優先取 GOLEM_REPLY 後的內容；reasoning model 無三流格式則取整段
             const m = text.match(/\[GOLEM_REPLY\]([\s\S]*?)$/);
-            const reply = m ? m[1].trim() : text;
+            const reply = m ? m[1].trim() : text.trim();
             const hasChinese = /[\u4e00-\u9fff]/.test(reply);
-            const len = reply.replace(/\s/g, '').length;
-            const reasonable = len > 5 && len < 100;
+            const len = [...reply].filter(ch => /[\u4e00-\u9fff]/.test(ch)).length;
+            const reasonable = len > 3;
             return {
                 pass: hasChinese && reasonable,
                 detail: hasChinese ? `✅ 有中文 (${len} chars)` : '❌ 無中文',
@@ -69,11 +70,13 @@ const TESTS = [
         id: 'code',
         name: '程式碼能力',
         prompt: '用 JavaScript 寫一個 function，輸入數字陣列，回傳總和。只寫 function，不要解釋。',
-        maxTokens: 300,
+        maxTokens: 800,  // reasoning model 加大
         validate(text) {
-            const hasFunction = /function\s+\w+|const\s+\w+\s*=\s*(\(|function)/.test(text);
-            const hasReturn   = /return/.test(text);
-            const hasReduce   = /reduce|for|forEach/.test(text);
+            // 從 code block 或整段找 function（reasoning model 可能包在 markdown）
+            const src = text.replace(/```[\w]*\n?/g, '');
+            const hasFunction = /function\s+\w+|const\s+\w+\s*=\s*(\(|function)|=>/.test(src);
+            const hasReturn   = /return/.test(src);
+            const hasReduce   = /reduce|for\b|forEach/.test(src);
             const pass = hasFunction && hasReturn;
             return {
                 pass,
@@ -87,7 +90,7 @@ const TESTS = [
         name: '推理品質',
         // 甲=10, 乙=30, 合計=40（不需要三流格式）
         prompt: '甲有一些糖，乙的糖是甲的 3 倍。如果乙給甲 10 顆糖，兩人糖數相等。請問兩人原本共有幾顆糖？請用繁體中文說明推理過程，最後給出答案數字。',
-        maxTokens: 500,
+        maxTokens: 1500,  // reasoning model 加大
         validate(text) {
             const hasChinese = /[\u4e00-\u9fff]/.test(text);
             const hasAnswer  = /40|四十/.test(text);

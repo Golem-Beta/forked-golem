@@ -40,7 +40,7 @@ function callGemini(apiKey, model, systemPrompt, userPrompt, maxTokens) {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(body),
             },
-            timeout: 30000,
+            timeout: 60000,
         };
 
         const req = https.request(options, (res) => {
@@ -100,7 +100,7 @@ function callOpenAICompat(baseUrl, apiKey, model, systemPrompt, userPrompt, maxT
                 'HTTP-Referer': 'https://golem.local',
                 'X-Title': 'GolemBenchmark',
             },
-            timeout: 30000,
+            timeout: 60000,
         };
 
         const lib = url.protocol === 'https:' ? https : http;
@@ -111,14 +111,19 @@ function callOpenAICompat(baseUrl, apiKey, model, systemPrompt, userPrompt, maxT
                 try {
                     const json = JSON.parse(data);
                     if (json.error) return reject(new Error(json.error.message || JSON.stringify(json.error)));
-                    const raw = json.choices?.[0]?.message?.content;
+                    const msg = json.choices?.[0]?.message;
+                    const raw = msg?.content;
                     // magistral 等 reasoning model 回傳 content array [{type:'thinking',...},{type:'text',...}]
+                    // deepseek-reasoner 的 content 可能是 null，實際文字在 reasoning_content
                     let text = '';
                     if (Array.isArray(raw)) {
                         const textBlock = raw.find(b => b.type === 'text');
                         text = textBlock?.text || '';
-                    } else {
-                        text = raw || '';
+                    } else if (raw) {
+                        text = raw;
+                    } else if (msg?.reasoning_content) {
+                        // reasoning model fallback：content 為 null，用 reasoning_content
+                        text = msg.reasoning_content;
                     }
                     resolve(text);
                 } catch (e) {

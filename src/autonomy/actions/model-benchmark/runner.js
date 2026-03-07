@@ -53,7 +53,8 @@ async function runTest(target, test, systemPrompt) {
         const result = test.validate(text);
         return { ok: true, ms, text: text.substring(0, 300), ...result };
     } catch (e) {
-        return { ok: false, ms: Date.now() - start, pass: false, detail: `❌ ${e.message}`, score: 0, text: '' };
+        const isQuota = /quota|rate.?limit|429|exceeded/i.test(e.message);
+        return { ok: false, skip: isQuota, ms: Date.now() - start, pass: false, detail: `❌ ${e.message}`, score: 0, text: '' };
     }
 }
 
@@ -296,7 +297,11 @@ class BenchmarkRunner {
                 avgLatencyMs:  avgLatency,
             };
 
-            if (passRate >= 0.75) {
+            // 如果所有測試都是 quota/rate-limit skip，不更新 registry（保留原狀態）
+            const allSkipped = suiteTests.every(t => results[key][t.id]?.skip);
+            if (allSkipped) {
+                this._log(`  ⏭ ${key} 全部 skip（quota/rate-limit），保留原 registry 狀態`);
+            } else if (passRate >= 0.75) {
                 // 保留非測試能力（vision、long_context），依測試結果更新測試能力
                 const currentInfo   = providerRegistry.getModelInfo(provider, model);
                 const existingCaps  = currentInfo?.capabilities || [];
@@ -311,12 +316,12 @@ class BenchmarkRunner {
                 patch.capabilities = preserved;
                 patch.notes        = '';
             } else {
-                const failed = suiteTests.filter(t => !results[key][t.id]?.pass).map(t => t.name);
+                const failed = suiteTests.filter(t => !results[key][t.id]?.pass && !results[key][t.id]?.skip).map(t => t.name);
                 patch.status = 'disabled';
                 patch.notes  = `benchmark failed: ${failed.join(', ')}`;
             }
 
-            providerRegistry.updateModelStatus(provider, model, patch);
+            if (!allSkipped) providerRegistry.updateModelStatus(provider, model, patch);
         }
         this._log(`\n📝 Registry 已更新（${order.length} 個 model）`);
 
