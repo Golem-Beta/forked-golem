@@ -114,6 +114,19 @@ const PROVIDER_CONFIGS = {
             'gpt-oss-120b':                       [],  // ACTION/中文持續失敗
         },
     },
+    openrouter: {
+        baseUrl: 'https://openrouter.ai/api/v1',
+        envKey: 'OPENROUTER_API_KEY',
+        multiKey: true,
+        rpdLimits: {
+            'qwen/qwen3-next-80b-a3b-instruct:free': 200,
+        },
+        defaultRpm: 20,
+        modelCapabilities: {
+            // interval=3s 測試 4/4 全過。upstream rate limit 敏感，router 已有 openrouter 120s cooldown。
+            'qwen/qwen3-next-80b-a3b-instruct:free': ['tristream'],
+        },
+    },
     nvidia: {
         baseUrl: 'https://integrate.api.nvidia.com/v1',
         envKey: 'NVIDIA_API_KEY',
