@@ -15,6 +15,7 @@ const { buildTargets }              = require('./targets');
 const { TESTS, SUITES, SUITE_MAX_SCORE } = require('./tests');
 const { callGemini, callOpenAICompat }   = require('./callers');
 const providerRegistry              = require('../../../model-router/provider-registry');
+const PROVIDER_CONFIGS              = require('../../../model-router/configs');
 const rosterManager                 = require('../../../model-router/roster-manager');
 
 // 專案根目錄（model-benchmark/ 往上四層）
@@ -54,6 +55,17 @@ async function runTest(target, test, systemPrompt) {
     } catch (e) {
         return { ok: false, ms: Date.now() - start, pass: false, detail: `❌ ${e.message}`, score: 0, text: '' };
     }
+}
+
+/**
+ * 計算 provider 的最小請求間隔（ms）
+ * 取 minIntervalMs 與 defaultRpm 換算值的較大者
+ */
+function providerIntervalMs(providerName) {
+    const cfg = PROVIDER_CONFIGS[providerName] || {};
+    const fromRpm     = cfg.defaultRpm ? Math.ceil(60000 / cfg.defaultRpm) : 2000;
+    const fromConfig  = cfg.minIntervalMs || 0;
+    return Math.max(fromRpm, fromConfig, 1000);  // 至少 1s
 }
 
 /**
@@ -213,26 +225,33 @@ class BenchmarkRunner {
 
         const interleaved = interleaveByProvider(order);
 
-        // 外層 test，內層 interleaved target；按 suite 跳過不適用的測試
-        for (const test of TESTS) {
-            this._log(`\n📋 ${test.name}\n`);
-            for (let i = 0; i < interleaved.length; i++) {
-                const { key, target } = interleaved[i];
-                const suiteIds = SUITES[target.suite || 'standard_suite'];
+        // 外層 model（interleaved），內層 test
+        // 每個 model 把所有 test 做完，再 delay，再換下一個 model
+        // 保證完全串行：同一時刻只有一個 LLM 請求在飛
+        for (let i = 0; i < interleaved.length; i++) {
+            const { key, target } = interleaved[i];
+            const suiteIds = SUITES[target.suite || 'standard_suite'];
 
+            this._log(`\n🤖 ${key}`);
+
+            for (const test of TESTS) {
                 if (!suiteIds.includes(test.id)) continue;  // 此 suite 不跑這個測試
 
-                this._log(`  ${key.padEnd(50)} ...`);
+                this._log(`  📋 ${test.name.padEnd(30)} ...`);
                 const r = await runTest(target, test, systemPrompt);
                 results[key][test.id] = r;
                 this._log(r.pass ? `  ✅ ${r.ms}ms — ${r.detail}` : `  ❌ ${r.ms}ms — ${r.detail}`);
+            }
 
-                // 同 provider 間隔 5s，跨 provider 間隔 1s
-                const next = interleaved[i + 1];
-                if (next) {
-                    const delayMs = next.target.provider === target.provider ? 5000 : 1000;
-                    await new Promise(res => setTimeout(res, delayMs));
-                }
+            // model 做完後 delay，再打下一個 model
+            // 同 provider：用 providerIntervalMs；跨 provider：1s
+            const next = interleaved[i + 1];
+            if (next) {
+                const delayMs = next.target.provider === target.provider
+                    ? providerIntervalMs(target.provider)
+                    : 1000;
+                this._log(`  ⏱ delay ${delayMs}ms → ${next.key}`);
+                await new Promise(res => setTimeout(res, delayMs));
             }
         }
 
