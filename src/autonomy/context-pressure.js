@@ -116,6 +116,13 @@ class ContextPressure {
             }
         } catch (e) { /* 不影響主流程 */ }
 
+        // API schema 漂移偵測
+        const recentMismatch = entries.slice(-10).filter(e => e.outcome === 'api_schema_mismatch');
+        if (recentMismatch.length > 0) {
+            const acts = [...new Set(recentMismatch.map(e => e.action))].join(', ');
+            signals.push('[schema] ' + acts + ' API schema 不符（最近 ' + recentMismatch.length + ' 次），程式碼需更新 - 建議執行 self_reflection');
+        }
+
         return signals;
     }
 

@@ -8,14 +8,14 @@
 /** 判斷單一 journal 條目是否為失敗 */
 function isFailed(e) {
     const o = e.outcome || '';
-    return o.includes('fail') || o.includes('error') || e.action === 'error';
+    return o.includes('fail') || o.includes('error') || o.includes('mismatch') || e.action === 'error';
 }
 
 /** 判斷單一失敗條目的根因類型（external / config / general） */
 function classifyFailure(e) {
     const o        = (e.outcome || '').toLowerCase();
     const EXTERNAL = ['send_failed', 'fetch_failed', 'network', 'timeout', 'rate_limited', 'connection'];
-    const CONFIG   = ['folder_missing', 'verification_failed', 'config', 'not_found', 'missing'];
+    const CONFIG   = ['folder_missing', 'verification_failed', 'config', 'not_found', 'missing', 'mismatch'];
     if (EXTERNAL.some(k => o.includes(k))) return 'external';
     if (CONFIG.some(k => o.includes(k)))   return 'config';
     return 'general';
