@@ -55,11 +55,35 @@ class MoltbookCheckAction {
             return { success: false, error: home.error };
         }
 
-        const feed     = home.feed?.posts || [];
-        const dms      = home.dms?.conversations || [];
-        const mentions = home.notifications?.mentions || [];
+        // Schema 防禦：/home 結構異常時 journal + 通知，不靜默失敗
+        const EXPECTED_HOME_KEYS = ['activity_on_your_posts', 'your_direct_messages', 'quick_links'];
+        const missingKeys = EXPECTED_HOME_KEYS.filter(k => !(k in home));
+        if (missingKeys.length > 0) {
+            const msg = `🦞 /home schema 異常，缺少欄位：${missingKeys.join(', ')}`;
+            console.warn(msg);
+            this.journal.append({ action: 'moltbook_check', outcome: 'api_schema_mismatch', missing_keys: missingKeys });
+            if (this.notifier) await this.notifier.sendToAdmin(msg);
+            return { success: false, reason: 'api_schema_mismatch' };
+        }
 
-        console.log(`🦞 [MoltbookCheck] feed:${feed.length} DMs:${dms.length} mentions:${mentions.length}`);
+        // 三個獨立 API 呼叫（feed 取代 home.feed.posts，DM 取代 home.dms.conversations）
+        const activityItems = home.activity_on_your_posts || [];
+        const [feedRes, dmCheckRes] = await Promise.all([
+            this.client.get('/feed'),
+            this.client.get('/agents/dm/check'),
+        ]);
+
+        const feed = feedRes.success ? (feedRes.posts || []) : [];
+        if (!feedRes.success) console.warn('🦞 [MoltbookCheck] /feed 失敗:', feedRes.error);
+
+        const dms = dmCheckRes.success ? (dmCheckRes.conversations || []) : [];
+        if (!dmCheckRes.success) console.warn('🦞 [MoltbookCheck] /agents/dm/check 失敗:', dmCheckRes.error);
+
+        // activity_on_your_posts 中各 post_id → 抓留言供 LLM 判斷是否回覆
+        const mentions = await this._fetchActivityMentions(activityItems);
+
+        const unreadDms = home.your_direct_messages?.unread_message_count || 0;
+        console.log(`🦞 [MoltbookCheck] feed:${feed.length} activity:${activityItems.length} mentions:${mentions.length} unread_dms:${unreadDms} dms:${dms.length}`);
 
         const state = loadState();
         state.lastHomeTimestamp = Date.now();
@@ -84,6 +108,32 @@ class MoltbookCheckAction {
 
         console.log(`🦞 [MoltbookCheck] 完成 — ${summary}`);
         return { success: true, ...results };
+    }
+
+    // ── 從 activity_on_your_posts 抓各貼文留言，轉成 mentions 格式 ──────────
+
+    async _fetchActivityMentions(activityItems) {
+        const results = await Promise.all(
+            activityItems.slice(0, 5).map(async item => {
+                const postId = item.post_id;
+                if (!postId) return [];
+                try {
+                    const res = await this.client.get(`/posts/${postId}/comments`);
+                    if (!res.success) return [];
+                    const comments = res.comments || res.data || [];
+                    return comments.slice(0, 3).map(c => ({
+                        post_id:    postId,
+                        comment_id: c.id,
+                        from:       c.author?.name || c.from || '?',
+                        content:    c.content || c.text || '',
+                    }));
+                } catch (e) {
+                    console.warn(`🦞 [MoltbookCheck] /posts/${postId}/comments 失敗:`, e.message);
+                    return [];
+                }
+            })
+        );
+        return results.flat();
     }
 
     // ── 將外部內容包裝為安全標記區塊（標示已互動貼文、補入 DM 歷史）────
