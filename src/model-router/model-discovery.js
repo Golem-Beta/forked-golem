@@ -48,6 +48,23 @@ function isChatModel(modelId) {
 }
 
 /**
+ * OpenRouter 專用：用 /models 回傳的 metadata 判斷是否值得 benchmark
+ * 條件：output_modalities 含 text + pricing.prompt <= MAX_PROMPT_PRICE
+ * MAX_PROMPT_PRICE = 0.000010（$10/M token）— 超過這個對 Golem 來說不實際
+ */
+const OR_MAX_PROMPT_PRICE = 0.000010;
+
+function isOpenRouterUsable(model) {
+    // 必須能輸出 text
+    const outMods = model.architecture?.output_modalities || [];
+    if (!outMods.includes('text')) return false;
+    // 價格在接受範圍內（free = 0，或 <= $10/M）
+    const promptPrice = parseFloat(model.pricing?.prompt || '0');
+    if (promptPrice > OR_MAX_PROMPT_PRICE) return false;
+    return true;
+}
+
+/**
  * 抓單一 provider 的 /models 清單
  * @returns {Promise<string[]>}
  */
@@ -58,7 +75,8 @@ async function fetchModels(baseUrl, apiKey) {
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    return (data.data || data.models || []).map(m => m.id || m.name).filter(Boolean);
+    // 回傳完整物件，保留 metadata 供 OpenRouter 過濾使用
+    return (data.data || data.models || []).filter(m => m.id || m.name);
 }
 
 /**
@@ -70,7 +88,8 @@ async function runDiscovery() {
     let discovered = 0;
 
     for (const [providerName, config] of Object.entries(PROVIDER_CONFIGS)) {
-        if (providerName === 'gemini') continue;
+        if (providerName === 'gemini') continue;   // 不走 REST /models
+        if (providerName === 'nvidia') continue;    // /models 無 metadata，完全依賴 configs.js rpdLimits
         if (!config.baseUrl) continue;
 
         const rawKey = process.env[config.envKey] || '';
@@ -86,10 +105,13 @@ async function runDiscovery() {
 
         try {
             const models = await fetchModels(config.baseUrl, apiKey);
-            const known = Object.keys(provData?.models || {});
-            const newModels = models.filter(m => !known.includes(m) && isChatModel(m));
+            const known = Object.keys(provData?.models || {});  // registry keys 就是 model id
+            const newModels = providerName === 'openrouter'
+                ? models.filter(m => !known.includes(m.id) && isOpenRouterUsable(m))
+                : models.filter(m => !known.includes(m.id || m.name) && isChatModel(m.id || m.name));
 
-            for (const model of newModels) {
+            for (const modelObj of newModels) {
+                const model = modelObj.id || modelObj.name;
                 registry.updateModelStatus(providerName, model, {
                     status: 'pending_benchmark',
                     capabilities: [],
