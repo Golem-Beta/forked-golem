@@ -125,12 +125,28 @@ class DashboardMonitor {
                             keyStatus = parts.join(' ');
                         }
                         // 多 model provider 展開 per-model RPD，單 model 用 aggregate
-                        const isMultiModel = Object.keys(h.rpdLimits || {}).length > 1;
+                        // 只顯示 registry 中 active 的 model（過濾 benched/disabled）
+                        // registry cache：每 30s 重讀一次，避免每 tick 讀檔
+                        if (!this._regCache || Date.now() - this._regCacheAt > 30000) {
+                            const { load: loadReg } = require('./model-router/provider-registry');
+                            this._regCache = loadReg();
+                            this._regCacheAt = Date.now();
+                        }
+                        const _reg = this._regCache;
+                        const _activeModels = new Set(
+                            Object.entries(_reg.providers[name]?.models || {})
+                                .filter(([, info]) => info.status === 'active')
+                                .map(([m]) => m)
+                        );
+                        const _visibleLimits = Object.fromEntries(
+                            Object.entries(h.rpdLimits || {}).filter(([m]) => _activeModels.has(m))
+                        );
+                        const isMultiModel = Object.keys(_visibleLimits).length > 1;
                         let rpdStr;
                         if (isMultiModel) {
-                            const modelParts = Object.keys(h.rpdLimits).map(model => {
+                            const modelParts = Object.keys(_visibleLimits).map(model => {
                                 const used     = h.modelUsed?.[model] ?? 0;
-                                const limit    = h.rpdLimits[model];
+                                const limit    = _visibleLimits[model];
                                 const limitStr = limit === Infinity ? '∞' : String(limit);
                                 const abbr     = abbreviateModel(model);
                                 const pct      = limit === Infinity ? 0 : used / limit;
