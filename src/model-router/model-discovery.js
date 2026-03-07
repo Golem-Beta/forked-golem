@@ -52,7 +52,7 @@ function isChatModel(modelId) {
  * 條件：output_modalities 含 text + pricing.prompt <= MAX_PROMPT_PRICE
  * MAX_PROMPT_PRICE = 0.000010（$10/M token）— 超過這個對 Golem 來說不實際
  */
-const OR_MAX_PROMPT_PRICE = 0.000010;
+const OR_MAX_PROMPT_PRICE = 0;  // 只收錄 free tier（pricing.prompt === "0"）
 
 function isOpenRouterUsable(model) {
     // 必須能輸出 text
