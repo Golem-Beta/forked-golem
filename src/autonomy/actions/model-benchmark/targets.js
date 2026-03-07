@@ -8,8 +8,9 @@
  * 每個 target 附帶 suite 欄位，由 runner 決定跑哪些測試。
  */
 
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../../../.env') });
 const PROVIDER_CONFIGS  = require('../../../model-router/configs');
-const { load: loadReg } = require('../../../model-router/provider-registry');
+const { load: loadReg, initRegistryFromConfigs } = require('../../../model-router/provider-registry');
 
 /**
  * 根據 model 的 capabilities 判斷 suite：
@@ -30,6 +31,7 @@ function _suitForCaps(capabilities) {
  */
 function buildTargets(overrides = {}) {
     const { models: onlyModels } = overrides;
+    initRegistryFromConfigs(PROVIDER_CONFIGS);
     const reg     = loadReg();
     const targets = [];
 

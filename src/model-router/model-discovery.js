@@ -13,6 +13,41 @@ const registry = require('./provider-registry');
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * 排除明確非 chat/instruct 的 model（embed、guard、whisper、moderation、vision-only 等）
+ * 規則：blocklist pattern，命名含這些關鍵字的不進 pending_benchmark
+ */
+const NON_CHAT_PATTERNS = [
+    /embed/i,
+    /guard/i,
+    /whisper/i,
+    /moderat/i,
+    /safety/i,
+    /reward/i,
+    /rerank/i,
+    /retriev/i,
+    /parse/i,
+    /transcrib/i,
+    /translate/i,
+    /ocr/i,
+    /vision(?!.*instruct)/i,   // vision 但非 vision-instruct
+    /clip/i,
+    /deplot/i,
+    /paligemma/i,
+    /neva/i,
+    /vila(?!$)/i,
+    /blip/i,
+    /streampetr/i,
+    /llemma/i,
+    /starcoder/i,
+    /codellama.*solidity/i,
+    /fuyu/i,
+];
+
+function isChatModel(modelId) {
+    return !NON_CHAT_PATTERNS.some(p => p.test(modelId));
+}
+
+/**
  * 抓單一 provider 的 /models 清單
  * @returns {Promise<string[]>}
  */
@@ -52,7 +87,7 @@ async function runDiscovery() {
         try {
             const models = await fetchModels(config.baseUrl, apiKey);
             const known = Object.keys(provData?.models || {});
-            const newModels = models.filter(m => !known.includes(m));
+            const newModels = models.filter(m => !known.includes(m) && isChatModel(m));
 
             for (const model of newModels) {
                 registry.updateModelStatus(providerName, model, {

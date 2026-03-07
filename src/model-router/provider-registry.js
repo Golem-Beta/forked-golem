@@ -190,6 +190,15 @@ function initRegistryFromConfigs(providerConfigs) {
                     info.benchmarkScores = {};
                     changed = true;
                 }
+                // 若 INITIAL_CAPABILITIES 確認有能力但 status 還是 pending_benchmark，升為 active
+                const knownCaps = initCaps[model] || [];
+                if (info.status === 'pending_benchmark' && knownCaps.length > 0) {
+                    info.status = 'active';
+                    if (!info.capabilities || info.capabilities.length === 0) {
+                        info.capabilities = knownCaps;
+                    }
+                    changed = true;
+                }
                 continue;
             }
             const caps = initCaps[model] || [];
