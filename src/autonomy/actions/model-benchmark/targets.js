@@ -37,20 +37,21 @@ function buildTargets(overrides = {}) {
 
     for (const [providerName, config] of Object.entries(PROVIDER_CONFIGS)) {
         const rawKey = process.env[config.envKey] || '';
-        const key = config.multiKey
-            ? rawKey.split(',')[0].trim()
-            : rawKey.trim();
-
-        if (!key) continue;
+        const keys = config.multiKey
+            ? rawKey.split(',').map(k => k.trim()).filter(Boolean)
+            : [rawKey.trim()];
+        if (!keys[0]) continue;
 
         const provModels = reg.providers[providerName]?.models || {};
         const isGemini   = providerName === 'gemini';
 
         for (const [model, info] of Object.entries(provModels)) {
-            // 只跑 active 和 pending_benchmark；排除 disabled 和 benched
-            if (info.status === 'disabled' || info.status === 'benched') continue;
+            // 只跑 active；pending_benchmark 留給增量 benchmark
+            if (info.status !== 'active') continue;
             if (onlyModels && !onlyModels.includes(model)) continue;
 
+            const keyIdx = targets.filter(t => t.provider === providerName).length;
+            const key   = keys[keyIdx % keys.length];
             targets.push({
                 provider: providerName,
                 model,
