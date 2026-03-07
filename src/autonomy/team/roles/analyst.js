@@ -1,4 +1,6 @@
 'use strict';
+const fs   = require('fs');
+const path = require('path');
 /**
  * @module team/roles/analyst
  * @role Analyst — 從 journal + memory 診斷症狀與根本原因，不提解法
@@ -62,6 +64,23 @@ class AnalystRole extends BaseAction {
             }
         } catch (_) {}
 
+        // === Fix 1: 注入過去失敗 patch 歷史 ===
+        let patchHistory = '(無)';
+        try {
+            const ppPath = path.join(process.cwd(), 'memory', 'pending-patches.json');
+            if (fs.existsSync(ppPath)) {
+                const patches = JSON.parse(fs.readFileSync(ppPath, 'utf8'));
+                const failed = patches
+                    .filter(p => p.status === 'dropped' && p.dropReason)
+                    .slice(-8)
+                    .map(p => {
+                        const t = p.target ? p.target.replace(process.cwd() + '/', '') : '?';
+                        return `- [${p.proposalType || '?'}] ${t}: ${p.dropReason}`;
+                    });
+                if (failed.length > 0) patchHistory = failed.join('\n');
+            }
+        } catch (_) {}
+
         const triggerSection = _buildTriggerSection(triggerCtx);
         const prompt = this.loadPrompt('reflect-analyst.md', {
             SOUL:               soul,
@@ -74,6 +93,7 @@ class AnalystRole extends BaseAction {
             COLD_INSIGHTS:      coldInsights || '(無)',
             WARM_INSIGHTS:      warmInsights || '(無)',
             FILE_LIST:          fileList,
+            PATCH_HISTORY:      patchHistory,
         });
         if (!prompt) throw new Error('reflect-analyst.md 載入失敗');
 

@@ -26,12 +26,31 @@ class ArchitectRole extends BaseAction {
             ? fileList.slice(0, 80).join('\n')
             : String(fileList || '(無檔案清單)');
         const nodeListStr = typeof nodeList === 'string' ? nodeList : String(nodeList || '(無)');
+
+        // 注入過去失敗 patch 歷史，讓 Architect 選 target 時迴避死路
+        let patchHistory = '(無)';
+        try {
+            const ppPath = path.join(process.cwd(), 'memory', 'pending-patches.json');
+            if (fs.existsSync(ppPath)) {
+                const patches = JSON.parse(fs.readFileSync(ppPath, 'utf8'));
+                const failed = patches
+                    .filter(p => p.status === 'dropped' && p.dropReason)
+                    .slice(-8)
+                    .map(p => {
+                        const t = p.target ? p.target.replace(process.cwd() + '/', '') : '?';
+                        return `- [${p.proposalType || '?'}] ${t}: ${p.dropReason}`;
+                    });
+                if (failed.length > 0) patchHistory = failed.join('\n');
+            }
+        } catch (_) {}
+
         const prompt = this.loadPrompt('reflect-architect.md', {
             DIAGNOSIS_JSON:  JSON.stringify(analystOutput, null, 2),
             JOURNAL_CONTEXT: journalContext,
             FILE_LIST:       fileListStr,
             NODE_LIST:       nodeListStr,
             RETRY_FEEDBACK:  retryFeedback,
+            PATCH_HISTORY:   patchHistory,
         });
         if (!prompt) throw new Error('reflect-architect.md 載入失敗');
 
@@ -97,6 +116,24 @@ class ArchitectRole extends BaseAction {
 
         const strategyPreview = (architectOutput.strategy || '').substring(0, 80);
         console.log('[Team/Architect] 策略:', strategyPreview);
+
+        // === Fix 2: 提取 target_node 真實原始碼 ===
+        if (architectOutput.target_node && architectOutput.target_file) {
+            try {
+                const extracted = this.decision.extractCodeSection(
+                    architectOutput.target_file,
+                    architectOutput.target_node
+                );
+                if (extracted && extracted.snippet && extracted.snippet.length > 10) {
+                    architectOutput.codeSnippet  = extracted.snippet;
+                    architectOutput.knownMethods = extracted.knownMethods || [];
+                    console.log(`[Team/Architect] codeSnippet 已提取 (${extracted.snippet.length} chars)`);
+                }
+            } catch (e) {
+                console.warn('[Team/Architect] codeSnippet 提取失敗:', e.message);
+            }
+        }
+
         return { architectOutput };
     }
 
