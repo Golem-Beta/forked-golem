@@ -234,13 +234,20 @@ class BenchmarkRunner {
 
             this._log(`\n🤖 ${key}`);
 
-            for (const test of TESTS) {
-                if (!suiteIds.includes(test.id)) continue;  // 此 suite 不跑這個測試
+            const suiteTests = TESTS.filter(t => suiteIds.includes(t.id));
+            for (let ti = 0; ti < suiteTests.length; ti++) {
+                const test = suiteTests[ti];
 
                 this._log(`  📋 ${test.name.padEnd(30)} ...`);
                 const r = await runTest(target, test, systemPrompt);
                 results[key][test.id] = r;
                 this._log(r.pass ? `  ✅ ${r.ms}ms — ${r.detail}` : `  ❌ ${r.ms}ms — ${r.detail}`);
+
+                // test 之間也要 delay（同一 provider 的連續請求）
+                if (ti < suiteTests.length - 1) {
+                    const interTestDelay = providerIntervalMs(target.provider);
+                    await new Promise(res => setTimeout(res, interTestDelay));
+                }
             }
 
             // model 做完後 delay，再打下一個 model
