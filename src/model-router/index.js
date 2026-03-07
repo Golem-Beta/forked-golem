@@ -10,13 +10,14 @@
  *   - Router 根據 intent + 健康狀態主動選最佳 provider（不是 fallback chain）
  *   - 選中的 provider 呼叫失敗時才退到下一個候選
  */
-const PROVIDER_CONFIGS = require('./configs');
+const PROVIDER_CONFIGS    = require('./configs');
 const INTENT_REQUIREMENTS = require('./intents');
-const ProviderHealth = require('./health');
-const ModelSelector = require('./selector');
-const GeminiAdapter = require('./adapters/gemini');
+const ProviderHealth      = require('./health');
+const ModelSelector       = require('./selector');
+const GeminiAdapter       = require('./adapters/gemini');
 const OpenAICompatAdapter = require('./adapters/openai-compat');
-const { execute } = require('./router-execute');
+const { execute }         = require('./router-execute');
+const providerRegistry    = require('./provider-registry');
 
 class ModelRouter {
     constructor() {
@@ -70,6 +71,8 @@ class ModelRouter {
             this.adapters.set(name, adapter);
             this.health.register(name, config);
         }
+        // registry 初始化：補入 configs 中尚未有 registry 條目的 model
+        providerRegistry.initRegistryFromConfigs(PROVIDER_CONFIGS);
     }
 
     /**

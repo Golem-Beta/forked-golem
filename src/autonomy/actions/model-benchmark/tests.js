@@ -1,7 +1,10 @@
 'use strict';
 /**
  * @module model-benchmark/tests
- * @role 基準測試單元定義（4 個測試，各含 validate 函式）
+ * @role 基準測試單元定義（5 個測試，按 suite 分組）
+ *
+ * standard_suite：['tristream', 'json_action', 'chinese', 'code']  → 給非 reasoning model
+ * reasoning_suite：['chinese', 'code', 'reasoning_quality']         → 給 reasoning model
  */
 
 const TESTS = [
@@ -79,10 +82,42 @@ const TESTS = [
             };
         },
     },
+    {
+        id: 'reasoning_quality',
+        name: '推理品質',
+        // 甲=10, 乙=30, 合計=40（不需要三流格式）
+        prompt: '甲有一些糖，乙的糖是甲的 3 倍。如果乙給甲 10 顆糖，兩人糖數相等。請問兩人原本共有幾顆糖？請用繁體中文說明推理過程，最後給出答案數字。',
+        maxTokens: 500,
+        validate(text) {
+            const hasChinese = /[\u4e00-\u9fff]/.test(text);
+            const hasAnswer  = /40|四十/.test(text);
+            const pass = hasChinese && hasAnswer;
+            return {
+                pass,
+                detail: `chinese:${hasChinese ? '✅' : '❌'} answer(40):${hasAnswer ? '✅' : '❌'} length:${text.length}`,
+                score: (hasChinese ? 1 : 0) + (hasAnswer ? 1 : 0),
+            };
+        },
+    },
 ];
 
-// 每測試最高 1 分（通過/不通過），MAX_SCORE = 4
-// validate() 仍回傳內部細粒度 score，runner 以 pass ? 1 : 0 計算總分
-const MAX_SCORE = TESTS.length;
+/**
+ * Suite 定義：test id 清單
+ * standard_suite：一般 model（需三流格式）
+ * reasoning_suite：reasoning model（不強求三流格式）
+ */
+const SUITES = {
+    standard_suite: ['tristream', 'json_action', 'chinese', 'code'],
+    reasoning_suite: ['chinese', 'code', 'reasoning_quality'],
+};
 
-module.exports = { TESTS, MAX_SCORE };
+/** 每個 suite 的滿分 */
+const SUITE_MAX_SCORE = {
+    standard_suite: 4,
+    reasoning_suite: 3,
+};
+
+// 向後兼容：MAX_SCORE 指 standard_suite 滿分
+const MAX_SCORE = SUITE_MAX_SCORE.standard_suite;
+
+module.exports = { TESTS, SUITES, SUITE_MAX_SCORE, MAX_SCORE };

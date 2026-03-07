@@ -4,15 +4,18 @@
  * @role Benchmark orchestration — 可被 ModelBenchmarkAction 或外部直接呼叫
  *
  * 輸出：memory/model-benchmark-YYYY-MM-DD.md
+ * 每個 target 按自身 suite（standard_suite / reasoning_suite）跑對應測試組。
+ * 完成後呼叫 roster-manager 修剪每個 provider 的 active roster。
  */
 
 const fs   = require('fs');
 const path = require('path');
 
 const { buildTargets }              = require('./targets');
-const { TESTS, MAX_SCORE }          = require('./tests');
-const { callGemini, callOpenAICompat } = require('./callers');
+const { TESTS, SUITES, SUITE_MAX_SCORE } = require('./tests');
+const { callGemini, callOpenAICompat }   = require('./callers');
 const providerRegistry              = require('../../../model-router/provider-registry');
+const rosterManager                 = require('../../../model-router/roster-manager');
 
 // 專案根目錄（model-benchmark/ 往上四層）
 const PROJECT_ROOT = path.join(__dirname, '..', '..', '..', '..');
@@ -22,13 +25,13 @@ const PROJECT_ROOT = path.join(__dirname, '..', '..', '..', '..');
  * @returns {string}
  */
 function loadSystemPrompt() {
-    const promptDir = path.join(PROJECT_ROOT, 'prompts');
+    const promptDir  = path.join(PROJECT_ROOT, 'prompts');
     const systemCore = fs.readFileSync(path.join(promptDir, 'system-core.md'), 'utf-8')
         .replace('{{SOUL}}', '你是 Golem，一個運行在本地機器上的自主 AI Agent。')
         .replace('{{PERSONA}}', '')
         .replace('{{VERSION}}', '9.13.x')
         .replace('{{ENV_INFO}}', 'ThinkPad X200, Arch Linux, Node.js v22');
-    const tristream = fs.readFileSync(path.join(promptDir, 'tristream-protocol.md'), 'utf-8');
+    const tristream  = fs.readFileSync(path.join(promptDir, 'tristream-protocol.md'), 'utf-8');
     return systemCore + '\n\n' + tristream;
 }
 
@@ -55,8 +58,6 @@ async function runTest(target, test, systemPrompt) {
 
 /**
  * interleaveByProvider：重排 order 使同 provider 的 model 之間插入其他 provider
- * 例：[gemini/flash, gemini/lite, groq/llama, groq/kimi]
- *  → [gemini/flash, groq/llama, gemini/lite, groq/kimi]
  */
 function interleaveByProvider(items) {
     const byProvider = {};
@@ -66,8 +67,8 @@ function interleaveByProvider(items) {
         byProvider[p].push(item);
     }
     const providers = Object.keys(byProvider);
-    const result = [];
-    const maxLen = Math.max(...providers.map(p => byProvider[p].length));
+    const result    = [];
+    const maxLen    = Math.max(...providers.map(p => byProvider[p].length));
     for (let i = 0; i < maxLen; i++) {
         for (const p of providers) {
             if (byProvider[p][i]) result.push(byProvider[p][i]);
@@ -78,6 +79,7 @@ function interleaveByProvider(items) {
 
 /**
  * 產生 Markdown 報告字串。
+ * 未跑到的測試欄位顯示「—」。
  */
 function generateReport(order, results) {
     const lines = [];
@@ -92,35 +94,43 @@ function generateReport(order, results) {
     lines.push(`| ${header} |`);
     lines.push(`| ${['---', ...TESTS.map(() => ':---:'), ':---:', ':---:'].join(' | ')} |`);
 
-    for (const { key } of order) {
+    for (const { key, target } of order) {
+        const suiteName = target.suite || 'standard_suite';
+        const suiteIds  = SUITES[suiteName];
+        const maxScore  = SUITE_MAX_SCORE[suiteName];
         const row = [key];
         let totalScore = 0;
         let totalMs    = 0;
         let testCount  = 0;
 
         for (const test of TESTS) {
-            const r = results[key][test.id];
-            if (!r.ok) {
+            const r = results[key]?.[test.id];
+            if (!r) {
+                row.push('—');   // 此 suite 不跑這個測試
+            } else if (!r.ok) {
                 row.push('💥 err');
             } else {
                 row.push(r.pass ? '✅' : '❌');
-                totalScore += r.pass ? 1 : 0;  // pass/fail 各 1 分
+                totalScore += r.pass ? 1 : 0;
                 totalMs    += r.ms;
                 testCount++;
             }
         }
 
-        row.push(`${totalScore}/${MAX_SCORE}`);
+        row.push(`${totalScore}/${maxScore}`);
         row.push(testCount > 0 ? `${Math.round(totalMs / testCount)}ms` : '-');
         lines.push(`| ${row.join(' | ')} |`);
     }
 
     // 詳細結果
     lines.push('\n## 詳細結果\n');
-    for (const { key } of order) {
+    for (const { key, target } of order) {
         lines.push(`### ${key}\n`);
+        const suiteIds = SUITES[target.suite || 'standard_suite'];
         for (const test of TESTS) {
-            const r = results[key][test.id];
+            if (!suiteIds.includes(test.id)) continue;
+            const r = results[key]?.[test.id];
+            if (!r) continue;
             lines.push(`**${test.name}** (${r.ms}ms) — ${r.detail}`);
             if (r.text) {
                 lines.push(`\n<details><summary>回應預覽</summary>\n\n\`\`\`\n${r.text}\n\`\`\`\n\n</details>\n`);
@@ -139,12 +149,18 @@ function generateReport(order, results) {
 
     const fastModels = order
         .filter(({ key }) => {
-            const avg = TESTS.reduce((s, t) => s + (results[key][t.id]?.ms || 0), 0) / TESTS.length;
+            const suiteIds = SUITES[order.find(o => o.key === key)?.target?.suite || 'standard_suite'];
+            const runTests = TESTS.filter(t => suiteIds.includes(t.id));
+            const avg = runTests.reduce((s, t) => s + (results[key][t.id]?.ms || 0), 0) / (runTests.length || 1);
             return avg < 3000 && results[key]['tristream']?.ok;
         })
         .sort((a, b) => {
-            const avgA = TESTS.reduce((s, t) => s + (results[a.key][t.id]?.ms || 0), 0) / TESTS.length;
-            const avgB = TESTS.reduce((s, t) => s + (results[b.key][t.id]?.ms || 0), 0) / TESTS.length;
+            const suiteA  = SUITES[order.find(o => o.key === a.key)?.target?.suite || 'standard_suite'];
+            const suiteB  = SUITES[order.find(o => o.key === b.key)?.target?.suite || 'standard_suite'];
+            const testsA  = TESTS.filter(t => suiteA.includes(t.id));
+            const testsB  = TESTS.filter(t => suiteB.includes(t.id));
+            const avgA    = testsA.reduce((s, t) => s + (results[a.key][t.id]?.ms || 0), 0) / (testsA.length || 1);
+            const avgB    = testsB.reduce((s, t) => s + (results[b.key][t.id]?.ms || 0), 0) / (testsB.length || 1);
             return avgA - avgB;
         })
         .map(({ key }) => key);
@@ -184,26 +200,28 @@ class BenchmarkRunner {
             throw new Error('沒有可用的測試目標（請確認 API key 設定）');
         }
 
-        this._log(`\n🔬 Model Benchmark — ${targets.length} targets × ${TESTS.length} tests\n`);
+        this._log(`\n🔬 Model Benchmark — ${targets.length} targets\n`);
 
         const results = {};
         const order   = [];
 
-        // 先初始化 results / order（保持原本順序顯示）
         for (const target of targets) {
             const key = `${target.provider}/${target.model}`;
             results[key] = {};
             order.push({ key, target });
         }
 
-        // interleaveByProvider：同 provider 的 model 之間插入其他 provider
         const interleaved = interleaveByProvider(order);
 
-        // 外層 test，內層 interleaved target
+        // 外層 test，內層 interleaved target；按 suite 跳過不適用的測試
         for (const test of TESTS) {
             this._log(`\n📋 ${test.name}\n`);
             for (let i = 0; i < interleaved.length; i++) {
                 const { key, target } = interleaved[i];
+                const suiteIds = SUITES[target.suite || 'standard_suite'];
+
+                if (!suiteIds.includes(test.id)) continue;  // 此 suite 不跑這個測試
+
                 this._log(`  ${key.padEnd(50)} ...`);
                 const r = await runTest(target, test, systemPrompt);
                 results[key][test.id] = r;
@@ -226,33 +244,60 @@ class BenchmarkRunner {
         fs.mkdirSync(memDir, { recursive: true });
         fs.writeFileSync(outPath, report);
 
-        // 寫入 provider-registry：benchmark 通過率 ≥ 75% → active，否則 disabled
+        // 寫入 provider-registry（新 benchmarkScores 格式）
         for (const { key, target } of order) {
             const { provider, model } = target;
-            const passCount  = TESTS.filter(t => results[key][t.id]?.pass).length;
-            const passRate   = passCount / TESTS.length;
-            const totalMs    = TESTS.reduce((s, t) => s + (results[key][t.id]?.ms || 0), 0);
-            const avgLatency = Math.round(totalMs / TESTS.length);
+            const suiteName  = target.suite || 'standard_suite';
+            const suiteIds   = SUITES[suiteName];
+            const suiteTests = TESTS.filter(t => suiteIds.includes(t.id));
+            const maxScore   = SUITE_MAX_SCORE[suiteName];
+
+            const passCount  = suiteTests.filter(t => results[key][t.id]?.pass).length;
+            const passRate   = passCount / suiteTests.length;
+            const totalMs    = suiteTests.reduce((s, t) => s + (results[key][t.id]?.ms || 0), 0);
+            const avgLatency = Math.round(totalMs / suiteTests.length);
+
+            // benchmarkScores：各測試 pass → 1，否則 0
+            const benchmarkScores = {};
+            for (const t of suiteTests) {
+                benchmarkScores[t.id] = results[key][t.id]?.pass ? 1 : 0;
+            }
+
             const patch = {
-                benchmarkScore: passCount,
-                benchmarkMax:   TESTS.length,
-                benchmarkDate:  date,
-                avgLatencyMs:   avgLatency,
+                benchmarkScores,
+                benchmarkMax:  maxScore,
+                benchmarkDate: date,
+                avgLatencyMs:  avgLatency,
             };
+
             if (passRate >= 0.75) {
-                const capabilities = [];
-                if (results[key]['tristream']?.pass) capabilities.push('tristream');
+                // 保留非測試能力（vision、long_context），依測試結果更新測試能力
+                const currentInfo   = providerRegistry.getModelInfo(provider, model);
+                const existingCaps  = currentInfo?.capabilities || [];
+                const testedCapKeys = ['tristream', 'code', 'reasoning'];
+                const preserved     = existingCaps.filter(c => !testedCapKeys.includes(c));
+
+                if (results[key]['tristream']?.pass)         preserved.push('tristream');
+                if (results[key]['code']?.pass)              preserved.push('code');
+                if (results[key]['reasoning_quality']?.pass) preserved.push('reasoning');
+
                 patch.status       = 'active';
-                patch.capabilities = capabilities;
+                patch.capabilities = preserved;
                 patch.notes        = '';
             } else {
-                const failed = TESTS.filter(t => !results[key][t.id]?.pass).map(t => t.name);
+                const failed = suiteTests.filter(t => !results[key][t.id]?.pass).map(t => t.name);
                 patch.status = 'disabled';
                 patch.notes  = `benchmark failed: ${failed.join(', ')}`;
             }
+
             providerRegistry.updateModelStatus(provider, model, patch);
         }
         this._log(`\n📝 Registry 已更新（${order.length} 個 model）`);
+
+        // Roster 修剪：每個 provider 保留最優代表
+        this._log('\n🏆 執行 Roster 修剪...');
+        rosterManager.pruneToRoster();
+        this._log('✅ Roster 修剪完成');
 
         const tristreamCount = order.filter(({ key }) => results[key]['tristream']?.pass).length;
         const summary = `${targets.length} 個 model 測試完成，${tristreamCount} 個支援三流格式。報告：${outPath}`;

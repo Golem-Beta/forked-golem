@@ -1,21 +1,36 @@
 'use strict';
 /**
  * @module model-benchmark/targets
- * @role 從 configs.js 動態讀取 provider 資訊，建立測試目標清單
+ * @role 從 registry + configs.js 建立測試目標清單
  *
- * Gemini baseUrl 為 null（原始 SDK），此處改走 REST，故 type='gemini' 由 callers.js 分支處理。
+ * 名單來源改為 registry（active + pending_benchmark），
+ * provider 連線資訊（baseUrl / key）仍從 configs.js 讀。
+ * 每個 target 附帶 suite 欄位，由 runner 決定跑哪些測試。
  */
 
-const PROVIDER_CONFIGS = require('../../../model-router/configs');
+const PROVIDER_CONFIGS  = require('../../../model-router/configs');
+const { load: loadReg } = require('../../../model-router/provider-registry');
+
+/**
+ * 根據 model 的 capabilities 判斷 suite：
+ * 含 reasoning capability → reasoning_suite，否則 standard_suite。
+ * pending_benchmark 且 capabilities 為空 → 預設 standard_suite。
+ * @param {string[]} capabilities
+ * @returns {'standard_suite'|'reasoning_suite'}
+ */
+function _suitForCaps(capabilities) {
+    return (capabilities || []).includes('reasoning') ? 'reasoning_suite' : 'standard_suite';
+}
 
 /**
  * 建立測試目標清單。
  * @param {object} [overrides]
  * @param {string[]} [overrides.models] - 限制只測指定 model 名稱（省略則測全部）
- * @returns {Array<{provider: string, model: string, type: string, key: string, baseUrl?: string}>}
+ * @returns {Array<{provider, model, type, key, baseUrl?, suite}>}
  */
 function buildTargets(overrides = {}) {
     const { models: onlyModels } = overrides;
+    const reg     = loadReg();
     const targets = [];
 
     for (const [providerName, config] of Object.entries(PROVIDER_CONFIGS)) {
@@ -26,10 +41,12 @@ function buildTargets(overrides = {}) {
 
         if (!key) continue;
 
-        const isGemini = providerName === 'gemini';
-        const modelsToTest = Object.keys(config.modelCapabilities || {});
+        const provModels = reg.providers[providerName]?.models || {};
+        const isGemini   = providerName === 'gemini';
 
-        for (const model of modelsToTest) {
+        for (const [model, info] of Object.entries(provModels)) {
+            // 只跑 active 和 pending_benchmark；排除 disabled 和 benched
+            if (info.status === 'disabled' || info.status === 'benched') continue;
             if (onlyModels && !onlyModels.includes(model)) continue;
 
             targets.push({
@@ -37,6 +54,7 @@ function buildTargets(overrides = {}) {
                 model,
                 type: isGemini ? 'gemini' : 'openai',
                 key,
+                suite: _suitForCaps(info.capabilities),
                 ...(isGemini ? {} : { baseUrl: config.baseUrl }),
             });
         }

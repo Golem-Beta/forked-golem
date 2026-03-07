@@ -1,11 +1,14 @@
 /**
  * 🎯 ModelSelector — 根據 intent + 健康狀態選擇最佳 provider/model
- * 依賴：configs.js, intents.js
+ * 依賴：configs.js（provider 基本設定）, intents.js, provider-registry（capabilities）
+ *
+ * capabilities 已從 configs.modelCapabilities 移至 provider-registry，
+ * select() 在執行期從 registry 讀取，以反映最新 benchmark 結果。
  */
 'use strict';
-const PROVIDER_CONFIGS = require('./configs');
+const PROVIDER_CONFIGS    = require('./configs');
 const INTENT_REQUIREMENTS = require('./intents');
-const registry = require('./provider-registry');
+const registry            = require('./provider-registry');
 
 class ModelSelector {
     constructor(router) {
@@ -26,24 +29,29 @@ class ModelSelector {
             return this.select('chat');
         }
 
-        const requires = req.requires || [];
+        const requires    = req.requires || [];
         // 不需要 tristream 的 intent → 對 tristream 模型降分，節省 Gemini quota
         const savePremium = !requires.includes('tristream');
+
+        // 讀一次 registry（避免每個 model 分開 load file）
+        const reg = registry.load();
 
         const buildCandidates = (strict) => {
             const candidates = [];
 
-            for (const [providerName, config] of Object.entries(PROVIDER_CONFIGS)) {
+            for (const [providerName] of Object.entries(PROVIDER_CONFIGS)) {
                 if (!this._r.adapters.has(providerName)) continue;
-                const caps = config.modelCapabilities || {};
 
-                for (const [model, modelCaps] of Object.entries(caps)) {
+                const provModels = reg.providers[providerName]?.models || {};
+
+                for (const [model, modelInfo] of Object.entries(provModels)) {
+                    // 排除非 active（disabled / benched / pending_benchmark）
+                    if (modelInfo.status !== 'active') continue;
+
+                    const modelCaps = modelInfo.capabilities || [];
+
                     // 能力比對：intent 所需的每個 tag 都必須在 model 能力中
                     if (!requires.every(r => modelCaps.includes(r))) continue;
-
-                    // registry disabled 的 model 永遠排除
-                    const regInfo = registry.getModelInfo(providerName, model);
-                    if (regInfo && regInfo.status === 'disabled') continue;
 
                     if (strict) {
                         if (!this._r.health.isAvailable(providerName, model)) continue;
