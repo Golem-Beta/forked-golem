@@ -118,6 +118,7 @@ const PROVIDER_CONFIGS = {
         baseUrl: 'https://openrouter.ai/api/v1',
         envKey: 'OPENROUTER_API_KEY',
         multiKey: true,
+        minIntervalMs: 3000,  // upstream rate limit 敏感，請求間強制 3s 緩衝
         rpdLimits: {
             'qwen/qwen3-next-80b-a3b-instruct:free': 200,
         },

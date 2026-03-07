@@ -36,6 +36,8 @@ class ProviderHealth {
             reliability: 1.0,
             coolUntil: 0,
             lastSuccess: 0,
+            lastCallTime: 0,       // 上次實際發出請求的時間（用於 interval penalty）
+            minIntervalMs: config.minIntervalMs || 0,  // 0 = 無限制
             rpdLimits: rpdLimits,  // per-model limits
             modelUsed,             // per-model 獨立 used 計數
             avgLatency: 1000,      // EMA 延遲（ms），初始假設 1 秒
@@ -98,17 +100,33 @@ class ProviderHealth {
         if (!h) return 0;
         const latencyPenalty = Math.min(1, (h.avgLatency || 1000) / 5000) * 0.4;
         const latencyFactor  = 1 - latencyPenalty;
+        // interval penalty：距上次呼叫未達 minIntervalMs，score 大幅降低
+        // 讓 selector 優先選其他 provider；萬一其他全掛仍可被選中（不歸零）
+        const intervalFactor = (() => {
+            if (!h.minIntervalMs || !h.lastCallTime) return 1;
+            const elapsed = Date.now() - h.lastCallTime;
+            if (elapsed >= h.minIntervalMs) return 1;
+            return 0.05 + 0.95 * (elapsed / h.minIntervalMs);  // 線性恢復，最低保留 5%
+        })();
         if (model && h.rpdLimits[model] !== undefined) {
             const limit = h.rpdLimits[model];
-            if (limit === Infinity) return h.reliability * latencyFactor;
+            if (limit === Infinity) return h.reliability * latencyFactor * intervalFactor;
             const used = h.modelUsed[model] || 0;
-            return (1 - used / limit) * h.reliability * latencyFactor;
+            return (1 - used / limit) * h.reliability * latencyFactor * intervalFactor;
         }
-        if (h.rpd.limit === Infinity) return h.reliability * latencyFactor;
-        return (1 - h.rpd.used / h.rpd.limit) * h.reliability * latencyFactor;
+        if (h.rpd.limit === Infinity) return h.reliability * latencyFactor * intervalFactor;
+        return (1 - h.rpd.used / h.rpd.limit) * h.reliability * latencyFactor * intervalFactor;
     }
 
     // --- 狀態更新 ---
+
+    /**
+     * 記錄本次請求發出時間（在實際呼叫前觸發，用於 interval penalty 計算）
+     */
+    recordCall(provider) {
+        const h = this.providers.get(provider);
+        if (h) h.lastCallTime = Date.now();
+    }
 
     onSuccess(provider, model, latencyMs) {
         const h = this.providers.get(provider);

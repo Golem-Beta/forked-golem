@@ -43,6 +43,7 @@ async function execute(adapters, health, selector, opts) {
         if (!adapter) continue;
 
         try {
+            health.recordCall(provider);  // 記錄請求時間，供 interval penalty 使用
             const result = await adapter.complete({ ...opts, model });
             const latency = Date.now() - startTime;
 
