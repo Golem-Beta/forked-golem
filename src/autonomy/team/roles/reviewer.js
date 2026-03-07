@@ -94,7 +94,8 @@ ${patchedCode}
 }
 
 判斷標準：
-- reject：replace 中出現了呼叫不在已知方法清單中的 this.xxx() 方法
+- reject：replace 中出現了呼叫不在已知方法清單中的 this.xxx() 直接方法（例如 this.run()、this.execute()）
+  ⚠️ 注意：this.journal.append、this.notifier.send 等鏈式屬性呼叫（this.屬性.方法()）不受此限，不算違規
 - reject：有明顯破壞性改動（移除整個 try-catch、引入 eval/exec、刪除關鍵驗證）
 - needs_human：removed_logic 有項目不在 intentional_removals 中
 - approve：修改符合描述，無明顯風險`;

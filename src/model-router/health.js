@@ -185,18 +185,26 @@ class ProviderHealth {
     }
 
     /**
-     * RPD 重置（太平洋時間午夜呼叫）
+     * 重置單一 provider 的 RPD（由 per-provider 排程觸發）
+     */
+    resetRpd(providerName) {
+        const h = this.providers.get(providerName);
+        if (!h) return;
+        h.rpd.used = 0;
+        if (h.modelUsed) {
+            for (const m of Object.keys(h.modelUsed)) h.modelUsed[m] = 0;
+        }
+        h.reliability = Math.min(1.0, h.reliability * 0.8 + 0.2);
+        console.log(`🔄 [Health] ${providerName} RPD 已重置（午夜重置）`);
+        this.saveToDisk();
+    }
+
+    /**
+     * 重置全部 provider RPD（向下相容，保留備用）
      */
     resetAllRpd() {
-        for (const [name, h] of this.providers) {
-            h.rpd.used = 0;
-            if (h.modelUsed) {
-                for (const m of Object.keys(h.modelUsed)) h.modelUsed[m] = 0;
-            }
-            h.reliability = Math.min(1.0, h.reliability * 0.8 + 0.2);  // 緩慢恢復
-        }
-        console.log('🔄 [Health] RPD 已重置（太平洋時間午夜）');
-        this.saveToDisk();
+        for (const [name] of this.providers) this.resetRpd(name);
+        console.log('🔄 [Health] 所有 provider RPD 已重置');
     }
 
     // --- 委派至 HealthReporter（顯示格式化、DeepSeek 餘額查詢）---

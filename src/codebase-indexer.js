@@ -321,7 +321,13 @@ class CodebaseIndexer {
 
     static _extractClass(node, relPath, code, fileEntry, index) {
         const className = node.id.name;
+        const superClass = node.superClass && node.superClass.name ? node.superClass.name : null;
         fileEntry.classes.push(className);
+        // 記錄繼承關係，供 knownMethods 父類合併使用
+        if (superClass) {
+            if (!index.symbols.classInheritance) index.symbols.classInheritance = {};
+            index.symbols.classInheritance[className] = superClass;
+        }
         if (!node.body || !node.body.body) return;
         for (const member of node.body.body) {
             if (member.type !== 'MethodDefinition' || !member.key) continue;
@@ -332,6 +338,7 @@ class CodebaseIndexer {
                 file:       relPath,
                 className,
                 methodName,
+                superClass,
                 isAsync:    !!(member.value && member.value.async),
                 lineStart:  CodebaseIndexer._lineOf(code, member.start),
                 lineEnd:    CodebaseIndexer._lineOf(code, member.end),

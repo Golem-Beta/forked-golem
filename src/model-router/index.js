@@ -76,24 +76,32 @@ class ModelRouter {
     }
 
     /**
-     * 排程 RPD 重置（太平洋時間午夜）
+     * 排程 RPD 重置 — 每個 provider 依自己的 rpdResetTz 各自在午夜重置
      */
     _scheduleRpdReset() {
+        const PROVIDER_CONFIGS = require('./configs');
+        for (const [name, config] of Object.entries(PROVIDER_CONFIGS)) {
+            this._scheduleProviderRpdReset(name, config.rpdResetTz || 'UTC');
+        }
+    }
+
+    /**
+     * 計算指定時區的下次午夜，排程單一 provider RPD 重置
+     */
+    _scheduleProviderRpdReset(providerName, tz) {
         const now = new Date();
-        const laStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-        const laNow = new Date(laStr);
-        const tomorrow = new Date(laNow);
+        const tzNow = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+        const tomorrow = new Date(tzNow);
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(0, 0, 30, 0);  // 午夜 + 30 秒安全邊距
-        const msUntilReset = tomorrow.getTime() - laNow.getTime();
+        const msUntilReset = tomorrow.getTime() - tzNow.getTime();
 
-        this._rpdResetTimer = setTimeout(() => {
-            this.health.resetAllRpd();
-            this._scheduleRpdReset();  // 排程下一次
+        const timer = setTimeout(() => {
+            this.health.resetRpd(providerName);
+            this._scheduleProviderRpdReset(providerName, tz);  // 排程下次
         }, msUntilReset);
 
-        // 不阻止 process 退出
-        if (this._rpdResetTimer.unref) this._rpdResetTimer.unref();
+        if (timer.unref) timer.unref();
     }
 
     /**

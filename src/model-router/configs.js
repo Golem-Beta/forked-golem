@@ -13,6 +13,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'GEMINI_API_KEYS',
         multiKey: true,
         maxActiveModels: 4,
+        rpdResetTz: 'America/Los_Angeles',  // Google 以太平洋時間重置
         rpdLimits: {
             'gemini-2.5-flash-lite': 20,
             'gemini-2.5-flash': 20,
@@ -24,6 +25,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'GROQ_API_KEYS',
         multiKey: true,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         rpdLimits: {
             'llama-3.3-70b-versatile':                        1000,
             'openai/gpt-oss-120b':                            1000,
@@ -41,9 +43,10 @@ const PROVIDER_CONFIGS = {
         envKey: 'DEEPSEEK_API_KEY',
         multiKey: false,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         rpdLimits: {
-            'deepseek-chat':     Infinity,
-            'deepseek-reasoner': Infinity,
+            'deepseek-chat':     500,  // 付費無硬限，設 500 使 selector 平衡分配
+            'deepseek-reasoner': 500,
         },
         defaultRpm: 60,
     },
@@ -52,6 +55,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'MISTRAL_API_KEY',
         multiKey: false,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         rpdLimits: {
             'mistral-small-latest':    500,
             'mistral-large-latest':    500,
@@ -65,6 +69,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'CEREBRAS_API_KEY',
         multiKey: false,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         rpdLimits: {
             'gpt-oss-120b': 1000,
         },
@@ -75,6 +80,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'SAMBANOVA_API_KEY',
         multiKey: false,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         rpdLimits: {
             'Meta-Llama-3.3-70B-Instruct':         1000,
             'Llama-4-Maverick-17B-128E-Instruct':  1000,
@@ -89,6 +95,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'OPENROUTER_API_KEY',
         multiKey: true,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         minIntervalMs: 3000,  // upstream rate limit 敏感，請求間強制 3s 緩衝
         rpdLimits: {
             'qwen/qwen3-next-80b-a3b-instruct:free': 200,
@@ -100,6 +107,7 @@ const PROVIDER_CONFIGS = {
         envKey: 'NVIDIA_API_KEY',
         multiKey: false,
         maxActiveModels: 4,
+        rpdResetTz: 'UTC',
         rpdLimits: {
             'meta/llama-3.3-70b-instruct': 1000,
             'deepseek-ai/deepseek-v3.1':   500,

@@ -204,12 +204,26 @@ class DecisionUtils {
                     const CodebaseIndexer = require('../codebase-indexer');
                     const idx = CodebaseIndexer.load();
                     const className = targetNode.split('.')[0];
-                    knownMethods = Object.values(idx.symbols.classMethods)
+                    // 收集自身方法
+                    const selfMethods = Object.values(idx.symbols.classMethods)
                         .filter(m => m.className === className)
                         .map(m => m.methodName);
+                    // 遞迴合併父類方法（最多 2 層，避免無限展開）
+                    const inheritance = idx.symbols.classInheritance || {};
+                    const allMethods = new Set(selfMethods);
+                    let cur = className;
+                    for (let depth = 0; depth < 2; depth++) {
+                        const parent = inheritance[cur];
+                        if (!parent) break;
+                        Object.values(idx.symbols.classMethods)
+                            .filter(m => m.className === parent)
+                            .forEach(m => allMethods.add(m.methodName));
+                        cur = parent;
+                    }
+                    knownMethods = Array.from(allMethods);
                     if (knownMethods.length > 0) {
                         const constraintHeader =
-                            `// [${className} known methods: ${knownMethods.join(', ')}]\n` +
+                            `// [${className} known methods (incl. inherited): ${knownMethods.join(', ')}]\n` +
                             `// CONSTRAINT: replace 中只能呼叫以上已知方法，不可新增未定義的 this.xxx() call\n`;
                         snippet = constraintHeader + snippet;
                     }
