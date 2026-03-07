@@ -37,7 +37,8 @@ const INTENT_REQUIREMENTS = {
     // 深度分析：github/web 研究，長 context 優先
     analysis:   { requires: [],           priority: 'speed',   defaultMaxTokens: 3072 },
     // 快速決策：autonomy 選擇下一個行動，JSON 輸出
-    decision:   { requires: [],           priority: 'speed',   defaultMaxTokens: 512  },
+    // excludeTags: reasoning model 傾向輸出思考過程而非 JSON，不適合 decision
+    decision:   { requires: [], excludeTags: ['reasoning'], priority: 'speed', defaultMaxTokens: 512  },
     // 工具任務：HallucinationGuard、格式判斷等單句任務
     utility:    { requires: [],           priority: 'speed',   defaultMaxTokens: 256  },
 

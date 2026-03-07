@@ -29,7 +29,8 @@ class ModelSelector {
             return this.select('chat');
         }
 
-        const requires    = req.requires || [];
+        const requires    = req.requires    || [];
+        const excludeTags = req.excludeTags || [];
         // 不需要 tristream 的 intent → 對 tristream 模型降分，節省 Gemini quota
         const savePremium = !requires.includes('tristream');
 
@@ -52,6 +53,8 @@ class ModelSelector {
 
                     // 能力比對：intent 所需的每個 tag 都必須在 model 能力中
                     if (!requires.every(r => modelCaps.includes(r))) continue;
+                    // 排除含有 excludeTags 的 model
+                    if (excludeTags.some(t => modelCaps.includes(t))) continue;
 
                     if (strict) {
                         if (!this._r.health.isAvailable(providerName, model)) continue;
