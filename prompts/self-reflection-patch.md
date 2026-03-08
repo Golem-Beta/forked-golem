@@ -40,6 +40,13 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 - class method：只填方法本身（從方法名稱/static/async 到結尾的 `}`），**不含** class 外框
 - 縮排由系統自動正規化，不需手動對齊原始縮排
 - ⚠️ **換行符必須轉義**：`replace` 值內的所有換行符必須寫成 `\n`，不可使用實際換行。違反此規則會導致 JSON.parse() 失敗，patch 被完全丟棄。
+- ⚠️ **Regex 在 `replace` 欄位中有兩層 escape 規則**，違反任一條都會導致 `node -c` 失敗，patch 被丟棄：
+  1. **`/` 必須轉義為 `\/`**：regex 字面量中含有 `/` 字元（例如 `<\/think>`、`<\/script>`）必須寫成 `\\/`，否則 `/` 會提前終止 regex，後面的文字被解析為非法 flags。
+     - ❌ 錯誤：`raw.replace(/<think>[\\s\\S]*?</think>/g, '')`
+     - ✅ 正確：`raw.replace(/<think>[\\s\\S]*?<\/think>/g, '')`
+  2. **`\s` `\S` `\d` `\w` 等 regex escape 序列必須雙重轉義**：在 JSON 字串中，一個反斜線需寫成 `\\`，所以 regex 的 `[\s\S]` 在 `replace` 欄位中必須寫成 `[\\s\\S]`。
+     - ❌ 錯誤：`[\s\S]`（JSON 解析炸：Bad escaped character）
+     - ✅ 正確：`[\\s\\S]`（JSON 解析後得到 `[\s\S]`，寫入 .js 為合法 whitespace class）
 
 不需要指定 `"file"`——系統自動從 codebase 索引解析檔案路徑。
 
