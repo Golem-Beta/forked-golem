@@ -42,11 +42,13 @@ const INTENT_REQUIREMENTS = {
     // 工具任務：HallucinationGuard、格式判斷等單句任務
     utility:    { requires: [],           priority: 'speed',   defaultMaxTokens: 256  },
 
-    // 社交互動：moltbook_check、moltbook_post 等 AI 社群互動，純文字輸出
-    social:     { requires: [],           priority: 'quality', defaultMaxTokens: 512  },
+    // 社交互動：moltbook_check、moltbook_post 等 AI 社群互動
+    // excludeTags: reasoning model 輸出思考過程干擾 JSON plan 解析
+    social:     { requires: [], excludeTags: ['reasoning'], priority: 'quality', defaultMaxTokens: 512  },
 
-    // 程式碼審查：ReviewerAgent 語義審查 patch，不需三流格式，優先選高準確度模型
-    code_review: { requires: [],          priority: 'quality', defaultMaxTokens: 1024 },
+    // 程式碼審查：ReviewerAgent 語義審查 patch，需要結構化 JSON 輸出
+    // excludeTags: reasoning model 的思考過程會破壞 JSON parse
+    code_review: { requires: [], excludeTags: ['reasoning'], priority: 'quality', defaultMaxTokens: 1024 },
 
     // ── 特殊能力 intent ───────────────────────────────────────────
     // 視覺：圖片分析，需要 vision 能力

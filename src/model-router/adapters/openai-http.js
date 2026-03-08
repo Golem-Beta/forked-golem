@@ -102,9 +102,11 @@ function doRequest(name, baseUrl, apiKey, params) {
                     }
 
                     const choice = json.choices?.[0];
-                    const rawText = choice?.message?.content
-                        || choice?.message?.reasoning_content
-                        || '';
+                    // content 可能是字串（普通 model）或陣列（magistral content blocks）
+                    const rawContent = choice?.message?.content;
+                    const rawText = Array.isArray(rawContent)
+                        ? rawContent.filter(b => b?.type === 'text').map(b => b.text || '').join('')
+                        : (rawContent || choice?.message?.reasoning_content || '');
                     const usage = json.usage || {};
 
                     // 空字串視為失敗，讓 router failover 到下一個 provider
