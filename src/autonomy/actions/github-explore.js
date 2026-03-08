@@ -149,7 +149,7 @@ class GitHubExploreAction extends BaseAction {
                             '', analysis
                         ].join('\n');
                         const sentGH = await this.notifier.sendToAdmin(parts);
-                        console.log('[GitHub] sendToAdmin:', sentGH === true ? '✅ OK' : '❌ FAILED');
+                        console.log('[GitHub] sendToAdmin:', sentGH === true ? '✅ OK' : sentGH === 'queued' ? '🔇 queued' : '❌ FAILED');
                 
                         this.journal.append({
                             action: 'github_explore', topic, repo: newRepo.full_name,

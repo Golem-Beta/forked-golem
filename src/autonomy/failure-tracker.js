@@ -19,6 +19,8 @@ class FailureTracker {
      */
     async record(result) {
         if (result.success) return;
+        // queued = 靜默佇列，非真實失敗，不計入失敗追蹤
+        if (result.outcome === 'queued') return;
         const key = result.target
             ? result.action + ':' + result.target
             : result.action + ':' + result.outcome;
