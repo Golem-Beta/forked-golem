@@ -12,8 +12,9 @@ class ActionFilter {
     // 各行動的硬限制（程式層強制，不進入 LLM 決策）
     static get HARD_LIMITS() {
         return {
-            gmail_check: 2 * 60 * 60 * 1000,   // 2 小時
-            drive_sync:  6 * 60 * 60 * 1000,   // 6 小時
+            gmail_check:     2 * 60 * 60 * 1000,       // 2 小時
+            drive_sync:      6 * 60 * 60 * 1000,       // 6 小時
+            model_benchmark: 7 * 24 * 60 * 60 * 1000,  // 7 天
         };
     }
 
@@ -60,6 +61,17 @@ class ActionFilter {
                 if (todayCount >= actionCfg.dailyLimit) {
                     blocked = true;
                     note = '今天已達上限 (' + todayCount + '/' + actionCfg.dailyLimit + ')';
+                }
+            }
+
+            if (!blocked && actionCfg.weeklyLimit) {
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+                const weekCount = hardLimitEntries.filter(
+                    j => j.action === id && j.ts && j.ts > weekAgo
+                ).length;
+                if (weekCount >= actionCfg.weeklyLimit) {
+                    blocked = true;
+                    note = '本週已達上限 (' + weekCount + '/' + actionCfg.weeklyLimit + ')';
                 }
             }
 

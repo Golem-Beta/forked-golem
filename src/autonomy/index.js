@@ -95,6 +95,7 @@ class AutonomyManager {
         if (!fs.existsSync(memDir)) fs.mkdirSync(memDir, { recursive: true });
         this.chronos.rebuild();
         this.scheduleNextAwakening();
+        this._scheduleBenchmarkGuard();
         // 啟動時若不在靜默時段且 queue 有內容，10 秒後 drain（等 bot 就緒）
         try {
             const nowHour = new Date().getHours();
@@ -104,6 +105,80 @@ class AutonomyManager {
                 setTimeout(() => this._drainAndSend(), 10000);
             }
         } catch (_) {}
+    }
+
+    /**
+     * 定期保底 benchmark：距上次滿 7 天後，排在下一個低谷時段開頭觸發。
+     * 觸發前再查 journal 確認沒被 decision 搶先執行，避免同週雙跑。
+     */
+    _scheduleBenchmarkGuard() {
+        if (this._benchmarkGuardTimer) {
+            clearTimeout(this._benchmarkGuardTimer);
+            this._benchmarkGuardTimer = null;
+        }
+        try {
+            const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+            const cfg = this.decision.loadAutonomyConfig();
+            const quietHours = cfg.awakening?.quietHours || cfg.awakening?.sleepHours || [22, 23, 0, 1, 2, 3, 4, 5];
+
+            // 找上次 benchmark 執行時間
+            const recentEntries = this.journal.readRecent(200);
+            const lastBenchmark = recentEntries
+                .filter(e => e.action === 'model_benchmark')
+                .slice(-1)[0];
+            const lastRunMs = lastBenchmark?.ts ? new Date(lastBenchmark.ts).getTime() : 0;
+
+            // 從「上次 + 7 天」往後找第一個 quietHours 起始點
+            const earliestFire = lastRunMs + SEVEN_DAYS_MS;
+            const now = Date.now();
+            const baseTime = Math.max(earliestFire, now);
+
+            // 找下一個 quietHour 時刻（從 baseTime 往後掃，最多掃 48 小時）
+            let fireAt = null;
+            for (let offset = 0; offset < 48 * 60; offset++) {
+                const candidate = new Date(baseTime + offset * 60000);
+                const h = candidate.getHours();
+                const m = candidate.getMinutes();
+                if (quietHours.includes(h) && m === 0) {
+                    // 找到整點 quietHour
+                    fireAt = candidate.getTime();
+                    break;
+                }
+            }
+            if (!fireAt) {
+                // fallback: 從 baseTime 起 1 小時後
+                fireAt = baseTime + 3600000;
+            }
+
+            const delayMs = fireAt - Date.now();
+            const fireDate = new Date(fireAt);
+            console.log('🔬 [BenchmarkGuard] 下次保底 benchmark: ' + fireDate.toISOString() +
+                ' (約 ' + (delayMs / 3600000).toFixed(1) + ' 小時後)');
+
+            this._benchmarkGuardTimer = setTimeout(async () => {
+                // 觸發前再查一次，確認這週沒跑過
+                const weekAgo = new Date(Date.now() - SEVEN_DAYS_MS).toISOString();
+                const recent = this.journal.readRecent(200);
+                const ranThisWeek = recent.some(e => e.action === 'model_benchmark' && e.ts && e.ts > weekAgo);
+                if (ranThisWeek) {
+                    console.log('🔬 [BenchmarkGuard] 本週已有 benchmark 紀錄，跳過保底觸發');
+                    this._scheduleBenchmarkGuard();
+                    return;
+                }
+                console.log('🔬 [BenchmarkGuard] 保底觸發 model_benchmark');
+                try {
+                    await this.actions.performModelBenchmark();
+                } catch (e) {
+                    console.error('🔬 [BenchmarkGuard] benchmark 失敗:', e.message);
+                }
+                // 完成後重新排下一個週期
+                this._scheduleBenchmarkGuard();
+            }, delayMs);
+        } catch (e) {
+            console.error('🔬 [BenchmarkGuard] 排程失敗:', e.message);
+            // 異常時 24 小時後重試
+            this._benchmarkGuardTimer = setTimeout(() => this._scheduleBenchmarkGuard(), 24 * 3600000);
+        }
     }
 
     scheduleNextAwakening() {
