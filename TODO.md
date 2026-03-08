@@ -1,7 +1,7 @@
 # Forked-Golem TODO 統整
 
 > 從過去所有對話中彙整，按優先級排序
-> 最後更新：2026-03-05（session 10 — 同步至 v9.17.0）
+> 最後更新：2026-03-08（session 11 — Team pipeline no_target_node 三修）
 
 ---
 
@@ -64,6 +64,7 @@
 - ~~BaseAction helpers 統一遷移，修正靜默丟棄~~
 - ~~Groq 模型更新 — gpt-oss-120b(reasoning) + llama-4-maverick~~
 - ~~digest 加入 git log -15 context~~
+- ~~Team pipeline no_target_node 修正：decision.js proxy 補傳 pathsOnly、nodeList 擴展全 src/、Analyst 可達性標記（reachable/suggestion）、TeamRunner needs_human journal~~
 
 ---
 

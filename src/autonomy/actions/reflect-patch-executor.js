@@ -161,8 +161,8 @@ class PatchExecutor extends BaseAction {
                     this.notifier.sendToAdmin('📎 上方提案的 patch 文件', { document: testFile })
                         .catch(e => console.warn('[SelfReflection] 文件補發失敗:', e.message));
                 }
-            } else if (this.config.ADMIN_IDS && this.config.ADMIN_IDS[0]) {
-                // 自主觸發路徑：透過 notifier.sendToAdmin，遵守 quiet hours
+            } else {
+                // 自主觸發路徑（triggerCtx 無 reply 方法）：透過 notifier.sendToAdmin，遵守 quiet hours
                 const result = await this.notifier.sendToAdmin(msgText, {
                     document: testFile,
                     source: 'patch_review',
