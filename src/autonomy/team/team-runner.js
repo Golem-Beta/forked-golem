@@ -61,6 +61,9 @@ class TeamRunner {
 
             if (result === null || result === undefined) {
                 console.warn(`[TeamRunner] ${roleName} 回傳 null，中止執行`);
+                if (roleName === 'ImplementerRole' && ctx.analystOutput?.suggestion === 'whole_file_add') {
+                    this.journal.append({ action: 'team_runner', outcome: 'needs_human', reason: 'whole_file_add suggested by analyst' });
+                }
                 return null;
             }
 

@@ -124,18 +124,38 @@ class AnalystRole extends BaseAction {
             const idx = CodebaseIndexer.load();
             const lines = [];
             for (const [name, info] of Object.entries(idx.symbols.classMethods)) {
-                if (!info.file || !info.file.startsWith('src/autonomy')) continue;
+                if (!info.file || !info.file.startsWith('src/')) continue;
+                if (info.file.includes('.test.') || info.file.includes('/test/')) continue;
                 if (name.endsWith('.constructor')) continue; // constructor 通常不需要單獨 patch
                 lines.push(`${name} → ${info.file}`);
             }
             for (const [name, info] of Object.entries(idx.symbols.topLevelFunctions)) {
-                if (!info.file || !info.file.startsWith('src/autonomy')) continue;
+                if (!info.file || !info.file.startsWith('src/')) continue;
+                if (info.file.includes('.test.') || info.file.includes('/test/')) continue;
                 lines.push(`${name} → ${info.file}`);
             }
             nodeList = lines.join('\n');
         } catch (_) {}
 
+        // 可達性標記：檢查 root_cause 是否與 nodeList 中的任何檔名有 substring 交集
+        const rootCauseLower = (analystOutput.root_cause || '').toLowerCase();
+        const nodeLines = nodeList !== '(無)' ? nodeList.split('\n') : [];
+        let reachable = false;
+        for (const line of nodeLines) {
+            const parts = line.split(' → ');
+            if (parts.length < 2) continue;
+            const filePath = parts[1].trim().toLowerCase();
+            const baseName = path.basename(filePath, '.js').toLowerCase();
+            if (rootCauseLower.includes(filePath) || rootCauseLower.includes(baseName)) {
+                reachable = true;
+                break;
+            }
+        }
+        analystOutput.reachable = reachable;
+        if (!reachable) analystOutput.suggestion = 'whole_file_add';
+
         console.log('[Team/Analyst] 症狀:', analystOutput.symptom);
+        console.log('[Team/Analyst] 可達性:', reachable ? 'reachable' : 'not reachable (suggestion: whole_file_add)');
         return { analystOutput, diagFile, fileList, nodeList };
     }
 

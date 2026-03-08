@@ -40,7 +40,7 @@ class DecisionEngine {
     loadAutonomyConfig() { return this.utils.loadAutonomyConfig(); }
     readSoul() { return this.utils.readSoul(); }
     getTimeContext(now) { return this.utils.getTimeContext(now); }
-    getProjectFileList() { return this.utils.getProjectFileList(); }
+    getProjectFileList(pathsOnly = false) { return this.utils.getProjectFileList(pathsOnly); }
     extractCodeSection(f, targetNode = null) { return this.utils.extractCodeSection(f, targetNode); }
     saveReflection(a, c) { return this.utils.saveReflection(a, c); }
     getAvailableActions() { return this._actionFilter.getAvailableActions({ journal: this.journal, notifier: this.notifier, cfg: this.loadAutonomyConfig() }); }
