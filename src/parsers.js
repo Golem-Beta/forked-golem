@@ -140,13 +140,14 @@ class ResponseParser {
             return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
         } catch (e) {
             // 修復 LLM 在字串值中插入的 literal newline（最常見問題，優先嘗試）
+            // 修復 1：literal newline
             try {
                 const fixedNl = _fixLiteralNewlines(cleaned);
                 const parsed = JSON.parse(fixedNl);
                 console.log('[Parser] 修復 literal newline 後解析成功');
                 return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
             } catch (_) {}
-            // 修復 LLM 在 replace 欄位插入的非法 backslash escape（如 \: \- \. 等）
+            // 修復 2：bad escape（如 \: \- \. 等非法 escape sequence）
             if (e.message && (e.message.includes('Bad escaped') || e.message.includes('bad escaped'))) {
                 try {
                     const fixedEscapes = cleaned.replace(/\\([^"\\/bfnrtu\r\n0-9])/g, '\\\\$1');
@@ -155,6 +156,13 @@ class ResponseParser {
                     return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
                 } catch (_) {}
             }
+            // 修復 3：literal newline + bad escape 同時存在（先修 newline，再修 escape）
+            try {
+                const fixedBoth = _fixLiteralNewlines(cleaned).replace(/\\([^"\\/bfnrtu\r\n0-9])/g, '\\\\$1');
+                const parsed = JSON.parse(fixedBoth);
+                console.log('[Parser] 修復 literal newline + bad escape 後解析成功');
+                return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
+            } catch (_) {}
             try {
                 const lastComplete = cleaned.lastIndexOf('},');
                 if (lastComplete > 0) {
