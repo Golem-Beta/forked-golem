@@ -15,8 +15,10 @@ const PROVIDER_CONFIGS = {
         maxActiveModels: 4,
         rpdResetTz: 'America/Los_Angeles',  // Google 以太平洋時間重置
         rpdLimits: {
-            'gemini-2.5-flash-lite': 20,
-            'gemini-2.5-flash': 20,
+            'gemini-2.5-flash-lite':        20,
+            'gemini-2.5-flash':             20,
+            'gemini-3-flash-preview':        20,  // probe OK 2026-03-08，RPD 待確認
+            'gemini-3.1-flash-lite-preview': 20,  // probe OK 2026-03-08，RPD 待確認
         },
         defaultRpm: 15,
     },

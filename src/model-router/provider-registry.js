@@ -33,8 +33,10 @@ const EMPTY = { version: 2, updatedAt: null, providers: {} };
  */
 const INITIAL_CAPABILITIES = {
     gemini: {
-        'gemini-2.5-flash':      ['tristream', 'vision', 'long_context'],
-        'gemini-2.5-flash-lite': ['tristream'],
+        'gemini-2.5-flash':             ['tristream', 'vision', 'long_context'],
+        'gemini-2.5-flash-lite':        ['tristream'],
+        'gemini-3-flash-preview':        ['tristream'],  // probe OK 2026-03-08
+        'gemini-3.1-flash-lite-preview': ['tristream'],  // probe OK 2026-03-08
     },
     groq: {
         'llama-3.3-70b-versatile':                        ['tristream'],
