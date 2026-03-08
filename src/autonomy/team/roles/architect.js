@@ -57,11 +57,15 @@ class ArchitectRole extends BaseAction {
         console.log('[Team/Architect] 驗證診斷，設計策略...');
         let architectOutput;
         for (let attempt = 1; attempt <= 2; attempt++) {
-            const raw = (await this.decision.callLLM(prompt, { temperature: 0.4, intent: 'analysis' })).text;
+            const raw = (await this.decision.callLLM(prompt, { temperature: 0.4, intent: 'analysis', requireJson: true })).text;
             if (attempt === 1) this.decision.saveReflection('reflect_architect', raw);
             try {
                 const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
-                architectOutput = JSON.parse(cleaned);
+        // 防禦：修復 LLM 輸出中 JSON 字串值內的裸換行（JSON 規格不允許）
+        const fixedJson = cleaned.replace(/"(?:[^"\\]|\\.)*"/g, m =>
+            m.replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+        );
+                architectOutput = JSON.parse(fixedJson);
                 // 驗證 target_file 在 fileList 中（fileList 是 string[]）
                 if (architectOutput.target_file && Array.isArray(fileList) && fileList.length > 0) {
                     if (!fileList.includes(architectOutput.target_file)) {
@@ -152,10 +156,14 @@ class ArchitectRole extends BaseAction {
         });
         if (!prompt) throw new Error('reflect-debate-challenge.md 載入失敗');
 
-        const raw = (await this.decision.callLLM(prompt, { temperature: 0.3, intent: 'analysis' })).text;
+        const raw = (await this.decision.callLLM(prompt, { temperature: 0.3, intent: 'analysis', requireJson: true })).text;
         try {
             const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleaned);
+        // 防禦：修復 LLM 輸出中 JSON 字串值內的裸換行（JSON 規格不允許）
+        const fixedJson = cleaned.replace(/"(?:[^"\\]|\\.)*"/g, m =>
+            m.replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+        );
+            return JSON.parse(fixedJson);
         } catch (e) {
             console.warn('[Team/Architect] challenge 解析失敗:', e.message);
             return null;

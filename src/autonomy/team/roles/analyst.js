@@ -98,13 +98,17 @@ class AnalystRole extends BaseAction {
         if (!prompt) throw new Error('reflect-analyst.md 載入失敗');
 
         console.log('🧬 [Team/Analyst] 分析症狀與根本原因...');
-        const raw      = (await this.decision.callLLM(prompt, { temperature: 0.5, intent: 'analysis' })).text;
+        const raw      = (await this.decision.callLLM(prompt, { temperature: 0.5, intent: 'analysis', requireJson: true })).text;
         const diagFile = this.decision.saveReflection('reflect_analyst', raw);
 
         let analystOutput;
         try {
             const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            analystOutput = JSON.parse(cleaned);
+        // 防禦：修復 LLM 輸出中 JSON 字串值內的裸換行（JSON 規格不允許）
+        const fixedJson = cleaned.replace(/"(?:[^"\\]|\\.)*"/g, m =>
+            m.replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+        );
+            analystOutput = JSON.parse(fixedJson);
         } catch (e) {
             console.warn('[Team/Analyst] JSON 解析失敗:', e.message);
             this.journal.append({ action: 'team_analyst', outcome: 'parse_failed', error: e.message });
@@ -172,10 +176,14 @@ class AnalystRole extends BaseAction {
         });
         if (!prompt) throw new Error('reflect-debate-response.md 載入失敗');
 
-        const raw = (await this.decision.callLLM(prompt, { temperature: 0.3, intent: 'analysis' })).text;
+        const raw = (await this.decision.callLLM(prompt, { temperature: 0.3, intent: 'analysis', requireJson: true })).text;
         try {
             const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleaned);
+        // 防禦：修復 LLM 輸出中 JSON 字串值內的裸換行（JSON 規格不允許）
+        const fixedJson = cleaned.replace(/"(?:[^"\\]|\\.)*"/g, m =>
+            m.replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+        );
+            return JSON.parse(fixedJson);
         } catch (e) {
             console.warn('[Team/Analyst] respond 解析失敗，保守回傳 consensus: false');
             return { response: raw.substring(0, 200), revised_root_cause: analystOutput?.root_cause, consensus: false };
