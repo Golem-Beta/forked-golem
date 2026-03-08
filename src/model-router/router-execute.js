@@ -48,7 +48,7 @@ async function execute(adapters, health, selector, opts) {
             const latency = Date.now() - startTime;
 
             console.log(`✅ [ModelRouter] ${provider}/${model} (${latency}ms, intent=${intent})`);
-            health.onSuccess(provider, model, latency);
+            health.onSuccess(provider, model, latency, result.keyIndex ?? 0);
 
             return {
                 text:      result.text,

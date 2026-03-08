@@ -54,14 +54,16 @@ class GeminiAdapter extends ProviderAdapter {
         let lastError = null;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
-            const apiKey = await this._getKeyThrottled();
-            if (!apiKey) throw new Error('[Gemini] 沒有可用的 API Key');
+            const keyResult = await this._getKeyThrottled();
+            if (!keyResult || !keyResult.key) throw new Error('[Gemini] 沒有可用的 API Key');
+            const { key: apiKey, idx: keyIndex } = keyResult;
 
             try {
-                return await doGenerate(apiKey, {
+                const result = await doGenerate(apiKey, {
                     model, messages, maxTokens, temperature, requireJson,
                     systemInstruction, tools, inlineData, chatHistory,
                 });
+                return { ...result, keyIndex };
             } catch (e) {
                 lastError = e;
                 const msg = e.message || '';
@@ -107,16 +109,17 @@ class GeminiAdapter extends ProviderAdapter {
             const key = this.keys[idx];
             if (!this._isCooling(key)) {
                 this.currentIndex = (idx + 1) % this.keys.length;
-                return key;
+                return { key, idx };
             }
         }
         // 全部冷卻：回傳最快解除的那把
-        let earliest = null, earliestTime = Infinity;
+        let earliest = null, earliestTime = Infinity, earliestIdx = 0;
         for (const [k, t] of this._cooldownUntil) {
-            if (t < earliestTime) { earliest = k; earliestTime = t; }
+            if (t < earliestTime) { earliest = k; earliestTime = t; earliestIdx = this.keys.indexOf(k); }
         }
         if (earliest) this._cooldownUntil.delete(earliest);
-        return earliest || this.keys[0];
+        const fallbackKey = earliest || this.keys[0];
+        return { key: fallbackKey, idx: this.keys.indexOf(fallbackKey) };
     }
 
     async _getKeyThrottled() {
@@ -128,7 +131,7 @@ class GeminiAdapter extends ProviderAdapter {
                     await new Promise(r => setTimeout(r, this._minInterval - elapsed));
                 }
                 this._lastCallTime = Date.now();
-                resolve(this._getAvailableKey());
+                resolve(this._getAvailableKey());  // 回傳 {key, idx}
             });
         });
     }

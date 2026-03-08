@@ -69,7 +69,8 @@ class ModelRouter {
             }
 
             this.adapters.set(name, adapter);
-            this.health.register(name, config);
+            const keyCount = adapter.keys ? adapter.keys.length : 1;
+            this.health.register(name, config, keyCount);
         }
         // registry 初始化：補入 configs 中尚未有 registry 條目的 model
         providerRegistry.initRegistryFromConfigs(PROVIDER_CONFIGS);

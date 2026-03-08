@@ -119,7 +119,19 @@ class DashboardMonitor {
                                         parts.push(`{cyan-fg}#${i}{/}~${Math.ceil(remain/60000)}m`);
                                     }
                                 } else {
-                                    parts.push(`{green-fg}#${i}●{/}`);
+                                    // 方案 A：用 min_limit_model 的 remaining 顯示
+                                    let rpdRemStr = '';
+                                    if (h.keys && h.rpdLimits) {
+                                        const limits = h.rpdLimits;
+                                        const entries = Object.entries(limits).filter(([,v]) => v !== Infinity);
+                                        if (entries.length > 0) {
+                                            const minEntry = entries.reduce((a, b) => a[1] <= b[1] ? a : b);
+                                            const keyData = h.keys[String(i)] || {};
+                                            const used = keyData[minEntry[0]] || 0;
+                                            rpdRemStr = String(minEntry[1] - used);
+                                        }
+                                    }
+                                    parts.push(`{green-fg}#${i}●{/}${rpdRemStr}`);
                                 }
                             }
                             keyStatus = parts.join(' ');
@@ -145,14 +157,15 @@ class DashboardMonitor {
                         let rpdStr;
                         if (isMultiModel) {
                             const modelParts = Object.keys(_visibleLimits).map(model => {
-                                const used     = h.modelUsed?.[model] ?? 0;
+                                const used = h.keys
+                                    ? Object.values(h.keys).reduce((s, k) => s + (k[model] || 0), 0)
+                                    : (h.modelUsed?.[model] ?? 0);
                                 const limit    = _visibleLimits[model];
-                                const limitStr = limit === Infinity ? '∞' : String(limit);
                                 const abbr     = abbreviateModel(model);
                                 const pct      = limit === Infinity ? 0 : used / limit;
                                 const color    = pct >= 0.8 ? '{yellow-fg}' : '';
                                 const colorEnd = pct >= 0.8 ? '{/}' : '';
-                                return `${color}${abbr} ${used}/${limitStr}${colorEnd}`;
+                                return `${color}${abbr}:${used}${colorEnd}`;
                             });
                             rpdStr = modelParts.join('  ');
                         } else {

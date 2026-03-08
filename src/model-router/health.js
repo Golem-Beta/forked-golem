@@ -20,14 +20,18 @@ class ProviderHealth {
         this.reporter = new HealthReporter();
     }
 
-    register(name, config) {
+    register(name, config, keyCount = 1) {
         // 取第一個模型的 RPD limit 作為預設
         const rpdLimits = config.rpdLimits || {};
         const firstLimit = Object.values(rpdLimits)[0] || 1000;
 
-        // 初始化每個 model 的獨立 used 計數
-        const modelUsed = {};
-        for (const m of Object.keys(rpdLimits)) modelUsed[m] = 0;
+        // 初始化 per-key、per-model 計數結構
+        // keys: { '0': { modelName: usedCount }, '1': {...}, ... }
+        const keys = {};
+        for (let i = 0; i < keyCount; i++) {
+            keys[String(i)] = {};
+            for (const m of Object.keys(rpdLimits)) keys[String(i)][m] = 0;
+        }
 
         this.providers.set(name, {
             hasKey: true,
@@ -39,7 +43,7 @@ class ProviderHealth {
             lastCallTime: 0,       // 上次實際發出請求的時間（用於 interval penalty）
             minIntervalMs: config.minIntervalMs || 0,  // 0 = 無限制
             rpdLimits: rpdLimits,  // per-model limits
-            modelUsed,             // per-model 獨立 used 計數
+            keys,                  // per-key per-model used 計數
             avgLatency: 1000,      // EMA 延遲（ms），初始假設 1 秒
             callCount: 0,          // 成功呼叫次數（用於 dashboard ranking）
         });
@@ -70,7 +74,9 @@ class ProviderHealth {
         if (h.coolUntil > Date.now()) return false;
         if (model && h.rpdLimits[model] !== undefined) {
             const limit = h.rpdLimits[model];
-            const used = h.modelUsed[model] || 0;
+            const used = h.keys
+                ? Object.values(h.keys).reduce((s, k) => s + (k[model] || 0), 0)
+                : 0;
             if (limit !== Infinity && used >= limit * 0.95) return false;
         }
         return true;
@@ -111,7 +117,9 @@ class ProviderHealth {
         if (model && h.rpdLimits[model] !== undefined) {
             const limit = h.rpdLimits[model];
             if (limit === Infinity) return h.reliability * latencyFactor * intervalFactor;
-            const used = h.modelUsed[model] || 0;
+            const used = h.keys
+                ? Object.values(h.keys).reduce((s, k) => s + (k[model] || 0), 0)
+                : 0;
             return (1 - used / limit) * h.reliability * latencyFactor * intervalFactor;
         }
         if (h.rpd.limit === Infinity) return h.reliability * latencyFactor * intervalFactor;
@@ -128,12 +136,20 @@ class ProviderHealth {
         if (h) h.lastCallTime = Date.now();
     }
 
-    onSuccess(provider, model, latencyMs) {
+    onSuccess(provider, model, latencyMs, keyIndex = 0) {
         const h = this.providers.get(provider);
         if (!h) return;
-        h.rpd.used++;
-        if (model && h.modelUsed && h.modelUsed[model] !== undefined) {
-            h.modelUsed[model]++;
+        // per-key per-model 計數
+        const kidx = String(keyIndex);
+        if (h.keys) {
+            if (!h.keys[kidx]) {
+                // 動態擴充（key 數量超出初始化時）
+                h.keys[kidx] = {};
+                for (const m of Object.keys(h.rpdLimits || {})) h.keys[kidx][m] = 0;
+            }
+            if (model && h.keys[kidx][model] !== undefined) {
+                h.keys[kidx][model]++;
+            }
         }
         h.lastSuccess = Date.now();
         h.callCount = (h.callCount || 0) + 1;
@@ -191,8 +207,10 @@ class ProviderHealth {
         const h = this.providers.get(providerName);
         if (!h) return;
         h.rpd.used = 0;
-        if (h.modelUsed) {
-            for (const m of Object.keys(h.modelUsed)) h.modelUsed[m] = 0;
+        if (h.keys) {
+            for (const kidx of Object.keys(h.keys)) {
+                for (const m of Object.keys(h.keys[kidx])) h.keys[kidx][m] = 0;
+            }
         }
         h.reliability = Math.min(1.0, h.reliability * 0.8 + 0.2);
         console.log(`🔄 [Health] ${providerName} RPD 已重置（午夜重置）`);
@@ -232,7 +250,7 @@ class ProviderHealth {
         try {
             const state = {};
             for (const [name, h] of this.providers) {
-                state[name] = { used: h.rpd.used, modelUsed: h.modelUsed || {}, date: new Date().toDateString() };
+                state[name] = { keys: h.keys || {}, date: new Date().toDateString() };
             }
             fs.mkdirSync(path.dirname(this._diskPath), { recursive: true });
             fs.writeFileSync(this._diskPath, JSON.stringify(state, null, 2));
@@ -254,10 +272,14 @@ class ProviderHealth {
                 if (saved.date !== today) continue;  // 非當天，跳過（已過午夜重置）
                 const h = this.providers.get(name);
                 if (!h) continue;
-                h.rpd.used = saved.used || 0;
-                if (saved.modelUsed && h.modelUsed) {
-                    for (const [m, v] of Object.entries(saved.modelUsed)) {
-                        if (h.modelUsed[m] !== undefined) h.modelUsed[m] = v || 0;
+                // 舊格式（有 used 但無 keys）直接跳過，從零開始
+                if (!saved.keys) continue;
+                if (h.keys) {
+                    for (const [kidx, kdata] of Object.entries(saved.keys)) {
+                        if (!h.keys[kidx]) h.keys[kidx] = {};
+                        for (const [m, v] of Object.entries(kdata || {})) {
+                            if (h.keys[kidx][m] !== undefined) h.keys[kidx][m] = v || 0;
+                        }
                     }
                 }
                 restored++;
