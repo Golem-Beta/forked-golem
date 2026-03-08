@@ -174,8 +174,8 @@ class PatchManager {
             if (patchedCode === originalCode) throw new Error('patch 未產生任何變更');
             const ext = path.extname(originalPath);
             const name = path.basename(originalPath, ext);
-            const dir = path.dirname(originalPath); // 修正：寫到原始檔所在目錄
-            const testFile = path.join(dir, `${name}.test${ext}`);
+            // 用 /tmp/ 避免與原始檔旁的真實 .test.js 檔案路徑碰撞
+            const testFile = path.join(require('os').tmpdir(), `golem-patch-${name}-${Date.now()}${ext}`);
             fs.writeFileSync(testFile, patchedCode, 'utf-8');
             return testFile;
         } catch (e) { throw new Error(`補丁應用失敗: ${e.message}`); }
