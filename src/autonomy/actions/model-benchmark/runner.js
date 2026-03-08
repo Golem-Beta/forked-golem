@@ -333,7 +333,37 @@ class BenchmarkRunner {
         const tristreamCount = order.filter(({ key }) => results[key]['tristream']?.pass).length;
         const summary = `${targets.length} 個 model 測試完成，${tristreamCount} 個支援三流格式。報告：${outPath}`;
 
-        return { outPath, summary };
+        // 組裝結構化結果供 journal / warm memory 使用
+        const perModelResults = {};
+        const registryDelta = { activated: [], disabled: [], skipped: [] };
+
+        for (const { key, target } of order) {
+            const { provider, model } = target;
+            const suiteName  = target.suite || 'standard_suite';
+            const suiteIds   = SUITES[suiteName];
+            const suiteTests = TESTS.filter(t => suiteIds.includes(t.id));
+            const passCount  = suiteTests.filter(t => results[key][t.id]?.pass).length;
+            const passRate   = Math.round((passCount / suiteTests.length) * 100);
+            const totalMs    = suiteTests.reduce((s, t) => s + (results[key][t.id]?.ms || 0), 0);
+            const avgLatency = Math.round(totalMs / suiteTests.length);
+            const allSkipped = suiteTests.every(t => results[key][t.id]?.skip);
+            const tristream  = results[key]['tristream']?.pass ?? false;
+
+            perModelResults[key] = { passRate, tristream, avgLatency };
+
+            if (allSkipped) {
+                registryDelta.skipped.push(key);
+            } else if (passRate >= 75) {
+                registryDelta.activated.push(key);
+            } else {
+                const failed = suiteTests
+                    .filter(t => !results[key][t.id]?.pass && !results[key][t.id]?.skip)
+                    .map(t => t.name);
+                registryDelta.disabled.push({ key, reason: failed.join(', ') });
+            }
+        }
+
+        return { outPath, summary, perModelResults, registryDelta };
     }
 }
 
