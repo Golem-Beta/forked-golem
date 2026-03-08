@@ -29,7 +29,19 @@ class FreeWillRunner {
             const _heapBefore = process.memoryUsage();
             console.log(`🧠 [Heap] 醒來: RSS=${(_heapBefore.rss/1024/1024).toFixed(0)}MB, Heap=${(_heapBefore.heapUsed/1024/1024).toFixed(0)}MB/${(_heapBefore.heapTotal/1024/1024).toFixed(0)}MB`);
 
-            let decision = await this.decision.makeDecision();
+            let decision;
+            try {
+                decision = await this.decision.makeDecision();
+            } catch (decErr) {
+                console.error('❌ [Decision] 決策引擎異常:', decErr.message || decErr);
+                this.journal.append({
+                    action: 'decision_error',
+                    outcome: 'engine_exception',
+                    error: decErr.message,
+                    note: 'makeDecision() 拋出例外，fallback 到 rest'
+                });
+                decision = { action: 'rest', reason: 'fallback: 決策引擎異常，強制休息' };
+            }
 
             if (!decision) {
                 console.warn('😴 [Decision] 決策失敗 → 強制 rest');
@@ -115,10 +127,25 @@ class FreeWillRunner {
                         console.warn('⚠️ [Autonomy] 未知行動:', decision.action);
                     }
             }
-            if (_actionResult) await this._resultHandler.handle(_actionResult);
+            try {
+                if (_actionResult) await this._resultHandler.handle(_actionResult);
+            } catch (actErr) {
+                console.error('❌ [Action] 行動執行或結果處理失敗:', actErr.message || actErr);
+                this.journal.append({
+                    action: decision.action,
+                    outcome: 'action_failed',
+                    error: actErr.message,
+                    note: 'switch/resultHandler 執行時拋出例外'
+                });
+            }
         } catch (e) {
             console.error('[錯誤] 自由意志執行失敗:', e.message || e);
-            this.journal.append({ action: 'error', error: e.message });
+            this.journal.append({
+                action: 'free_will_error',
+                outcome: 'uncaught_exception',
+                error: e.message,
+                note: 'run() 外層 catch，表示 heap log 或前置流程失敗'
+            });
         }
     }
 }
