@@ -54,7 +54,6 @@ class ActionRunner {
         this._googleCheck      = new GoogleCheckAction(deps);
         this._driveSync        = new DriveSyncAction(deps);
         this._xPost            = new XPostAction(deps);
-        this._googleServices   = deps.googleServices || null;
         this._moltbookCheck    = new MoltbookCheckAction(deps);
         this._modelBenchmark   = new ModelBenchmarkAction(deps);
         this._moltbookPost     = new MoltbookPostAction(deps);
@@ -68,116 +67,38 @@ class ActionRunner {
 
     // --- explore ---
     async performWebResearch(reason)     { return this._explore.performWebResearch(reason); }
-    async performModelBenchmark(opts)     { return this._modelBenchmark.run(opts); }
+    async performGitHubExplore()         { return this._explore.performGitHubExplore(); }
+    async performModelBenchmark(opts)    { return this._modelBenchmark.run(opts); }
 
     // --- reflect ---
-    async performSelfReflection(ctx) {
-        const result = await this._reflect.performSelfReflection(ctx);
-        if (result?.outcome && result.outcome !== 'error') {
-            await this._logToCalendar('自我反思', result.outcome);
-        }
-        return result;
-    }
-
-    // --- explore ---（覆寫以加入 Calendar logging）
-    async performGitHubExplore() {
-        const result = await this._explore.performGitHubExplore();
-        await this._logToCalendar('GitHub 探索', result?.topic || '探索完成');
-        return result;
-    }
+    async performSelfReflection(ctx)     { return this._reflect.performSelfReflection(ctx); }
 
     // --- digest ---
     async performDigest()                { return this._digest.performDigest(); }
     async performMorningDigest()         { return this._digest.performMorningDigest(); }
 
     // --- health-check ---
-    async performHealthCheck() {
-        const result = await this._healthCheck.run();
-        await this._logToCalendar('健康巡查', '系統健康檢查完成');
-        return result;
-    }
+    async performHealthCheck()           { return this._healthCheck.run(); }
 
     // --- google-check ---
-    async performGoogleCheck() {
-        const result = await this._googleCheck.run();
-        if (result && !result.skipped) {
-            const notified = result.gmail?.notified ?? 0;
-            const ignored = result.gmail?.ignored ?? 0;
-            await this._logToCalendar('Gmail 巡查', `通知:${notified}封, 忽略:${ignored}封`);
-        }
-        return result;
-    }
+    async performGoogleCheck()           { return this._googleCheck.run(); }
 
     // --- drive-sync ---
-    async performDriveSync() {
-        const result = await this._driveSync.run();
-        if (result && !result.skipped) {
-            const up = (result.uploaded || []).length;
-            const upd = (result.updated || []).length;
-            await this._logToCalendar('Drive 同步', up > 0 ? `上傳${up}個, 更新${upd}個` : '無新檔案');
-        }
-        return result;
-    }
+    async performDriveSync()             { return this._driveSync.run(); }
 
     // --- x-post ---
-    async performXPost() {
-        const result = await this._xPost.performXPost();
-        if (result && result.success) {
-            await this._logToCalendar('X 發文', result.preview || '發文成功');
-        }
-        return result;
-    }
+    async performXPost()                 { return this._xPost.performXPost(); }
 
-    // --- calendar logging（非阻塞，失敗靜默）---
-    async _logToCalendar(title, description) {
-        if (!this._googleServices?._auth?.isAuthenticated()) return;
-        try {
-            const now = new Date();
-            const end = new Date(now.getTime() + 5 * 60 * 1000);
-            await this._googleServices.createEvent({
-                title: `[Golem] ${title}`,
-                start: now.toISOString(),
-                end: end.toISOString(),
-                description,
-            });
-        } catch (e) {
-            console.warn('[ActionRunner] Calendar 寫入失敗:', e.message);
-        }
-    }
     // --- moltbook ---
-    async performMoltbookCheck() {
-        const result = await this._moltbookCheck.run();
-        if (result && result.success) {
-            await this._logToCalendar('Moltbook 巡查', `upvoted:${result.upvoted} commented:${result.commented} dm:${result.dm_replied}`);
-        }
-        return result;
-    }
+    async performMoltbookCheck()         { return this._moltbookCheck.run(); }
 
-    async performThreadsPost() {
-        const result = await this._threadsPost.run();
-        if (result && result.success) {
-            await this._logToCalendar('Threads 發文', result.preview || '發文成功');
-        }
-        return result;
-    }
+    async performThreadsPost()           { return this._threadsPost.run(); }
 
-    async performMoltbookPost() {
-        const result = await this._moltbookPost.run();
-        if (result && result.success) {
-            await this._logToCalendar('Moltbook 發文', result.title || '發文成功');
-        }
-        return result;
-    }
+    async performMoltbookPost()          { return this._moltbookPost.run(); }
 
     // --- maintenance（自動擴展）---
-    hasMaintenance(actionName)      { return this._maintenance.has(actionName); }
-    async performMaintenance(actionName) {
-        const result = await this._maintenance.run(actionName);
-        if (result?.summary) {
-            await this._logToCalendar(actionName, result.summary);
-        }
-        return result;
-    }
+    hasMaintenance(actionName)           { return this._maintenance.has(actionName); }
+    async performMaintenance(actionName) { return this._maintenance.run(actionName); }
 }
 
 module.exports = ActionRunner;

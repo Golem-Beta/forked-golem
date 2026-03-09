@@ -83,7 +83,11 @@ class DriveSyncAction {
             outcome: results.failed.length === 0 ? 'success' : 'partial',
         });
 
-        return { success: true, ...results };
+        const uploaded = results.uploaded.length;
+        const updated  = results.updated.length;
+        const failed   = results.failed.length;
+        const observe  = `[Beta 感知] Drive 同步完成：上傳 ${uploaded} 個，更新 ${updated} 個${failed > 0 ? `，失敗 ${failed} 個` : ''}`;
+        return { success: true, ...results, observe };
     }
 
     _getLatestReflections() {

@@ -15,16 +15,18 @@ class GoogleServices {
         this._auth     = gcpAuth;
         this._calendar = null;
         this._tasks    = null;
+        this._sheets   = null;
         this._mail     = new GmailClient(gcpAuth);
         this._drv      = new DriveClient(gcpAuth);
     }
 
-    // Lazy init — Calendar + Tasks only（Gmail/Drive 各自管理）
+    // Lazy init — Calendar + Tasks + Sheets only（Gmail/Drive 各自管理）
     async _init() {
         if (this._calendar) return;
         const client   = await this._auth.getClient();
         this._calendar = google.calendar({ version: 'v3', auth: client });
         this._tasks    = google.tasks({ version: 'v1', auth: client });
+        this._sheets   = google.sheets({ version: 'v4', auth: client });
     }
 
     // ─── Gmail (delegated) ──────────────────────────────────
@@ -123,6 +125,42 @@ class GoogleServices {
             return true;
         } catch (e) {
             throw new Error(`[GoogleServices.completeTask] ${e.message}`);
+        }
+    }
+
+    // ─── Sheets ─────────────────────────────────────────────
+
+    // 取得或建立 Beta 專屬試算表（按名稱查找，不存在則建立），回傳 spreadsheetId
+    async getOrCreateSheet(name) {
+        try {
+            await this._init();
+            const files = await this._drv.listFiles(
+                `name='${name}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
+                1
+            );
+            if (files.length) return files[0].id;
+            const res = await this._sheets.spreadsheets.create({
+                resource: { properties: { title: name } }
+            });
+            return res.data.spreadsheetId;
+        } catch (e) {
+            throw new Error(`[GoogleServices.getOrCreateSheet] ${e.message}`);
+        }
+    }
+
+    // 追加一列資料至試算表（INSERT_ROWS 模式）
+    async appendRow(spreadsheetId, values) {
+        try {
+            await this._init();
+            await this._sheets.spreadsheets.values.append({
+                spreadsheetId,
+                range: 'A1',
+                valueInputOption: 'RAW',
+                insertDataOption: 'INSERT_ROWS',
+                resource: { values: [values] },
+            });
+        } catch (e) {
+            throw new Error(`[GoogleServices.appendRow] ${e.message}`);
         }
     }
 }

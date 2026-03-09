@@ -100,7 +100,24 @@ class ModelBenchmarkAction extends BaseAction {
                 console.error('[Benchmark] warm memory 寫入失敗:', synthErr.message);
             }
 
-            return { success: true, action: actionName, outcome: 'completed', detail: summary };
+            // P2：結果寫入 Sheets
+            const date = new Date().toISOString().split('T')[0];
+            const dataRows  = Object.entries(perModelResults).map(([key, v]) => {
+                const status = registryDelta.skipped.includes(key) ? 'skip'
+                             : registryDelta.activated.includes(key) ? 'active' : 'disabled';
+                return [date, key, `${v.passRate}%`, v.tristream ? '✓' : '✗', v.avgLatency, status];
+            });
+
+            return {
+                success:   true,
+                action:    actionName,
+                outcome:   'completed',
+                detail:    summary,
+                sheetsRow: {
+                    sheetTitle: 'Beta-Metrics',
+                    values:     dataRows.length > 0 ? dataRows : [[date, '(無結果)', '-', '-', '-', '-']],
+                },
+            };
         } catch (e) {
             return this._handleError(actionName, e);
         }

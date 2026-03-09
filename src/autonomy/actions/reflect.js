@@ -113,7 +113,7 @@ class ReflectAction {
         }
 
         // 部署階段（target_node 驗證 + 語法驗證 + autoDeploy/sendForReview）
-        return this.patch.deployProposal({
+        const deployResult = await this.patch.deployProposal({
             proposal:       teamCtx.proposals[0],
             codeSnippet:    teamCtx.codeSnippet,
             reflectionFile: teamCtx.reflectionFile,
@@ -122,6 +122,20 @@ class ReflectAction {
             journalContext,
             triggerCtx,
         });
+
+        // P2：成功 deploy 時寫入 Beta-Patches（作為 Beta 自己的修補記錄）
+        if (deployResult?.success) {
+            const date     = new Date().toISOString().split('T')[0];
+            const proposal = teamCtx.proposals[0];
+            const safeNode = (proposal?.target_node || 'unknown').replace(/[/\?%*:|"<>]/g, '-');
+            deployResult.driveDoc = {
+                title:    `${date}-patch-${safeNode}.md`,
+                content:  `# Self-Reflection Patch\n\n## 診斷\n${teamCtx.diagnosis || '(無)'}\n\n## 目標節點\n${proposal?.target_node || '(無)'}\n\n## 提案\n\`\`\`json\n${JSON.stringify(proposal, null, 2)}\n\`\`\``,
+                mimeType: 'text/markdown',
+                folder:   'Beta-Patches',
+            };
+        }
+        return deployResult;
     }
 }
 

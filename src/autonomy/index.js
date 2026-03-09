@@ -73,9 +73,10 @@ class AutonomyManager {
         this._failureTracker = new FailureTracker(this.notifier);
 
         this._resultHandler = new ResultHandler({
-            brain: deps.brain,
+            brain:          deps.brain,
             failureTracker: this._failureTracker,
-            actions: this.actions,
+            actions:        this.actions,
+            googleServices: deps.googleServices || null,
         });
 
         this._freeWill = new FreeWillRunner({

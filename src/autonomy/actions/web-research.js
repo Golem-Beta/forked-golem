@@ -110,7 +110,25 @@ class WebResearchAction extends BaseAction {
                 ...this._sentErrorField(sentWR)
             });
             if (sentWR === true) console.log('✅ [WebResearch] 研究報告已發送: ' + query);
-            return { success: sentWR === true, action: 'web_research', outcome: this._sentOutcome(sentWR, 'shared') };
+
+            const date    = new Date().toISOString().split('T')[0];
+            const safeQ   = query.substring(0, 40).replace(/[/\?%*:|"<>]/g, '-');
+            return {
+                success: sentWR === true,
+                action:  'web_research',
+                outcome: this._sentOutcome(sentWR, 'shared'),
+                driveDoc: {
+                    title:    `${date}-${safeQ}.md`,
+                    content:  `# 研究報告：${query}\n\n**目的：** ${purpose}\n\n${text}${sourcesBlock}`,
+                    mimeType: 'text/markdown',
+                    folder:   'Beta-Knowledge',
+                },
+                calendarPlan: {
+                    title:       `追蹤研究：${query.substring(0, 50)}`,
+                    daysAhead:   14,
+                    description: `研究目的：${purpose}\n\n初步結論：${text.substring(0, 300)}`,
+                },
+            };
         } catch (e) {
             return this._handleError('web_research', e);
         }
