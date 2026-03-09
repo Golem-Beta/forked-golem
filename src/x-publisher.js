@@ -6,7 +6,44 @@ const { TwitterApi } = require('twitter-api-v2');
 const CONFIG = require('./config');
 
 const DAILY_LIMIT = 15;
-const MAX_CHARS = 280;
+const MAX_CHARS = 280; // Twitter 加權上限：CJK 字元計 2，所以中文上限約 140 字
+
+// CJK 字元判斷（依 Twitter 加權規則）
+function _isCJK(codePoint) {
+    return (
+        (codePoint >= 0x1100 && codePoint <= 0x115F) ||
+        (codePoint >= 0x2E80 && codePoint <= 0x303F) ||
+        (codePoint >= 0x3040 && codePoint <= 0x33BF) ||
+        (codePoint >= 0x33FF && codePoint <= 0xA4CF) ||
+        (codePoint >= 0xA960 && codePoint <= 0xA97F) ||
+        (codePoint >= 0xAC00 && codePoint <= 0xD7FF) ||
+        (codePoint >= 0xF900 && codePoint <= 0xFAFF) ||
+        (codePoint >= 0xFE10 && codePoint <= 0xFE1F) ||
+        (codePoint >= 0xFE30 && codePoint <= 0xFE6F) ||
+        (codePoint >= 0xFF00 && codePoint <= 0xFFEF)
+    );
+}
+
+// 計算 Twitter 加權字元數
+function _twitterWeightedLength(str) {
+    let count = 0;
+    for (const char of str) count += _isCJK(char.codePointAt(0)) ? 2 : 1;
+    return count;
+}
+
+// 依加權長度截斷，加上 … 結尾
+function _truncateToLimit(str, maxWeighted) {
+    if (_twitterWeightedLength(str) <= maxWeighted) return str;
+    let weighted = 0;
+    let cutIdx = 0;
+    for (const char of str) {
+        const w = _isCJK(char.codePointAt(0)) ? 2 : 1;
+        if (weighted + w > maxWeighted - 1) break;
+        weighted += w;
+        cutIdx += char.length; // surrogate pair 安全
+    }
+    return str.slice(0, cutIdx) + '…';
+}
 
 class XPublisher {
     constructor({ config } = {}) {
@@ -57,11 +94,8 @@ class XPublisher {
             return { ok: false, error: `今日發文已達上限 ${DAILY_LIMIT} 篇` };
         }
 
-        // 超過 280 字元自動截斷
-        let tweetText = text;
-        if (tweetText.length > MAX_CHARS) {
-            tweetText = tweetText.slice(0, MAX_CHARS - 1) + '…';
-        }
+        // 依 Twitter 加權字元數截斷（CJK 計 2）
+        let tweetText = _truncateToLimit(text, MAX_CHARS);
 
         try {
             const result = await this._client.v2.tweet(tweetText);
