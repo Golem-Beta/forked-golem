@@ -179,3 +179,13 @@
 | v9.15.x | 大規模 refactor 批次（模組拆分、src/ 結構整理） | ✅ tagged |
 | v9.16.0 | CodebaseIndexer + decision prompt 注入 | ✅ tagged |
 | v9.17.0 | model-benchmark action + ResultHandler + ReviewerAgent + AST reflect | ✅ tagged |
+
+### 27. self_reflection 生成端方法幻覺根治（方向一）
+- **問題**：LLM 在 patch replace 中可能呼叫 target class 以外物件（如 `this.journal.xxx`）的不存在方法
+- **現狀**：extractCodeSection 已對 `ClassName.methodName` 注入 target class 的 knownMethods，但無法約束跨物件呼叫
+- **系統解**：
+  1. 從 target file 靜態分析 constructor 的 `this.xxx = ...` 賦值，取得所有依賴物件
+  2. 對每個依賴物件反查 codebase indexer，取得其 class 的已知方法清單
+  3. 將完整依賴物件方法清單注入 CODE_SNIPPET header
+- **前置條件**：codebase indexer 能反向查型別（目前 indexer 有 classMethods，需補 this-assignment 追蹤）
+- **已完成（方向二 — 學習閉環）**：近期 `llm_review_failed` / `reviewer_rejected` reason 已注入 `REJECTED_REASONS` 佔位符，Implementer 在生成時主動迴避

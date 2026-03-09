@@ -50,13 +50,29 @@ class ImplementerRole extends BaseAction {
         }
 
         const evolutionSkill = this.skills?.skillLoader?.loadSkill('EVOLUTION') || 'Output a JSON Array.';
+
+        // 近期 llm_review_failed / reviewer_rejected 的 reason，注入 prompt 避免重蹈
+        // 使用 readRecent 直接過濾，不依賴不存在的方法
+        const recentRejections = this.journal.readRecent(30).filter(e =>
+            (e.action === 'self_reflection') &&
+            (e.outcome === 'llm_review_failed' || e.outcome === 'reviewer_rejected')
+        );
+        const rejectedReasons = recentRejections
+            .map(e => e.llm_review?.reason || e.reviewer_summary || null)
+            .filter(Boolean)
+            .slice(-5); // 最近 5 條，避免 prompt 過長
+        const REJECTED_REASONS = rejectedReasons.length > 0
+            ? rejectedReasons.map((r, i) => `${i + 1}. ${r}`).join('\n')
+            : '(無近期拒絕記錄)';
+
         const prompt = this.loadPrompt('self-reflection-patch.md', {
-            EVOLUTION_SKILL: evolutionSkill,
-            DIAGNOSIS:       diagnosis || '(無)',
-            APPROACH:        strategy.strategy || '',
-            TARGET_FILE:     targetFile,
-            CODE_SNIPPET:    codeSnippet,
-            JOURNAL_CONTEXT: journalContext,
+            EVOLUTION_SKILL:  evolutionSkill,
+            DIAGNOSIS:        diagnosis || '(無)',
+            APPROACH:         strategy.strategy || '',
+            TARGET_FILE:      targetFile,
+            CODE_SNIPPET:     codeSnippet,
+            JOURNAL_CONTEXT:  journalContext,
+            REJECTED_REASONS: REJECTED_REASONS,
         });
         if (!prompt) throw new Error('self-reflection-patch.md 載入失敗');
 

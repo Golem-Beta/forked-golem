@@ -17,6 +17,15 @@
 
 {{JOURNAL_CONTEXT}}
 
+## RECENTLY REJECTED PATCHES（近期被否決的 patch 原因，必須主動迴避）
+
+以下是近期 patch 被否決的具體原因。生成新 patch 時，**不得重複觸發相同原因**：
+
+{{REJECTED_REASONS}}
+
+⚠️ 特別注意：**不得在 replace 中呼叫 this.xxx() 形式的方法，除非該方法已明確出現在 CODE_SNIPPET 的已知方法清單（known methods）中**。
+若需要某個功能，請直接用已知方法或標準 Node.js API 實現，不要發明不存在的方法。
+
 Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 
 **唯一可用格式：格式 A — AST 節點整體替換**
