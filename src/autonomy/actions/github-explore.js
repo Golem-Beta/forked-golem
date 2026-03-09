@@ -36,11 +36,33 @@ class GitHubExploreAction extends BaseAction {
                         const abort = this._abortIfChannelDown('github_explore');
                         if (abort) return abort;
                         const topics = [
-                            'autonomous agent framework', 'LLM tool use', 'AI agent memory', 
+                            // 原有
+                            'autonomous agent framework', 'LLM tool use', 'AI agent memory',
                             'local AI assistant', 'AI self-improvement', 'prompt engineering framework',
                             'vector memory AI', 'telegram bot AI agent', 'lightweight LLM inference',
                             'AI agent planning', 'code generation agent', 'multi-agent system',
-                            'LLM observability', 'AI safety guardrails', 'small language model optimization'
+                            'LLM observability', 'AI safety guardrails', 'small language model optimization',
+                            // 工具整合 / 執行層
+                            'MCP server tools', 'function calling agent', 'computer use automation',
+                            'browser automation AI', 'shell agent local',
+                            // 記憶 / 知識管理
+                            'knowledge graph agent', 'RAG pipeline lightweight', 'episodic memory AI',
+                            'context window management', 'long context retrieval',
+                            // 推理 / 決策
+                            'chain of thought reasoning', 'tree of thought LLM', 'ReAct agent framework',
+                            'agent task decomposition', 'goal conditioned AI',
+                            // 自我改進 / 評估
+                            'LLM self evaluation', 'AI agent benchmarking', 'automated prompt optimization',
+                            'LLM output validation', 'AI reflection loop',
+                            // 低資源 / 本地推理
+                            'edge AI inference', 'quantized LLM deployment', 'ollama local model',
+                            'llama.cpp wrapper', 'CPU inference optimization',
+                            // 多 Agent / 協作
+                            'agent communication protocol', 'swarm intelligence AI', 'debate between agents',
+                            'hierarchical agent system', 'agent role assignment',
+                            // 安全 / 對齊
+                            'AI agent sandboxing', 'LLM guardrails safety', 'prompt injection defense',
+                            'agent action auditing', 'constitutional AI implementation',
                         ];
                         const topic = topics[Math.floor(Math.random() * topics.length)];
                         const explored = this._getExploredRepos();
@@ -56,8 +78,8 @@ class GitHubExploreAction extends BaseAction {
                             headers['Authorization'] = `token ${this.config.GITHUB_TOKEN}`;
                         }
                 
-                        const query = encodeURIComponent(`${topic} stars:>500`);
-                        const searchUrl = `https://api.github.com/search/repositories?q=${query}&sort=updated&order=desc&per_page=15`;
+                        const query = encodeURIComponent(`${topic} stars:>100`);
+                        const searchUrl = `https://api.github.com/search/repositories?q=${query}&sort=updated&order=desc&per_page=30`;
                 
                         const searchRes = await new Promise((resolve, reject) => {
                             https.get(searchUrl, { headers }, (res) => {
