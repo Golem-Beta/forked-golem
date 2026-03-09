@@ -78,8 +78,11 @@ class GitHubExploreAction extends BaseAction {
                             headers['Authorization'] = `token ${this.config.GITHUB_TOKEN}`;
                         }
                 
-                        const query = encodeURIComponent(`${topic} stars:>100`);
-                        const searchUrl = `https://api.github.com/search/repositories?q=${query}&sort=updated&order=desc&per_page=30`;
+                        const ghCfg = (this.decision.loadAutonomyConfig().actions.github_explore) || {};
+                        const minStars = ghCfg.min_stars ?? 100;
+                        const perPage  = ghCfg.per_page  ?? 30;
+                        const query = encodeURIComponent(`${topic} stars:>${minStars}`);
+                        const searchUrl = `https://api.github.com/search/repositories?q=${query}&sort=updated&order=desc&per_page=${perPage}`;
                 
                         const searchRes = await new Promise((resolve, reject) => {
                             https.get(searchUrl, { headers }, (res) => {
