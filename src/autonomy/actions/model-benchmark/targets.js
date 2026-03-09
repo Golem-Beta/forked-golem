@@ -48,7 +48,7 @@ function buildTargets(overrides = {}) {
         for (const [model, info] of Object.entries(provModels)) {
             // 只跑 active；pending_benchmark 留給增量 benchmark
             // 例外：overrides.models 明確指定時，允許重測 disabled model
-            if (info.status !== 'active') {
+            if (info.status !== 'active' && info.status !== 'pending_benchmark') {
                 if (!onlyModels || !onlyModels.includes(model)) continue;
             }
             if (onlyModels && !onlyModels.includes(model)) continue;
