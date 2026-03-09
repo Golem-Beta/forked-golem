@@ -69,9 +69,12 @@ class ImplementerRole extends BaseAction {
         // 記錄實際使用的 provider，供 Reviewer 互斥選擇
         const implementerProvider = this.decision.lastModel?.split('/')[0] || null;
 
+        // strip <think>...</think>（reasoning model 防禦，避免破壞 JSON parse）
+        const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
         const reflectionFile = this.decision.saveReflection('self_reflection', raw);
         const { ResponseParser } = require('../../../parsers');
-        const proposals = ResponseParser.extractJson(raw);
+        const proposals = ResponseParser.extractJson(cleaned);
 
         if (!Array.isArray(proposals) || proposals.length === 0) {
             console.warn('[Team/Implementer] 無法解析 proposals');

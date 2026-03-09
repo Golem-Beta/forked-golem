@@ -28,8 +28,9 @@ const INTENT_REQUIREMENTS = {
     chat:       { requires: ['tristream'], priority: 'quality', defaultMaxTokens: 2048 },
     // 自我反思：proposals 需記入記憶，必須三流
     reflection: { requires: ['tristream'], priority: 'quality', defaultMaxTokens: 1024 },
-    // 程式碼編輯：patch 生成，最高 instruction following 要求
-    code_edit:  { requires: ['tristream'], priority: 'quality', defaultMaxTokens: 4096 },
+    // 程式碼編輯：patch 生成，純 JSON Array 輸出，不需三流格式
+    // excludeTags: reasoning model 輸出 <think> 過程會破壞 JSON parse
+    code_edit:  { requires: [], excludeTags: ['reasoning'], priority: 'quality', defaultMaxTokens: 4096 },
 
     // ── 非三流 intent（不需 tristream，節省 Gemini quota）─────────
     // 自主社交/摘要：spontaneous_chat、digest，純文字輸出即可

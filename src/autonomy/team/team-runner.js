@@ -20,7 +20,7 @@ class TeamRunner {
     constructor({ journal, teamProvider }) {
         this.journal      = journal;
         this.teamProvider = teamProvider;
-        this._debate      = new Debate({ journal });
+        this._debate      = new Debate({ journal, interCallDelayMs: INTER_ROLE_DELAY_MS });
     }
 
     /**

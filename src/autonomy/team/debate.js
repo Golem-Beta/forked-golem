@@ -7,13 +7,17 @@
  *   2 輪未收斂：primaryRole 勝出，記錄 divergence 到 journal
  */
 
+const _sleep = ms => new Promise(res => setTimeout(res, ms));
+
 class Debate {
     /**
      * @param {object} deps
-     * @param {object} deps.journal - JournalManager
+     * @param {object} deps.journal           - JournalManager
+     * @param {number} [deps.interCallDelayMs=1500] - 辯論每次 LLM 呼叫前的間隔（與 TeamRunner 同源）
      */
-    constructor({ journal }) {
-        this.journal = journal;
+    constructor({ journal, interCallDelayMs = 1500 }) {
+        this.journal           = journal;
+        this._interCallDelayMs = interCallDelayMs;
     }
 
     /**
@@ -58,12 +62,14 @@ class Debate {
         for (let round = 1; round <= 2; round++) {
             console.log(`[Debate] 第 ${round} 輪辯論`);
 
+            await _sleep(this._interCallDelayMs);
             const challenge = await primaryRole.challenge({ ...debateCtx, debateRound: round, lastResponse });
             if (!challenge) {
                 console.warn('[Debate] challenge() 回傳 null，中止辯論');
                 break;
             }
 
+            await _sleep(this._interCallDelayMs);
             const response = await respondingRole.respond({ ...debateCtx, debateRound: round, challenge });
             if (!response) {
                 console.warn('[Debate] respond() 回傳 null，中止辯論');

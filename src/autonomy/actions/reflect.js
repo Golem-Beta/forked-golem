@@ -52,6 +52,21 @@ class ReflectAction {
     async _runTeam(journalContext, triggerCtx) {
         const deps = this._deps;
 
+        // RPD guard：確認有 provider 能承接 code_edit（Implementer 用）
+        const router = deps.brain?.router;
+        if (router) {
+            const codeEditProviders = router.getAvailableProviders('code_edit');
+            if (!codeEditProviders.length) {
+                console.log('🔕 [Reflect] code_edit 無可用 provider（quota 耗盡），跳過本次反思');
+                this.journal.append({
+                    action:  'self_reflection',
+                    outcome: 'skipped_quota',
+                    reason:  'code_edit quota exhausted, no available provider',
+                });
+                return { success: false, action: 'self_reflection', outcome: 'skipped_quota' };
+            }
+        }
+
         // 組裝 Team 角色
         const teamProvider = deps.brain?.router
             ? new TeamProvider(deps.brain.router)
