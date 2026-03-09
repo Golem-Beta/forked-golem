@@ -131,4 +131,33 @@ async function getMyPosts(limit = 5) {
   return res.data || [];
 }
 
-module.exports = { publish, getMyPosts, getToken, getMyUserId };
+// 讀取某貼文的回覆
+async function getReplies(postId, limit = 5) {
+  const token = await getToken();
+  const res = await httpsGet(
+    `https://${BASE}/v1.0/${postId}/replies?fields=id,text,username,timestamp&limit=${limit}&access_token=${token}`
+  );
+  return res.data || [];
+}
+
+// 回覆某貼文（兩步驟：建立 container → publish）
+async function replyToPost(postId, text) {
+  const token = await getToken();
+  const me = await getMyUserId(token);
+  const container = await httpsPost(BASE, `/v1.0/${me.id}/threads`, {
+    media_type: 'TEXT',
+    text,
+    reply_to_id: postId,
+    access_token: token,
+  });
+  if (!container.id) throw new Error('建立 reply container 失敗: ' + JSON.stringify(container));
+  await new Promise(r => setTimeout(r, 1000));
+  const result = await httpsPost(BASE, `/v1.0/${me.id}/threads_publish`, {
+    creation_id: container.id,
+    access_token: token,
+  });
+  if (!result.id) throw new Error('reply 發布失敗: ' + JSON.stringify(result));
+  return { id: result.id };
+}
+
+module.exports = { publish, getMyPosts, getReplies, replyToPost, getToken, getMyUserId };

@@ -4,6 +4,28 @@
  * @when-to-modify 調整貼文生成邏輯、prompt 選用、或發文條件時
  */
 
+const fs   = require('fs');
+const path = require('path');
+
+const RECENT_POSTS_FILE = path.join(process.cwd(), 'memory', 'x-recent-posts.json');
+const MAX_RECENT = 3;
+
+function _loadRecentPosts() {
+    try {
+        if (fs.existsSync(RECENT_POSTS_FILE)) {
+            return JSON.parse(fs.readFileSync(RECENT_POSTS_FILE, 'utf8')) || [];
+        }
+    } catch {}
+    return [];
+}
+
+function _saveRecentPost(text) {
+    const posts = _loadRecentPosts();
+    posts.unshift({ text: text.slice(0, 100), ts: Date.now() });
+    if (posts.length > MAX_RECENT) posts.length = MAX_RECENT;
+    try { fs.writeFileSync(RECENT_POSTS_FILE, JSON.stringify(posts, null, 2)); } catch {}
+}
+
 class XPostAction {
     constructor({ journal, decision, loadPrompt, xPublisher }) {
         this.journal    = journal;
@@ -24,9 +46,14 @@ class XPostAction {
             .map(j => `[${j.action}] ${j.outcome || j.topic || ''}`)
             .join('\n') || '（無近期行動記錄）';
 
+        const recentPosts = _loadRecentPosts()
+            .map(p => `- ${p.text}`)
+            .join('\n') || '（無）';
+
         const prompt = this.loadPrompt('x-post.md', {
             SOUL: soul,
             RECENT_ACTIONS: recentJournal,
+            RECENT_POSTS: recentPosts,
             DAILY_COUNT: String(this.xPublisher.getDailyCount()),
         }) || `${soul}\n根據近期行動，寫一篇不超過 280 字元的 X 貼文。只輸出貼文內容。`;
 
@@ -63,6 +90,10 @@ class XPostAction {
             model:   this.decision.lastModel,
             tokens:  this.decision.lastTokens,
         });
+
+        if (result.ok) {
+            _saveRecentPost(tweetText);
+        }
 
         return {
             success: result.ok,

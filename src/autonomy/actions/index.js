@@ -12,6 +12,8 @@
  *   google-check.js  — performGoogleCheck
  *   drive-sync.js    — performDriveSync
  *   x-post.js        — performXPost
+ *   threads-check.js — performThreadsCheck
+ *   x-check.js       — performXCheck
  *   moltbook-check.js — performMoltbookCheck
  *   moltbook-post.js  — performMoltbookPost
  */
@@ -23,6 +25,8 @@ const HealthCheckAction = require('./health-check');
 const GoogleCheckAction = require('./google-check');
 const DriveSyncAction = require('./drive-sync');
 const XPostAction = require('./x-post');
+const ThreadsCheckAction = require('./threads-check');
+const XCheckAction       = require('./x-check');
 const MoltbookCheckAction = require('./moltbook-check');
 const MoltbookPostAction  = require('./moltbook-post');
 const ThreadsPostAction   = require('./threads-post');
@@ -54,6 +58,8 @@ class ActionRunner {
         this._googleCheck      = new GoogleCheckAction(deps);
         this._driveSync        = new DriveSyncAction(deps);
         this._xPost            = new XPostAction(deps);
+        this._threadsCheck     = new ThreadsCheckAction(deps);
+        this._xCheck           = new XCheckAction(deps);
         this._moltbookCheck    = new MoltbookCheckAction(deps);
         this._modelBenchmark   = new ModelBenchmarkAction(deps);
         this._moltbookPost     = new MoltbookPostAction(deps);
@@ -88,6 +94,12 @@ class ActionRunner {
 
     // --- x-post ---
     async performXPost()                 { return this._xPost.performXPost(); }
+
+    // --- threads ---
+    async performThreadsCheck()          { return this._threadsCheck.run(); }
+
+    // --- x-check ---
+    async performXCheck()                { return this._xCheck.run(); }
 
     // --- moltbook ---
     async performMoltbookCheck()         { return this._moltbookCheck.run(); }
