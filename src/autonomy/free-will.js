@@ -38,6 +38,7 @@ class FreeWillRunner {
                     action: 'decision_error',
                     outcome: 'engine_exception',
                     error: decErr.message,
+                    stack: decErr.stack?.split('\n').slice(0, 3).join(' | '),
                     note: 'makeDecision() 拋出例外，fallback 到 rest'
                 });
                 decision = { action: 'rest', reason: 'fallback: 決策引擎異常，強制休息' };
@@ -135,6 +136,7 @@ class FreeWillRunner {
                     action: decision.action,
                     outcome: 'action_failed',
                     error: actErr.message,
+                    stack: actErr.stack?.split('\n').slice(0, 3).join(' | '),
                     note: 'switch/resultHandler 執行時拋出例外'
                 });
             }
@@ -144,6 +146,7 @@ class FreeWillRunner {
                 action: 'free_will_error',
                 outcome: 'uncaught_exception',
                 error: e.message,
+                stack: e.stack?.split('\n').slice(0, 3).join(' | '),
                 note: 'run() 外層 catch，表示 heap log 或前置流程失敗'
             });
         }

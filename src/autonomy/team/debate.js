@@ -36,6 +36,15 @@ class Debate {
             strategy:  architectOutput,
         };
 
+        // rationale 驗證：若 rationale 與 root_cause 無關鍵字交集，強制辯論
+        // 避免 Architect 用名稱相似但功能無關的 target_node 矇混過關
+        const rootWords = (ctx.analystOutput?.root_cause || '').toLowerCase().match(/\b\w{5,}\b/g) || [];
+        const rationale = (architectOutput.rationale || '').toLowerCase();
+        if (rootWords.length > 0 && !rootWords.some(w => rationale.includes(w)) && !architectOutput.challenge_needed) {
+            console.log('[Debate] rationale 與 root_cause 無關鍵字交集，強制 challenge_needed=true');
+            architectOutput.challenge_needed = true;
+        }
+
         // Step 2: 不需辯論 → 直接回傳
         if (!architectOutput.challenge_needed) {
             console.log('[Debate] 無需辯論，直接採用 Architect 策略');
