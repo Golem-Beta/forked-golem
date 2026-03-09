@@ -82,8 +82,35 @@ class ImplementerRole extends BaseAction {
             return null;
         }
 
-        console.log('[Team/Implementer] proposals:', proposals.length, '| mode:', proposals[0].mode, '| provider:', implementerProvider);
-        return { proposals, codeSnippet, reflectionFile, implementerProvider, knownMethods };
+        // 過濾非法 proposal：只保留有足夠欄位的合法物件
+        // core_patch 需要 target_node(string) + replace(string)
+        // skill_create 需要 skill_name + content
+        const validProposals = proposals.filter(p => {
+            if (!p || typeof p !== 'object') return false;
+            const mode = p.mode || (p.target_node ? 'core_patch' : p.skill_name ? 'skill_create' : null);
+            if (mode === 'core_patch' || (!mode && p.target_node)) {
+                return typeof p.target_node === 'string' && p.target_node.length > 0
+                    && typeof p.replace === 'string';
+            }
+            if (mode === 'skill_create') {
+                return typeof p.skill_name === 'string' && typeof p.content === 'string';
+            }
+            return false; // metadata 物件、空殼或不明格式 → 過濾掉
+        });
+
+        if (validProposals.length === 0) {
+            console.warn('[Team/Implementer] proposals 解析成功但全部無效（缺少必要欄位）');
+            console.warn('[Team/Implementer] 原始 proposals:', JSON.stringify(proposals.map(p => Object.keys(p || {}))));
+            this.journal.append({ action: 'team_implementer', outcome: 'no_valid_proposals', reflection_file: reflectionFile, raw_count: proposals.length });
+            return null;
+        }
+
+        if (validProposals.length < proposals.length) {
+            console.log(`[Team/Implementer] 過濾無效 proposal：${proposals.length} → ${validProposals.length}`);
+        }
+
+        console.log('[Team/Implementer] proposals:', validProposals.length, '| mode:', validProposals[0].mode, '| provider:', implementerProvider);
+        return { proposals: validProposals, codeSnippet, reflectionFile, implementerProvider, knownMethods };
     }
 }
 
