@@ -30,7 +30,7 @@ class ModelBenchmarkAction extends BaseAction {
             });
 
             const sent = await this.notifier.sendToAdmin('🔬 Model Benchmark 開始，完成後會通知...');
-            const { outPath, summary, perModelResults, registryDelta } = await runner.run(opts);
+            const { outPath, summary, perModelResults, registryDelta, poolHealth } = await runner.run(opts);
 
             // Telegram 通知：加上 registry 變動摘要
             let notifMsg = `📊 ${summary}`;
@@ -42,6 +42,11 @@ class ModelBenchmarkAction extends BaseAction {
                 notifMsg += `\n⏭ Skip：${registryDelta.skipped.join(', ')}`;
             await this.notifier.sendToAdmin(notifMsg);
 
+            // Pool 健康警告：CRITICAL 才通知（tristream 不足等嚴重狀況）
+            if (poolHealth && poolHealth.needsNotify) {
+                await this.notifier.sendToAdmin(poolHealth.notifyMsg);
+            }
+
             // journal 寫結構化資料
             this.journal.append({
                 action: actionName,
@@ -50,6 +55,13 @@ class ModelBenchmarkAction extends BaseAction {
                 outPath,
                 perModelResults,
                 registryDelta,
+                poolHealth: poolHealth ? {
+                    level:          poolHealth.level,
+                    activeTotal:    poolHealth.activeTotal,
+                    tristreamCount: poolHealth.tristreamCount,
+                    issues:         poolHealth.issues,
+                    revivals:       poolHealth.revivals,
+                } : null,
             });
 
             // warm memory synthesis

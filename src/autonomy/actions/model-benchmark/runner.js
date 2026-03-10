@@ -17,6 +17,7 @@ const { callGemini, callOpenAICompat }   = require('./callers');
 const providerRegistry              = require('../../../model-router/provider-registry');
 const PROVIDER_CONFIGS              = require('../../../model-router/configs');
 const rosterManager                 = require('../../../model-router/roster-manager');
+const poolHealthChecker             = require('../../../model-router/pool-health-checker');
 
 // 專案根目錄（model-benchmark/ 往上四層）
 const PROJECT_ROOT = path.join(__dirname, '..', '..', '..', '..');
@@ -312,13 +313,27 @@ class BenchmarkRunner {
                 if (results[key]['code']?.pass)              preserved.push('code');
                 if (results[key]['reasoning_quality']?.pass) preserved.push('reasoning');
 
-                patch.status       = 'active';
-                patch.capabilities = preserved;
-                patch.notes        = '';
+                patch.status        = 'active';
+                patch.capabilities  = preserved;
+                patch.failureStreak = 0;
+                patch.notes         = '';
             } else {
                 const failed = suiteTests.filter(t => !results[key][t.id]?.pass && !results[key][t.id]?.skip).map(t => t.name);
-                patch.status = 'disabled';
-                patch.notes  = `benchmark failed: ${failed.join(', ')}`;
+                // failureStreak 保護：連續 2 次失敗才真正 disabled，1 次只降為 benched
+                const currentInfo   = providerRegistry.getModelInfo(provider, model);
+                const prevStreak    = currentInfo?.failureStreak || 0;
+                const newStreak     = prevStreak + 1;
+                if (newStreak >= 2) {
+                    patch.status       = 'disabled';
+                    patch.failureStreak = newStreak;
+                    patch.notes        = `benchmark failed (${newStreak}x): ${failed.join(', ')}`;
+                    this._log(`  💀 ${key} 連續 ${newStreak} 次失敗 → disabled`);
+                } else {
+                    patch.status       = 'benched';
+                    patch.failureStreak = newStreak;
+                    patch.notes        = `benchmark failed (1x): ${failed.join(', ')} [benched ${date}]`;
+                    this._log(`  ⬇️  ${key} 首次失敗 → benched（下次再失敗才 disabled）`);
+                }
             }
 
             if (!allSkipped) providerRegistry.updateModelStatus(provider, model, patch);
@@ -329,6 +344,16 @@ class BenchmarkRunner {
         this._log('\n🏆 執行 Roster 修剪...');
         rosterManager.pruneToRoster();
         this._log('✅ Roster 修剪完成');
+
+        // Pool 健康評估：修剪後檢查 active pool 是否充足
+        this._log('\n🏥 評估 active pool 健康度...');
+        const poolHealth = poolHealthChecker.checkPoolHealth();
+        if (poolHealth.healthy) {
+            this._log(`✅ Pool 健康：${poolHealth.activeTotal} active，${poolHealth.tristreamCount} tristream`);
+        } else {
+            this._log(`${poolHealth.level === 'critical' ? '🚨' : '⚠️'} Pool ${poolHealth.level.toUpperCase()}：${poolHealth.issues.join('；')}`);
+            if (poolHealth.revivals.length) this._log(`🔄 已排入復測：${poolHealth.revivals.join(', ')}`);
+        }
 
         const tristreamCount = order.filter(({ key }) => results[key]['tristream']?.pass).length;
         const summary = `${targets.length} 個 model 測試完成，${tristreamCount} 個支援三流格式。報告：${outPath}`;
@@ -363,7 +388,7 @@ class BenchmarkRunner {
             }
         }
 
-        return { outPath, summary, perModelResults, registryDelta };
+        return { outPath, summary, perModelResults, registryDelta, poolHealth };
     }
 }
 
