@@ -43,7 +43,6 @@ const INITIAL_CAPABILITIES = {
         'llama-3.3-70b-versatile':                        ['tristream'],
         'openai/gpt-oss-120b':                            ['tristream', 'reasoning'],
         'openai/gpt-oss-20b':                             ['tristream'],
-        'meta-llama/llama-4-maverick-17b-128e-instruct':  ['tristream'],
         'meta-llama/llama-4-scout-17b-16e-instruct':      ['tristream'],
         'moonshotai/kimi-k2-instruct-0905':               ['tristream', 'long_context'],
         'moonshotai/kimi-k2-instruct':                    ['tristream', 'long_context'],
