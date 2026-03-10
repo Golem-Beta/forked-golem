@@ -99,10 +99,10 @@ class AutonomyManager {
         this._scheduleBenchmarkGuard();
         // 啟動時若不在靜默時段且 queue 有內容，10 秒後 drain（等 bot 就緒）
         try {
-            const nowHour = new Date().getHours();
             const _cfg = this.decision.loadAutonomyConfig().awakening || {};
             const _quietHours = _cfg.quietHours || _cfg.sleepHours || [];
-            if (!_quietHours.includes(nowHour)) {
+            this.notifier.setQuietMode(false, _quietHours);
+            if (!this.notifier.isQuietNow()) {
                 setTimeout(() => this._drainAndSend(), 10000);
             }
         } catch (_) {}
@@ -201,12 +201,13 @@ class AutonomyManager {
             }
             console.log('♻️ [LifeCycle] 下次醒來: ' + (waitMs / 60000).toFixed(1) + ' 分鐘後' + (isQuiet ? ' (靜音模式)' : ''));
             this._timer = setTimeout(async () => {
+                // 注入最新 quietHours，讓 notifier.isQuietNow() 有資料可查
+                this.notifier.setQuietMode(false, quietHours);
                 const wasQuiet = this.quietMode;
-                this.quietMode = isQuiet;
-                this.notifier.setQuietMode(isQuiet, quietHours);
+                this.quietMode = this.notifier.isQuietNow();
 
                 // 靜默結束 → 立即 drain queue
-                if (wasQuiet && !isQuiet) {
+                if (wasQuiet && !this.quietMode) {
                     await this._drainAndSend();
                 }
 

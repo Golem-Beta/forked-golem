@@ -43,6 +43,25 @@ class Notifier {
     }
 
     /**
+     * 當下是否在靜默時段（單一 truth source）
+     * 即時查當前小時，不依賴外部傳入的 bool 狀態
+     */
+    isQuietNow() {
+        const hour = new Date().getHours();
+        let quietHours = this._quietHours;
+        if (!quietHours || quietHours.length === 0) {
+            try {
+                const cfg = JSON.parse(fs.readFileSync(
+                    require('path').join(process.cwd(), 'config', 'autonomy.json'), 'utf-8'
+                ));
+                quietHours = cfg.awakening?.quietHours || cfg.awakening?.sleepHours || [];
+                this._quietHours = quietHours;
+            } catch { quietHours = []; }
+        }
+        return quietHours.includes(hour);
+    }
+
+    /**
      * 取出並清空靜默 queue
      * 若有 source === 'patch_review' 的項目，在最後一則末尾追加 /lp 提示
      */
@@ -113,19 +132,7 @@ class Notifier {
             console.warn('[Notifier] sendToAdmin received empty text, skip');
             return false;
         }
-        // 靜默時段：即時查當前小時 + autonomy.json，不依賴排程快照
-        const _nowHour = new Date().getHours();
-        let _quietHours = this._quietHours || [];
-        try {
-            if (_quietHours.length === 0) {
-                const _cfg = JSON.parse(fs.readFileSync(
-                    require('path').join(process.cwd(), 'config', 'autonomy.json'), 'utf-8'
-                ));
-                _quietHours = _cfg.awakening?.quietHours || _cfg.awakening?.sleepHours || [];
-                this._quietHours = _quietHours;  // cache
-            }
-        } catch {}
-        const _isQuietNow = this.quietMode || _quietHours.includes(_nowHour);
+        const _isQuietNow = this.isQuietNow();
         if (_isQuietNow) {
             this._quietQueue.push({ text, ts: new Date().toISOString(), source });
             this._saveQuietQueue();

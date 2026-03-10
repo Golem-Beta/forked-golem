@@ -258,7 +258,11 @@ class DecisionContext {
     _buildQuietQueueSection() {
         const quietQueue = this.notifier ? this.notifier._quietQueue : [];
         if (!quietQueue || quietQueue.length === 0) return '';
-        return '【靜默時段暫存】（靜默時段完成但尚未匯報給主人的行動）\n' +
+        const stillQuiet = this.notifier ? this.notifier.isQuietNow() : false;
+        const status = stillQuiet
+            ? '（⚠️ 現在仍在靜默時段，尚不能發送，繼續暫存）'
+            : '（靜默時段已結束，可以匯報）';
+        return '【靜默時段暫存】' + status + '\n' +
             quietQueue.map(q => '[' + q.ts + '] ' + q.text.substring(0, 200)).join('\n');
     }
 }
