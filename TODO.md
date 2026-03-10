@@ -1,7 +1,7 @@
 # Forked-Golem TODO 統整
 
 > 從過去所有對話中彙整，按優先級排序
-> 最後更新：2026-03-10（session 12 — modelRouter 抽象化 + chatHistory 中性格式）
+> 最後更新：2026-03-10（session 15 — #25 Gmail 感知層升級 + RSS 訂閱評估）
 
 ---
 
@@ -71,6 +71,8 @@
 - ~~model-benchmark journal 結構化可觀測性~~
 - ~~self_reflection 方法幻覺三層防禦（extractCodeSection knownMethods + Reviewer + journal 學習閉環）~~
 - ~~brain.js chatHistory 改中性格式 {role, content}，解除 Gemini provider 鎖定；appendAssistantMessage() 封裝外部寫入~~
+- ~~#22 model-benchmark 動態 routing 閉環 — benchmark 結果接入 health_check，pool 狀態依分數自動調整~~
+- ~~#25 gmail_check 升級感知層 — verdict 四分類（important/self_handle/trigger_action/ignore）+ LLM 注入 Beta soul.md + 近期 journal context~~
 
 ---
 
@@ -103,17 +105,9 @@
 #### 15c. new_action 完整驗證流程（前置：15b）
 - PatchManager 加入整合測試，new_action 走獨立審批通道
 
-### 22. Model Benchmark 動態 Routing 調整
-- **概念**: Golem 定期跑 model-benchmark，根據結果提案調整 provider 優先權重
-- **設計張力**: 自主改 routing config 是高風險操作
-- **推薦方向**: benchmark 結果存入 memory → Golem 提案走 pending-patches 審批流程
-- **前置**: model-benchmark.js 已完成，待接入 health_check 觸發點
 
-### 25. gmail_check 升級為真正感知層
-- **問題**: 目前是「讀信→規則分類→轉發主人」，Golem 沒有帶身份認知理解信件
-- **目標**: 帶 soul.md + 近期 journal + 已知帳號清單讀信，自主推理「這封信對我意味著什麼」
-- **verdict 升級**: important/ignore 二元 → self_handle/notify_human/trigger_action + journal_note
-- **前置**: inbox 裡需有 Golem 自己行動產生的信
+
+
 
 ### 26. Patch 驗證沙盒化
 - **問題**: self_reflection patch 在驗證階段直接在主系統執行，若有 side effect 會在驗證時觸發
@@ -126,6 +120,12 @@
 ---
 
 ## 低優先 🟢
+
+### 28. Gmail RSS 訂閱（provider status feed）
+- **目標**: X200 本機 rss-poller.js 抓 provider status RSS → 透過 GCP Gmail API 發信給 Beta → google_check 感知層自然觸發
+- **確認有效 feed**: Groq `groqstatus.com/history.rss`、GCP `status.cloud.google.com/en/feed.atom`、Mistral `status.mistral.ai/history.rss`
+- **推薦方案**: Node.js rss-poller，複用現有 GCP token，不依賴第三方 RSS→email 服務
+- **現況**: 設計確定，實作擱置待排期
 
 ### 10. 經驗迴路 (Auto-Skill 概念)
 - 成功解決問題後自動記錄經驗，下次自動載入
@@ -186,5 +186,6 @@
 | v9.16.0 | CodebaseIndexer + decision prompt 注入 | ✅ tagged |
 | v9.17.0 | model-benchmark action + ResultHandler + ReviewerAgent + AST reflect | ✅ tagged |
 | v9.18.x | Dynamic Provider Registry、Groq 模型更新、per-provider RPD、benchmark 可觀測性、三層幻覺防禦、chatHistory 中性格式 | 未 tag |
+| v9.19.x | #22 benchmark routing 閉環、parsers 修復 4、#25 Gmail 感知層升級（verdict 四分類 + LLM Beta context） | 未 tag |
 
 
