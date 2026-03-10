@@ -75,12 +75,21 @@ async function doGenerate(apiKey, params) {
     }
 
     // 讀取文字回應（新 SDK 有 .text getter）
-    const text = (response.text || '').trim();
+    let text = (response.text || '').trim();
     if (!text) {
         throw Object.assign(
             new Error(`[Gemini] empty response from ${model}`),
             { providerError: 'error' }
         );
+    }
+    // requireJson 防禦：provider 偶發在 JSON 後附加說明文字，萃取第一個合法 JSON 物件
+    if (requireJson) {
+        try { text = extractJson(text); } catch (_) {
+            throw Object.assign(
+                new Error(`[Gemini] requireJson but no valid JSON in response from ${model}`),
+                { providerError: 'error' }
+            );
+        }
     }
 
     // 讀取 grounding metadata
@@ -101,6 +110,18 @@ async function doGenerate(apiKey, params) {
         },
         grounding,
     };
+}
+
+
+/**
+ * requireJson 防禦：從 text 中萃取第一個完整 JSON 物件
+ * 處理 provider 在 JSON 後附加說明文字的情況
+ */
+function extractJson(text) {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('no JSON object found in response');
+    JSON.parse(match[0]); // 驗證合法性，失敗則拋錯
+    return match[0];
 }
 
 module.exports = { doGenerate };

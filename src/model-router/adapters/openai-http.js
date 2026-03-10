@@ -117,8 +117,18 @@ function doRequest(name, baseUrl, apiKey, params) {
                         return;
                     }
 
+                    // requireJson 防禦：萃取第一個合法 JSON 物件，過濾尾部說明文字
+                    let finalText = rawText.trim();
+                    if (requireJson) {
+                        try { finalText = extractJson(finalText); } catch (_) {
+                            const err = new Error(`[${name}] requireJson but no valid JSON in response from ${model}`);
+                            err.providerError = 'error';
+                            reject(err);
+                            return;
+                        }
+                    }
                     resolve({
-                        text: rawText.trim(),
+                        text: finalText,
                         usage: {
                             inputTokens: usage.prompt_tokens || 0,
                             outputTokens: usage.completion_tokens || 0,
@@ -146,6 +156,18 @@ function doRequest(name, baseUrl, apiKey, params) {
         req.write(postData);
         req.end();
     });
+}
+
+
+/**
+ * requireJson 防禦：從 text 中萃取第一個完整 JSON 物件
+ * 處理 provider 在 JSON 後附加說明文字的情況
+ */
+function extractJson(text) {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('no JSON object found in response');
+    JSON.parse(match[0]); // 驗證合法性，失敗則拋錯
+    return match[0];
 }
 
 module.exports = { doRequest };
