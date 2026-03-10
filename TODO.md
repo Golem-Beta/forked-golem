@@ -1,7 +1,7 @@
 # Forked-Golem TODO 統整
 
 > 從過去所有對話中彙整，按優先級排序
-> 最後更新：2026-03-08（session 11 — Team pipeline no_target_node 三修）
+> 最後更新：2026-03-10（session 12 — modelRouter 抽象化 + chatHistory 中性格式）
 
 ---
 
@@ -65,6 +65,12 @@
 - ~~Groq 模型更新 — gpt-oss-120b(reasoning) + llama-4-maverick~~
 - ~~digest 加入 git log -15 context~~
 - ~~Team pipeline no_target_node 修正：decision.js proxy 補傳 pathsOnly、nodeList 擴展全 src/、Analyst 可達性標記（reachable/suggestion）、TeamRunner needs_human journal~~
+- ~~Dynamic Provider Registry — OpenRouter/NVIDIA NIM 整合，provider 動態發現與 registry 閉環~~
+- ~~Groq 模型更新 — llama-4-maverick + gpt-oss-120b (reasoning)~~
+- ~~per-provider RPD tracking + 磁碟持久化~~
+- ~~model-benchmark journal 結構化可觀測性~~
+- ~~self_reflection 方法幻覺三層防禦（extractCodeSection knownMethods + Reviewer + journal 學習閉環）~~
+- ~~brain.js chatHistory 改中性格式 {role, content}，解除 Gemini provider 鎖定；appendAssistantMessage() 封裝外部寫入~~
 
 ---
 
@@ -179,13 +185,6 @@
 | v9.15.x | 大規模 refactor 批次（模組拆分、src/ 結構整理） | ✅ tagged |
 | v9.16.0 | CodebaseIndexer + decision prompt 注入 | ✅ tagged |
 | v9.17.0 | model-benchmark action + ResultHandler + ReviewerAgent + AST reflect | ✅ tagged |
+| v9.18.x | Dynamic Provider Registry、Groq 模型更新、per-provider RPD、benchmark 可觀測性、三層幻覺防禦、chatHistory 中性格式 | 未 tag |
 
-### 27. self_reflection 生成端方法幻覺根治（方向一）
-- **問題**：LLM 在 patch replace 中可能呼叫 target class 以外物件（如 `this.journal.xxx`）的不存在方法
-- **現狀**：extractCodeSection 已對 `ClassName.methodName` 注入 target class 的 knownMethods，但無法約束跨物件呼叫
-- **系統解**：
-  1. 從 target file 靜態分析 constructor 的 `this.xxx = ...` 賦值，取得所有依賴物件
-  2. 對每個依賴物件反查 codebase indexer，取得其 class 的已知方法清單
-  3. 將完整依賴物件方法清單注入 CODE_SNIPPET header
-- **前置條件**：codebase indexer 能反向查型別（目前 indexer 有 classMethods，需補 this-assignment 追蹤）
-- **已完成（方向二 — 學習閉環）**：近期 `llm_review_failed` / `reviewer_rejected` reason 已注入 `REJECTED_REASONS` 佔位符，Implementer 在生成時主動迴避
+
