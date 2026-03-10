@@ -132,7 +132,13 @@ class DashboardLog {
     _writeLog(level, msg) {
         if (!this._logStream) return;
         try {
-            const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            const _d = new Date();
+            const _p = Object.fromEntries(new Intl.DateTimeFormat('zh-TW', {
+                timeZone: 'Asia/Taipei', hour12: false,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+            }).formatToParts(_d).map(p => [p.type, p.value]));
+            const ts = `${_p.year}-${_p.month}-${_p.day} ${_p.hour}:${_p.minute}:${_p.second}`;
             // 🔧 [v8.5.2] 只去除 blessed 色彩/格式標籤，保留 JSON 大括號
             const clean = msg.replace(/\{\/?(?:[\w]+-fg|[\w]+-bg|bold|underline|blink|inverse|invisible)\}/g, '');
             // 🔧 [v9.7.0] 多行訊息逐行加 timestamp，避免 groq 行沒 timestamp
