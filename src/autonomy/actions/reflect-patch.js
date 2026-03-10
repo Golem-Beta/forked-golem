@@ -175,19 +175,6 @@ class ReflectPatch extends BaseAction {
         const targetName = validFiles.includes(proposal.file) ? proposal.file : 'src/autonomy/actions.js';
         const targetPath = path.join(process.cwd(), targetName);
 
-        // LLM 自驗（語法完整性 + 節點類型匹配，不阻塞主流程）
-        const llmReview = await this._llmSelfReview(proposal, codeSnippet);
-        if (llmReview && !llmReview.pass) {
-            console.warn('[SelfReflection] LLM 自驗否決 patch:', llmReview.reason);
-            this.journal.append({
-                action: 'self_reflection', mode: 'core_patch',
-                proposal: proposalType, outcome: 'llm_review_failed',
-                llm_review: { pass: false, reason: llmReview.reason },
-                reflection_file: reflectionFile,
-            });
-            return { success: false, action: 'self_reflection', outcome: 'llm_review_failed', target: proposal.file || '' };
-        }
-
         const testFile = this.PatchManager.createTestClone(targetPath, [proposal]);
         let verifyResult;
         if (targetName === 'skills.js') {
@@ -230,33 +217,6 @@ class ReflectPatch extends BaseAction {
         }
 
         return this.executor.sendForReview(proposal, testFile, targetPath, targetName, proposalType, reflectionFile, triggerCtx);
-    }
-
-    /**
-     * LLM 自驗：讓 LLM 快速確認 patch 語法完整性與節點類型匹配
-     * 失敗時不阻塞主流程（回傳 { pass: true, warning }）
-     */
-    async _llmSelfReview(proposal, codeSnippet) {
-        try {
-            const reviewPrompt = this.loadPrompt('self-reflection-review.md', {
-                CODE_SNIPPET:    codeSnippet || '(未提供)',
-                TARGET_NODE:     proposal.target_node || '(未知)',
-                REPLACE_CONTENT: proposal.replace || '',
-            });
-            if (!reviewPrompt) {
-                console.warn('[Reflection] self-reflection-review.md 載入失敗，跳過自驗');
-                return { pass: true, warning: 'prompt 載入失敗' };
-            }
-            const raw = (await this.decision.callLLM(reviewPrompt, { intent: 'code_review', temperature: 0 })).text;
-            const cleaned = raw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            const result = JSON.parse(cleaned);
-            if (typeof result.pass !== 'boolean') throw new Error('pass 欄位非 boolean');
-            console.log(`[Reflection] LLM 自驗：${result.pass ? '✅ 通過' : '❌ 否決 — ' + result.reason}`);
-            return result;
-        } catch (e) {
-            console.warn('[Reflection] LLM 自驗失敗（不阻塞主流程）:', e.message);
-            return { pass: true, warning: e.message };
-        }
     }
 }
 
