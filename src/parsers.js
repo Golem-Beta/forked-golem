@@ -163,6 +163,16 @@ class ResponseParser {
                 console.log('[Parser] 修復 literal newline + bad escape 後解析成功');
                 return parsed.steps || (Array.isArray(parsed) ? parsed : [parsed]);
             } catch (_) {}
+                        // 修復 4：大量 regex escape 混合問題（patch replace 含 regex 特殊字元時）
+            try {
+                const _s  = String.fromCharCode(0) + "DS" + String.fromCharCode(0);
+                const _p1 = cleaned.replace(/\\\\/g, _s);
+                const _p2 = _p1.replace(/\\(?!["\\/bfnrtu\r\n0-9])/g, '\\\\');
+                const _p3 = _p2.split(_s).join('\\\\');
+                const _parsed = JSON.parse(_p3);
+                console.log('[Parser] 修復 4（regex escape double）後解析成功');
+                return _parsed.steps || (Array.isArray(_parsed) ? _parsed : [_parsed]);
+            } catch (_e4) {}
             try {
                 const lastComplete = cleaned.lastIndexOf('},');
                 if (lastComplete > 0) {
