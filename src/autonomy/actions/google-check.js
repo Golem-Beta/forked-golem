@@ -9,7 +9,7 @@
  *   - Gmail：Beta 自己決定什麼值得關注（不是「Michael 想看什麼」）
  *   - Tasks：Beta 感知自己的待辦狀態
  */
-const { classifyByRules, classifyByLLM } = require('./google-classifier');
+const { classifyByRules, classifyByLLM, detectTriggerAction } = require('./google-classifier');
 
 class GoogleCheckAction {
     constructor(deps) {
@@ -53,6 +53,7 @@ class GoogleCheckAction {
 
             if (emails.length > 0) {
                 const notifyList = [], uncertainList = [];
+                const triggerList = [], selfHandleList = [];
                 const ignoredCount = { count: 0 };
 
                 const senderCount = {};
@@ -73,10 +74,25 @@ class GoogleCheckAction {
                 }
 
                 if (uncertainList.length > 0) {
-                    const llmResults = await classifyByLLM(uncertainList, this._deps.brain);
+                    const llmResults = await classifyByLLM(
+                        uncertainList,
+                        this._deps.brain,
+                        { journal: this._deps.journal }
+                    );
                     for (const r of llmResults) {
-                        if (r.verdict === 'important') notifyList.push(uncertainList[r.index]);
-                        else ignoredCount.count++;
+                        const email = uncertainList[r.index];
+                        if (r.verdict === 'important') {
+                            notifyList.push(email);
+                        } else if (r.verdict === 'trigger_action') {
+                            // 規則層先嘗試 mapping，LLM 的 suggested_action 作為補充
+                            const ruleMapping = detectTriggerAction(email);
+                            const suggestedAction = r.suggested_action || ruleMapping?.action || null;
+                            triggerList.push({ email, action: suggestedAction, reason: r.reason });
+                        } else if (r.verdict === 'self_handle') {
+                            selfHandleList.push({ email, reason: r.reason });
+                        } else {
+                            ignoredCount.count++;
+                        }
                     }
                 }
 
@@ -93,8 +109,35 @@ class GoogleCheckAction {
                     results.gmail.notified = notifyList.length;
                 }
                 results.gmail.ignored = ignoredCount.count;
+
+                // trigger_action：注入 observe，讓 decision engine 下次感知
+                if (triggerList.length > 0) {
+                    const triggerObserve = triggerList.map(t =>
+                        `[建議行動] ${t.action || '待定'}: ${t.reason}（來自 Gmail: ${t.email.subject.substring(0, 50)}）`
+                    ).join('\n');
+                    this._deps.brain.observe('[Beta Gmail 感知]\n' + triggerObserve);
+                    this._deps.journal.append({
+                        action: 'google_check_trigger',
+                        triggers: triggerList.map(t => ({ action: t.action, reason: t.reason })),
+                        outcome: 'queued',
+                    });
+                    results.gmail.triggered = triggerList.length;
+                }
+
+                // self_handle：靜默記 journal，Beta 自己知道
+                if (selfHandleList.length > 0) {
+                    this._deps.journal.append({
+                        action: 'google_check_self',
+                        items: selfHandleList.map(t => ({ subject: t.email.subject, reason: t.reason })),
+                        outcome: 'self_handled',
+                    });
+                    results.gmail.self_handled = selfHandleList.length;
+                }
             }
-            observeParts.push(`Gmail：${results.gmail.total} 封未讀，${results.gmail.notified} 封值得關注`);
+            const gmailParts = [`Gmail：${results.gmail.total} 封未讀，${results.gmail.notified} 封值得關注`];
+            if (results.gmail.triggered)    gmailParts.push(`${results.gmail.triggered} 封觸發行動`);
+            if (results.gmail.self_handled) gmailParts.push(`${results.gmail.self_handled} 封 Beta 自行處理`);
+            observeParts.push(gmailParts.join('，'));
         } catch (e) {
             console.error('[GoogleCheck] Gmail 錯誤:', e.message);
             observeParts.push('Gmail：讀取失敗');
@@ -130,9 +173,11 @@ class GoogleCheckAction {
 
         this._deps.journal.append({
             action:       'google_check',
-            gmailTotal:   results.gmail.total,
-            gmailNotified: results.gmail.notified,
-            gmailIgnored: results.gmail.ignored,
+            gmailTotal:        results.gmail.total,
+            gmailNotified:     results.gmail.notified,
+            gmailIgnored:      results.gmail.ignored,
+            gmailTriggered:    results.gmail.triggered || 0,
+            gmailSelfHandled:  results.gmail.self_handled || 0,
             tasksTotal:   results.tasks.total,
             tasksUrgent:  results.tasks.urgent,
             outcome: (results.gmail.notified + results.tasks.urgent) > 0 ? 'notified' : 'silent',
