@@ -16,7 +16,7 @@
  * @param {ProviderHealth} health - 健康狀態追蹤器
  * @param {ModelSelector}  selector - 候選選擇器
  * @param {object}         opts   - complete() 的原始參數
- * @returns {Promise<{ text, usage, grounding, rawParts, meta }>}
+ * @returns {Promise<{ text, usage, grounding, meta }>}
  */
 async function execute(adapters, health, selector, opts) {
     const { intent = 'chat' } = opts;
@@ -54,7 +54,6 @@ async function execute(adapters, health, selector, opts) {
                 text:      result.text,
                 usage:     result.usage,
                 grounding: result.grounding || null,
-                rawParts:  result.rawParts  || null,
                 meta: { provider, model, latency, intent },
             };
 

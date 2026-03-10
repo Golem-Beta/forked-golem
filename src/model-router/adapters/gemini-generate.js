@@ -16,12 +16,12 @@ const { GoogleGenAI } = require('@google/genai');
  * 向 Gemini API 發出單次呼叫並解析回應
  * @param {string} apiKey  - 本次使用的 API key
  * @param {object} params  - 請求參數
- * @returns {Promise<{ text, usage, grounding, rawParts }>}
+ * @returns {Promise<{ text, usage, grounding }>}
  */
 async function doGenerate(apiKey, params) {
     const {
         model, messages, maxTokens, temperature, requireJson,
-        systemInstruction, tools, inlineData, chatHistory,
+        systemInstruction, tools, inlineData, history,
     } = params;
 
     const client = new GoogleGenAI({ apiKey });
@@ -39,9 +39,13 @@ async function doGenerate(apiKey, params) {
 
     let response;
 
-    if (chatHistory) {
-        // 對話模式：使用 chat API
-        const chat = client.chats.create({ model, history: chatHistory, config });
+    if (history && history.length > 0) {
+        // 對話模式：將中性格式 [{role, content}] 轉換為 Gemini parts 格式
+        const geminiHistory = history.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }],
+        }));
+        const chat = client.chats.create({ model, history: geminiHistory, config });
         const lastMsg = messages[messages.length - 1];
         response = await chat.sendMessage({ message: lastMsg ? lastMsg.content : '' });
     } else if (inlineData) {
@@ -89,9 +93,6 @@ async function doGenerate(apiKey, params) {
         })),
     } : null;
 
-    // rawParts 供 brain.js 保留 thought signature
-    const rawParts = candidate?.content?.parts || [{ text }];
-
     return {
         text,
         usage: {
@@ -99,7 +100,6 @@ async function doGenerate(apiKey, params) {
             outputTokens: response.usageMetadata?.candidatesTokenCount || 0,
         },
         grounding,
-        rawParts,
     };
 }
 

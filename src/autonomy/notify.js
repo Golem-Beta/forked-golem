@@ -148,7 +148,7 @@ class Notifier {
                     }
                     console.log('[Notifier] TG sent OK (' + text.length + ' chars)');
                     if (this.brain) {
-                        this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
+                        this.brain.appendAssistantMessage('[Autonomy] ' + text);
                     }
                     this._consecutiveFailures = 0;
                     return true;
@@ -190,7 +190,7 @@ class Notifier {
                     }
                     console.log('[Notifier] TG sent OK (' + text.length + ' chars, chunked)');
                     if (this.brain) {
-                        this.brain.chatHistory.push({ role: 'model', parts: [{ text: '[Autonomy] ' + text }] });
+                        this.brain.appendAssistantMessage('[Autonomy] ' + text);
                     }
                     this._consecutiveFailures = 0;
                     return true;

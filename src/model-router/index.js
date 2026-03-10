@@ -117,7 +117,7 @@ class ModelRouter {
      * @param {string} [opts.systemInstruction]
      * @param {Array}  [opts.tools] - Gemini tools（如 googleSearch）
      * @param {object} [opts.inlineData] - 多模態資料
-     * @param {Array}  [opts.chatHistory] - Gemini 對話歷史（contents 格式）
+     * @param {Array}  [opts.history] - 對話歷史（中性格式 [{role: 'user'|'assistant', content}]）
      */
     async complete(opts) {
         return execute(this.adapters, this.health, this._selector, opts);

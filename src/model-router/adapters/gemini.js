@@ -47,7 +47,7 @@ class GeminiAdapter extends ProviderAdapter {
             systemInstruction,
             tools,
             inlineData,
-            chatHistory,
+            history,
         } = params;
 
         const maxRetries = Math.min(this.keys.length + 2, 5);
@@ -61,7 +61,7 @@ class GeminiAdapter extends ProviderAdapter {
             try {
                 const result = await doGenerate(apiKey, {
                     model, messages, maxTokens, temperature, requireJson,
-                    systemInstruction, tools, inlineData, chatHistory,
+                    systemInstruction, tools, inlineData, history,
                 });
                 return { ...result, keyIndex };
             } catch (e) {

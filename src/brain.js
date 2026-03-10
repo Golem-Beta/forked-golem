@@ -17,7 +17,7 @@ function getSystemFingerprint() {
 class GolemBrain {
     constructor(modelRouter) {
         this.router = modelRouter;
-        this.chatHistory = [];
+        this._history = [];
         this.model = null;
         this._initialized = false;
 
@@ -55,7 +55,7 @@ class GolemBrain {
         }
 
         this.systemInstruction = systemPrompt + protocol;
-        this.chatHistory = [];
+        this._history = [];
         this._initialized = true;
 
         console.log("🧠 [Brain] ModelRouter 已就緒");
@@ -82,22 +82,31 @@ class GolemBrain {
     }
 
     /**
-     * 即時感知注入 — 將觀測文字推入 chatHistory，不觸發 LLM 呼叫。
+     * 即時感知注入 — 將觀測文字推入 _history，不觸發 LLM 呼叫。
      * 用於自主行動後讓 brain 感知結果，維持對話連續性。
      * @param {string} text
      */
     observe(text) {
-        this.chatHistory.push({ role: 'user', parts: [{ text }] });
-        this.chatHistory.push({ role: 'model', parts: [{ text: '(感知已接收)' }] });
+        this._history.push({ role: 'user', content: text });
+        this._history.push({ role: 'assistant', content: '(感知已接收)' });
         console.log(`👁️ [Brain] 感知注入: ${text.substring(0, 80)}`);
+    }
+
+    /**
+     * 將助理訊息直接推入對話歷史（不觸發 LLM 呼叫）。
+     * 供外部模組（如 Notifier）同步自主行為回覆。
+     * @param {string} text
+     */
+    appendAssistantMessage(text) {
+        this._history.push({ role: 'assistant', content: text });
     }
 
     async sendMessage(text, isSystem = false) {
         if (!this._initialized) await this.init();
 
         if (isSystem) {
-            this.chatHistory.push({ role: 'user', parts: [{ text }] });
-            this.chatHistory.push({ role: 'model', parts: [{ text: '(系統指令已接收)' }] });
+            this._history.push({ role: 'user', content: text });
+            this._history.push({ role: 'assistant', content: '(系統指令已接收)' });
             return "";
         }
 
@@ -110,17 +119,15 @@ class GolemBrain {
             temperature: 0.7,
             systemInstruction: this.systemInstruction,
             tools: [{ googleSearch: {} }],
-            chatHistory: this.chatHistory,
+            history: this._history,
         });
 
         const response = result.text;
 
-        this.chatHistory.push({ role: 'user', parts: [{ text }] });
-        // rawParts 保留 Gemini 3 thought signature，避免後續 sendMessage 產生 4xx
-        const modelParts = result.rawParts || [{ text: response }];
-        this.chatHistory.push({ role: 'model', parts: modelParts });
-        if (this.chatHistory.length > 40) {
-            this.chatHistory = this.chatHistory.slice(-40);
+        this._history.push({ role: 'user', content: text });
+        this._history.push({ role: 'assistant', content: response });
+        if (this._history.length > 40) {
+            this._history = this._history.slice(-40);
         }
 
         console.log(`✅ [Brain] 回應接收完成 (${response.length} chars, via ${result.meta.provider}/${result.meta.model})`);
