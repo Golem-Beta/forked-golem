@@ -141,7 +141,18 @@ class DecisionEngine {
 
             const text = result.text;
             const cleaned = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-            const decision = JSON.parse(cleaned);
+            let decision;
+            try {
+                decision = JSON.parse(cleaned);
+            } catch (parseError) {
+                console.warn('⚠️ [Decision] JSON 解析失敗，嘗試提取第一個合法 JSON:', parseError.message);
+                const jsonMatch = cleaned.match(/\{([\s\S]*?)\}/);
+                if (jsonMatch && jsonMatch[0]) {
+                    decision = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('無法從 LLM 回應中提取任何 JSON 物件');
+                }
+            }
 
             const validIds = available.map(a => a.id);
             if (!validIds.includes(decision.action)) {
