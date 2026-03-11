@@ -44,8 +44,13 @@ class DashboardLog {
                 logMsg = `{blue-fg}${msg}{/blue-fg}`;
             }
 
-            // 寫入日誌面板（加 HH:MM 時間戳）
-            if (this._d.logBox) this._d.logBox.log('{blue-fg}' + this._d._ts() + '{/}' + ' ' + logMsg);
+            // 寫入日誌面板（加 HH:MM 時間戳）逐行送入避免多行字串破圖
+            if (this._d.logBox) {
+                const _ts1 = this._d._ts();
+                logMsg.split('\n').filter(l => l.trim()).forEach(l => {
+                    this._d.logBox.log('{blue-fg}' + _ts1 + '{/}' + ' ' + l);
+                });
+            }
 
             // 📝 同步寫入 log 檔
             this._writeLog('LOG', msg);
@@ -83,7 +88,13 @@ class DashboardLog {
                 return;
             }
             const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-            if (this._d.logBox) this._d.logBox.log('{blue-fg}' + this._d._ts() + '{/}' + ' ' + `{red-fg}[錯誤] ${msg}{/red-fg}`);
+            if (this._d.logBox) {
+                const _ts2 = this._d._ts();
+                msg.split('\n').filter(l => l.trim()).forEach((l, i) => {
+                    const prefix = i === 0 ? '[錯誤] ' : '  ';
+                    this._d.logBox.log('{blue-fg}' + _ts2 + '{/}' + ' ' + `{red-fg}${prefix}${l}{/red-fg}`);
+                });
+            }
 
             // 📝 同步寫入 log 檔
             this._writeLog('ERR', msg);
@@ -97,7 +108,13 @@ class DashboardLog {
                 return;
             }
             const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-            if (this._d.logBox) this._d.logBox.log('{blue-fg}' + this._d._ts() + '{/}' + ' ' + `{yellow-fg}⚠️ ${msg}{/yellow-fg}`);
+            if (this._d.logBox) {
+                const _ts3 = this._d._ts();
+                msg.split('\n').filter(l => l.trim()).forEach((l, i) => {
+                    const prefix = i === 0 ? '⚠️ ' : '  ';
+                    this._d.logBox.log('{blue-fg}' + _ts3 + '{/}' + ' ' + `{yellow-fg}${prefix}${l}{/yellow-fg}`);
+                });
+            }
 
             // 分流：429 / KeyChain 相關 → radarLog
             if (msg.includes('[Brain]') || msg.includes('[KeyChain]') || msg.includes('429')) {
