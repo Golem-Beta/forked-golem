@@ -85,7 +85,12 @@ class DecisionContext {
         if (recentEntries.length === 0) return '(無經驗記錄)';
         return recentEntries.map(j => {
             const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
-            return '[' + time + '] ' + j.action + ': ' + (j.outcome || j.topic || '(無記錄)');
+            const base = '[' + time + '] ' + j.action + ': ' + (j.outcome || j.topic || '(無記錄)');
+            // feedback 條目補上 description，讓 Beta 知道為什麼被 drop/deployed
+            if (j.action === 'self_reflection_feedback' && j.description) {
+                return base + ' — ' + j.description;
+            }
+            return base;
         }).join('\n');
     }
 
