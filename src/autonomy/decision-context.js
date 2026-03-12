@@ -61,6 +61,7 @@ class DecisionContext {
         const hasReflect     = Array.isArray(available) && available.some(a => a.id === 'self_reflection');
         const codebaseSummary = hasReflect ? this._readCodebaseSummary() : '';
         const internalState   = this._buildInternalStateSection();
+        const reflectionHistorySection = this._buildReflectionHistorySection();
 
         return {
             journalSummary,
@@ -76,6 +77,7 @@ class DecisionContext {
             hnSection,
             codebaseSummary,
             internalState,
+            reflectionHistorySection,
         };
     }
 
@@ -258,6 +260,26 @@ class DecisionContext {
         } catch (e) {
             return '';
         }
+    }
+
+    _buildReflectionHistorySection() {
+        try {
+            const REFLECT_ACTIONS = new Set(['self_reflection', 'self_reflection_feedback']);
+            // 撈最近 100 筆，filter 後取最新 20 筆，不依賴 decisionReadCount 視窗
+            const all = this.journalMgr.readRecent(100);
+            const entries = all.filter(j => REFLECT_ACTIONS.has(j.action)).slice(-20);
+            if (entries.length === 0) return '';
+            const lines = entries.map(j => {
+                const time = j.ts ? new Date(j.ts).toLocaleString('zh-TW', { hour12: false }) : '?';
+                const base = '[' + time + '] ' + j.action + ': ' + (j.outcome || j.topic || '(無記錄)');
+                if (j.action === 'self_reflection_feedback' && j.description) {
+                    return base + ' — ' + j.description;
+                }
+                return base;
+            });
+            return '【自我反思歷史（最近 ' + entries.length + ' 筆）】\n' + lines.join('\n');
+        } catch (e) { /* 讀取失敗不影響決策 */ }
+        return '';
     }
 
     _buildQuietQueueSection() {
