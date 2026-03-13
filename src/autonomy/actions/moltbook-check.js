@@ -62,7 +62,10 @@ class MoltbookCheckAction {
             const msg = `🦞 /home schema 異常，缺少欄位：${missingKeys.join(', ')}`;
             console.warn(msg);
             this.journal.append({ action: 'moltbook_check', outcome: 'api_schema_mismatch', missing_keys: missingKeys });
-            if (this.notifier) await this.notifier.sendToAdmin(msg);
+            if (this.notifier) {
+                const sent = await this.notifier.sendToAdmin(msg);
+                this.journal.append({ action: 'moltbook_check', outcome: sent ? 'done' : 'send_failed', notification_sent: sent });
+            }
             return { success: false, reason: 'api_schema_mismatch' };
         }
 
