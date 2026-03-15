@@ -46,7 +46,11 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 
 `replace` 填入完整的新版節點文字：
 - 頂層函數：從 `function` 開頭到結尾的 `}`
-- class method：只填方法本身（從方法名稱/static/async 到結尾的 `}`），**不含** class 外框
+- class method：只填方法本身，**不含** class 外框的 `}`
+- ⚠️ **class method 的 `replace` 必須是完整方法體**：從方法簽名（`async methodName(`、`static methodName(`、`methodName(`）開頭，到方法自己的 `}` 結尾。不可只給方法內部的片段，也不可在結尾多加 class 外框的 `}`。違反任一條均會讓 `node -c` 爆 `Unexpected token '{'` 或整個 class 語法錯誤，patch 被丟棄。
+  - ❌ 錯誤一：replace 從 `try {` 開始（缺少方法簽名，`node -c` 爆 `Unexpected token '{'`）
+  - ❌ 錯誤二：replace 結尾多一個 class 的 `}`（class 語法錯誤）
+  - ✅ 正確：`async makeDecision() {\n  ...\n}`（完整方法，只到自己的 `}`）
 - 縮排由系統自動正規化，不需手動對齊原始縮排
 - ⚠️ **換行符必須轉義**：`replace` 值內的所有換行符必須寫成 `\n`，不可使用實際換行。違反此規則會導致 JSON.parse() 失敗，patch 被完全丟棄。
 - ⚠️ **Regex 在 `replace` 欄位中有兩層 escape 規則**，違反任一條都會導致 `node -c` 失敗，patch 被丟棄：
