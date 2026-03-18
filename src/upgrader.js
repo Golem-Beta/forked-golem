@@ -183,7 +183,7 @@ class PatchManager {
 
     static verify(filePath) {
         try {
-            execSync(`node -c "${filePath}"`);
+            execSync(`node -c "${filePath}"`, { stdio: 'pipe' });
             execSync(`node "${path.join(process.cwd(), 'test-smoke.js')}"`, { timeout: 15000, stdio: 'pipe' });
             if (filePath.includes('index.test.js')) {
                 execSync(`node "${filePath}"`, { env: { ...process.env, GOLEM_TEST_MODE: 'true' }, timeout: 5000, stdio: 'pipe' });
