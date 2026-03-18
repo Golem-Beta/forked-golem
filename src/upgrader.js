@@ -113,32 +113,103 @@ class PatchManager {
         while (lineStart > 0 && originalCode[lineStart - 1] !== '\n') lineStart--;
         const origIndent = originalCode.slice(lineStart, start).match(/^([ \t]*)/)[1];
         const replIndent = replace.match(/^([ \t]*)/)[1];
-        if (origIndent === replIndent) return replace;
-        const delta = origIndent.length - replIndent.length;
-        const lines = replace.split('\n');
-        const result = [];
-        let inTemplate = false;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (inTemplate) {
-                result.push(line); // template literal 內部不動
-            } else if (i === 0) {
-                result.push(origIndent + line.slice(replIndent.length));
-            } else if (delta > 0) {
-                result.push(' '.repeat(delta) + line);
-            } else {
-                const curLen = line.match(/^([ \t]*)/)[1].length;
-                result.push(line.slice(Math.min(-delta, curLen)));
+
+        // Phase 1：第一行對齊（原有邏輯，不再提前 return，後面還需做 Phase 2）
+        let aligned;
+        if (origIndent !== replIndent) {
+            const delta = origIndent.length - replIndent.length;
+            const lines = replace.split('\n');
+            const result = [];
+            let inTemplate = false;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (inTemplate) {
+                    result.push(line); // template literal 內部不動
+                } else if (i === 0) {
+                    result.push(origIndent + line.slice(replIndent.length));
+                } else if (delta > 0) {
+                    result.push(' '.repeat(delta) + line);
+                } else {
+                    const curLen = line.match(/^([ \t]*)/)[1].length;
+                    result.push(line.slice(Math.min(-delta, curLen)));
+                }
+                // 掃描此行更新 template literal 狀態（簡單 backtick toggle）
+                let escaped = false;
+                for (let j = 0; j < line.length; j++) {
+                    if (escaped) { escaped = false; continue; }
+                    if (line[j] === '\\') { escaped = true; continue; }
+                    if (line[j] === '`') inTemplate = !inTemplate;
+                }
             }
-            // 掃描此行更新 template literal 狀態（簡單 backtick toggle）
-            let escaped = false;
-            for (let j = 0; j < line.length; j++) {
-                if (escaped) { escaped = false; continue; }
-                if (line[j] === '\\') { escaped = true; continue; }
-                if (line[j] === '`') inTemplate = !inTemplate;
+            aligned = result.join('\n');
+        } else {
+            aligned = replace;
+        }
+
+        // Phase 2：偵測整體多一層縮排問題
+        // 若第二行起所有非空、非 template literal 內部的行，最小多餘縮排量恰好等於
+        // 一個 indent unit（4 spaces 或 1 tab），代表 LLM 整體多縮了一層，統一去掉。
+        const alignedLines = aligned.split('\n');
+        if (alignedLines.length < 2) return aligned;
+
+        const line1IndentStr = alignedLines[0].match(/^([ \t]*)/)[1];
+        const line1IndentLen = line1IndentStr.length;
+        const unitLen = line1IndentStr.includes('\t') ? 1 : 4;
+
+        // 計算第一行結束後的 template literal 狀態
+        let tpl = false;
+        {
+            let esc = false;
+            for (let j = 0; j < alignedLines[0].length; j++) {
+                if (esc) { esc = false; continue; }
+                if (alignedLines[0][j] === '\\') { esc = true; continue; }
+                if (alignedLines[0][j] === '`') tpl = !tpl;
             }
         }
-        return result.join('\n');
+
+        // 第一遍：計算第 2 行起所有非空、非 template 行的最小多餘縮排量
+        let minExtra = Infinity;
+        let tplCur = tpl; // 進入當前行前的 template 狀態
+        for (let i = 1; i < alignedLines.length; i++) {
+            const line = alignedLines[i];
+            if (!tplCur && line.trim() !== '') {
+                const extra = line.match(/^([ \t]*)/)[1].length - line1IndentLen;
+                if (extra < minExtra) minExtra = extra;
+            }
+            let nextTpl = tplCur;
+            let esc = false;
+            for (let j = 0; j < line.length; j++) {
+                if (esc) { esc = false; continue; }
+                if (line[j] === '\\') { esc = true; continue; }
+                if (line[j] === '`') nextTpl = !nextTpl;
+            }
+            tplCur = nextTpl;
+        }
+
+        // 若最小多餘縮排恰好等於一個 indent unit，統一去掉那一層
+        if (minExtra !== Infinity && minExtra === unitLen) {
+            const stripped = [alignedLines[0]];
+            let tplStrip = tpl; // 進入當前行前的 template 狀態
+            for (let i = 1; i < alignedLines.length; i++) {
+                const line = alignedLines[i];
+                if (tplStrip || line.trim() === '') {
+                    stripped.push(line); // template 內部與空行不動
+                } else {
+                    stripped.push(line.slice(unitLen));
+                }
+                let nextTpl = tplStrip;
+                let esc = false;
+                for (let j = 0; j < line.length; j++) {
+                    if (esc) { esc = false; continue; }
+                    if (line[j] === '\\') { esc = true; continue; }
+                    if (line[j] === '`') nextTpl = !nextTpl;
+                }
+                tplStrip = nextTpl;
+            }
+            return stripped.join('\n');
+        }
+
+        return aligned;
     }
 
     static apply(originalCode, patch) {
