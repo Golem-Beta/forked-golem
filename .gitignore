@@ -21,6 +21,7 @@ CLAUDE.md
 
 # ── patch 腳本（開發用，不入 repo）────────────────
 patch-*.js
+!src/autonomy/actions/maintenance/patch-cleanup.js
 
 # ── 備份殘留 ──────────────────────────────────────
 *.backup_*
