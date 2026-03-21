@@ -3,7 +3,7 @@
  * @module model-benchmark/tests
  * @role 基準測試單元定義（5 個測試，按 suite 分組）
  *
- * standard_suite：['tristream', 'json_action', 'chinese', 'code']  → 給非 reasoning model
+ * standard_suite：['tristream', 'json_action', 'chinese', 'code', 'code_edit']  → 給非 reasoning model
  * reasoning_suite：['chinese', 'code', 'reasoning_quality']         → 給 reasoning model
  */
 
@@ -86,6 +86,63 @@ const TESTS = [
         },
     },
     {
+        id: 'code_edit',
+        name: 'Class Method 替換能力',
+        prompt: `你是程式碼 patch 生成器。以下是一個有 bug 的 JavaScript class method（_handleError 忘記 return false）：
+
+class BaseAction {
+    _handleError(actionName, e) {
+        console.error('[' + actionName + '] 錯誤:', e.message);
+        this.journal.append({ action: actionName, outcome: 'error', error: e.message });
+    }
+}
+
+請輸出修正後的 patch，格式為 JSON Array，只輸出 JSON，不要任何說明文字：
+[{"mode":"core_patch","target_node":"BaseAction._handleError","replace":"...完整方法體..."}]
+
+規則：
+- replace 必須從方法簽名（_handleError(）開頭
+- replace 只到方法自己的 } 結尾，不含 class 外框的 }
+- replace 內不可有 // ... 或任何佔位符`,
+        maxTokens: 600,
+        validate(text) {
+            // 去除 markdown code block
+            const cleaned = text.replace(/```[\w]*\n?/g, '').replace(/```/g, '').trim();
+            let parsed;
+            try { parsed = JSON.parse(cleaned); } catch {
+                return { pass: false, detail: '❌ JSON parse 失敗', score: 0 };
+            }
+            if (!Array.isArray(parsed) || parsed.length === 0) {
+                return { pass: false, detail: '❌ 不是 Array 或空陣列', score: 0 };
+            }
+            const patch = parsed[0];
+            const replace = patch.replace || '';
+
+            // 1. 第一行必須是方法簽名
+            const firstLine = replace.split('\n')[0].trim();
+            const hasSignature = /^_handleError\s*\(/.test(firstLine);
+
+            // 2. 花括號必須平衡（不含多餘 class }）
+            const opens = (replace.match(/\{/g) || []).length;
+            const closes = (replace.match(/\}/g) || []).length;
+            const balanced = opens === closes;
+
+            // 3. 沒有佔位符
+            const noPlaceholder = !(/\/\/\s*\.\.\.|\.\.\.|placeholder/i.test(replace));
+
+            // 4. 包含 return false
+            const hasReturn = /return\s+false/.test(replace);
+
+            const score = (hasSignature ? 1 : 0) + (balanced ? 1 : 0) + (noPlaceholder ? 1 : 0) + (hasReturn ? 1 : 0);
+            const pass = hasSignature && balanced && noPlaceholder && hasReturn;
+            return {
+                pass,
+                detail: `sig:${hasSignature?'✅':'❌'} balanced:${balanced?'✅':'❌'} noPlaceholder:${noPlaceholder?'✅':'❌'} return:${hasReturn?'✅':'❌'}`,
+                score,
+            };
+        },
+    },
+    {
         id: 'reasoning_quality',
         name: '推理品質',
         // 甲=10, 乙=30, 合計=40（不需要三流格式）
@@ -110,13 +167,13 @@ const TESTS = [
  * reasoning_suite：reasoning model（不強求三流格式）
  */
 const SUITES = {
-    standard_suite: ['tristream', 'json_action', 'chinese', 'code'],
+    standard_suite: ['tristream', 'json_action', 'chinese', 'code', 'code_edit'],
     reasoning_suite: ['chinese', 'code', 'reasoning_quality'],
 };
 
 /** 每個 suite 的滿分 */
 const SUITE_MAX_SCORE = {
-    standard_suite: 4,
+    standard_suite: 5,
     reasoning_suite: 3,
 };
 

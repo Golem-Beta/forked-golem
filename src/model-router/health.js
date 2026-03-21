@@ -83,15 +83,38 @@ class ProviderHealth {
     }
 
     /**
-     * 品質評分：優先讀 registry benchmark 分，否則 fallback 現有 score()
+     * 品質評分：結合 benchmark 分數（初始信心）與 patch 真實結果（移動平均）
+     * 樣本不足 5 次時 benchmark 佔 80%，達 5 次後 patch 佔 60%
      * registry 空白時行為 = 現況，不降級
      */
     qualityScore(provider, model) {
         try {
             const info = require('./provider-registry').getModelInfo(provider, model);
-            if (info && typeof info.benchmarkScore === 'number' && info.benchmarkMax) {
-                const benchFactor = info.benchmarkScore / info.benchmarkMax;
-                return benchFactor * this.score(provider, model);
+            if (info) {
+                // benchmark 分數（初始信心）
+                let benchFactor = null;
+                if (typeof info.benchmarkScore === 'number' && info.benchmarkMax) {
+                    benchFactor = info.benchmarkScore / info.benchmarkMax;
+                } else if (info.benchmarkScores?.code_edit != null) {
+                    benchFactor = info.benchmarkScores.code_edit; // 0 或 1
+                }
+
+                // patch 真實結果分數（移動平均）
+                const patchScore = info.patchScores?.code_edit;
+                const patchCount = info.patchScores?.code_edit_count || 0;
+
+                if (benchFactor != null || patchScore != null) {
+                    // 樣本不足 5 次：benchmark 佔 80%，patch 佔 20%
+                    // 樣本 >= 5 次：benchmark 佔 40%，patch 佔 60%
+                    const patchWeight = patchCount >= 5 ? 0.6 : Math.min(0.2, patchCount * 0.04);
+                    const benchWeight = 1 - patchWeight;
+
+                    const bF = benchFactor ?? 0.5; // 沒有 benchmark 時給中性分
+                    const pF = patchScore ?? bF;   // 沒有 patch 結果時 fallback 到 benchmark
+
+                    const combinedFactor = bF * benchWeight + pF * patchWeight;
+                    return combinedFactor * this.score(provider, model);
+                }
             }
         } catch (_) {}
         return this.score(provider, model);

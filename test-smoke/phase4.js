@@ -178,7 +178,7 @@ module.exports = function phase4(test) {
     });
     test('model-benchmark/tests exports TESTS array and MAX_SCORE', () => {
         const { TESTS, MAX_SCORE } = require('../src/autonomy/actions/model-benchmark/tests');
-        assert(Array.isArray(TESTS) && TESTS.length === 5);
+        assert(Array.isArray(TESTS) && TESTS.length === 6);
         assert(typeof MAX_SCORE === 'number');
     });
     test('model-benchmark/callers exports callGemini and callOpenAICompat', () => {

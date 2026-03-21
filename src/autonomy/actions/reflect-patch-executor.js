@@ -30,6 +30,10 @@ async function runSmokeGate() {
  */
 function buildUnifiedDiff(targetPath, testFile) {
     try {
+        // 防護：檢查目標路徑和測試文件路徑，避免用測試文件覆蓋源代碼
+        if (targetPath.endsWith('.js') && testFile.endsWith('.test.js')) {
+            return null; // 拒絕生成測試文件與源代碼的diff
+        }
         const r = spawnSync('diff', ['-u', targetPath, testFile], { encoding: 'utf-8' });
         if (r.error) return null;                    // diff 指令不存在
         if (r.status === 0) return '（無差異）';
@@ -125,6 +129,7 @@ class PatchExecutor extends BaseAction {
                 testFile, target: targetPath, name: targetName,
                 description: proposal.description || '', proposalType,
                 diffPreview: diffPreviewShort,
+                model: this.decision.lastModel,
             });
             global.pendingPatch.pendingId = pendingId;
         }

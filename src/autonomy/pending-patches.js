@@ -24,7 +24,7 @@ class PendingPatches {
     }
 
     // 新增提案，回傳 id
-    add({ testFile, target, name, description, proposalType, diffPreview }) {
+    add({ testFile, target, name, description, proposalType, diffPreview, model }) {
         const patches = this._read();
         const id = 'pp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
         patches.push({
@@ -38,6 +38,8 @@ class PendingPatches {
             diffPreview: diffPreview || '',
             createdAt: new Date().toISOString(),
             lastNotifiedAt: new Date().toISOString(),
+            model: model || null,
+            patchFeedbackWritten: false,
         });
         this._write(patches);
         return id;
