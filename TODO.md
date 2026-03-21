@@ -1,7 +1,7 @@
 # Forked-Golem TODO 統整
 
 > 從過去所有對話中彙整，按優先級排序
-> 最後更新：2026-03-10（session 15 — #25 Gmail 感知層升級 + RSS 訂閱評估）
+> 最後更新：2026-03-11（v9.19.1 — golem.log timestamp 改 CST+8）
 
 ---
 
@@ -73,6 +73,7 @@
 - ~~brain.js chatHistory 改中性格式 {role, content}，解除 Gemini provider 鎖定；appendAssistantMessage() 封裝外部寫入~~
 - ~~#22 model-benchmark 動態 routing 閉環 — benchmark 結果接入 health_check，pool 狀態依分數自動調整~~
 - ~~#25 gmail_check 升級感知層 — verdict 四分類（important/self_handle/trigger_action/ignore）+ LLM 注入 Beta soul.md + 近期 journal context~~
+- ~~golem.log timestamp 改 CST+8（修正 health-analyzer 時區偏移 bug，v9.19.1）~~
 
 ---
 
@@ -186,6 +187,7 @@
 | v9.16.0 | CodebaseIndexer + decision prompt 注入 | ✅ tagged |
 | v9.17.0 | model-benchmark action + ResultHandler + ReviewerAgent + AST reflect | ✅ tagged |
 | v9.18.x | Dynamic Provider Registry、Groq 模型更新、per-provider RPD、benchmark 可觀測性、三層幻覺防禦、chatHistory 中性格式 | 未 tag |
-| v9.19.x | #22 benchmark routing 閉環、parsers 修復 4、#25 Gmail 感知層升級（verdict 四分類 + LLM Beta context） | 未 tag |
+| v9.19.0 | #22 benchmark routing 閉環、parsers 修復 4、#25 Gmail 感知層升級（verdict 四分類 + LLM Beta context） | ✅ tagged |
+| v9.19.1 | golem.log timestamp 改 CST+8，修正 health-analyzer 時區偏移 bug | ✅ tagged |
 
 

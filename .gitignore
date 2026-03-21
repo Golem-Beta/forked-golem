@@ -48,3 +48,7 @@ threads-token.json
 # ── 執行時狀態（X200 本地）────────────────────────
 data/moltbook-state.json
 data/codebase-index.json
+
+# Local tools & CC config
+.claude/
+scripts/
