@@ -146,9 +146,13 @@ class PatchManager {
             aligned = replace;
         }
 
-        // Phase 2：偵測整體多一層縮排問題
-        // 若第二行起所有非空、非 template literal 內部的行，最小多餘縮排量恰好等於
-        // 一個 indent unit（4 spaces 或 1 tab），代表 LLM 整體多縮了一層，統一去掉。
+        // Phase 2：偵測整體多一層縮排問題（僅在 Phase 1 有套用 delta 時才考慮）
+        // 限制條件：origIndent !== replIndent（Phase 1 有介入）
+        //   - Phase 1 未介入（delta=0）時：body 在 origIndent + unitLen 是正常 method body 縮排，
+        //     不可 strip（否則會把 8-space body 錯誤壓縮到 4 spaces）
+        //   - Phase 1 有介入時：整體多縮情況已由 Phase 1 的 delta 修正；
+        //     若 closing `}` 縮排仍異常導致 minExtra === unitLen，也交由此分支處理
+        const phase2Applicable = origIndent !== replIndent;
         const alignedLines = aligned.split('\n');
         if (alignedLines.length < 2) return aligned;
 
@@ -186,8 +190,8 @@ class PatchManager {
             tplCur = nextTpl;
         }
 
-        // 若最小多餘縮排恰好等於一個 indent unit，統一去掉那一層
-        if (minExtra !== Infinity && minExtra === unitLen) {
+        // 若最小多餘縮排恰好等於一個 indent unit，且 Phase 1 有套用過，統一去掉那一層
+        if (phase2Applicable && minExtra !== Infinity && minExtra === unitLen) {
             const stripped = [alignedLines[0]];
             let tplStrip = tpl; // 進入當前行前的 template 狀態
             for (let i = 1; i < alignedLines.length; i++) {
