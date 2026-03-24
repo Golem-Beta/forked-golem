@@ -53,6 +53,8 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
   - ✅ 正確：`async makeDecision() {\n  ...\n}`（完整方法，只到自己的 `}`）
 - 縮排由系統自動正規化，不需手動對齊原始縮排
 - ⚠️ **換行符必須轉義**：`replace` 值內的所有換行符必須寫成 `\n`，不可使用實際換行。違反此規則會導致 JSON.parse() 失敗，patch 被完全丟棄。
+  - ❌ 嚴禁 JS 字串拼接：`"line1\n" + "line2\n" + "line3"` 是 JavaScript 語法，**不是合法 JSON**，會被直接丟棄
+  - ✅ 正確：整個 replace 是單一 JSON 字串：`"line1\nline2\nline3"`
 - ⚠️ **Regex 在 `replace` 欄位中有兩層 escape 規則**，違反任一條都會導致 `node -c` 失敗，patch 被丟棄：
   1. **`/` 必須轉義為 `\/`**：regex 字面量中含有 `/` 字元（例如 `<\/think>`、`<\/script>`）必須寫成 `\\/`，否則 `/` 會提前終止 regex，後面的文字被解析為非法 flags。
      - ❌ 錯誤：`raw.replace(/<think>[\\s\\S]*?</think>/g, '')`
@@ -82,4 +84,10 @@ Based on the diagnosis above, output ONLY a JSON Array with ONE focused patch.
 把多個改動打包進同一個 patch 會導致整個 proposal 被拒絕。
 
 Keep the patch small and focused. ONE change only.
-If you have no confident patch to propose, output exactly: []
+⚠️ **如果 DIAGNOSIS 已提供具體問題且 CODE_SNIPPET 非空，你必須輸出至少一個 patch proposal。**
+只有在以下情況才允許輸出 `[]`：
+- CODE_SNIPPET 為空或無法理解
+- 問題已在其他 patch 中修復（journal 明確顯示）
+- 你確認 patch 會造成比問題本身更大的破壞
+
+If none of the above apply and a diagnosis is provided, output a patch. Do not output `[]` just because you are uncertain — low confidence is acceptable, set confidence accordingly.
