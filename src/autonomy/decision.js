@@ -52,20 +52,30 @@ class DecisionEngine {
         const intent = opts.intent || 'utility';
         const intentDef = INTENT_REQUIREMENTS[intent];
         const defaultMaxTokens = intentDef ? intentDef.defaultMaxTokens : 1024;
-        const result = await this.brain.router.complete({
-            intent,
-            messages:        [{ role: 'user', content: prompt }],
-            maxTokens:       opts.maxOutputTokens || defaultMaxTokens,
-            temperature:     opts.temperature || 0.8,
-            tools:           opts.tools,
-            excludeProvider: opts.excludeProvider || null,
-        });
-        this._lastLLMMeta = result.meta;
-        this._lastTokens = result.usage;
-        return {
-            text: result.text,
-            grounding: result.grounding || null,
-        };
+        try {
+            const result = await this.brain.router.complete({
+                intent,
+                messages:        [{ role: 'user', content: prompt }],
+                maxTokens:       opts.maxOutputTokens || defaultMaxTokens,
+                temperature:     opts.temperature || 0.8,
+                tools:           opts.tools,
+                excludeProvider: opts.excludeProvider || null,
+            });
+            this._lastLLMMeta = result.meta;
+            this._lastTokens = result.usage;
+            if (!result.text || result.text.trim() === '') {
+                throw new Error('LLM response is empty');
+            }
+            return {
+                text: result.text,
+                grounding: result.grounding || null,
+            };
+        } catch (error) {
+            try {
+                this.journal.append({ action: 'llm_error', outcome: error.message, intent });
+            } catch (_) {}
+            throw error;
+        }
     }
 
     get lastModel() {
